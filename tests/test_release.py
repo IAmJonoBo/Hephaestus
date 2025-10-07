@@ -246,3 +246,32 @@ def test_download_wheelhouse_without_extract(
 
     assert result.extracted_path is None
     assert result.archive_path.exists()
+
+
+def test_sanitize_asset_name_strips_path_separators() -> None:
+    """Test that asset names are sanitized to prevent path traversal."""
+    # Normal names should pass through
+    assert release._sanitize_asset_name("wheelhouse.tar.gz") == "wheelhouse.tar.gz"
+    assert release._sanitize_asset_name("hephaestus-0.1.0.tar.gz") == "hephaestus-0.1.0.tar.gz"
+
+    # Path separators should be stripped
+    assert release._sanitize_asset_name("../../etc/passwd") == "passwd"
+    assert release._sanitize_asset_name("/absolute/path/file.tar.gz") == "file.tar.gz"
+    assert release._sanitize_asset_name("dir/subdir/file.tar.gz") == "file.tar.gz"
+
+    # Windows-style paths
+    assert release._sanitize_asset_name("C:\\Windows\\file.tar.gz") == "file.tar.gz"
+    assert release._sanitize_asset_name("..\\..\\file.tar.gz") == "file.tar.gz"
+
+    # Double dots should be replaced
+    assert release._sanitize_asset_name("file..tar.gz") == "file_.tar.gz"
+
+    # Empty or dangerous names should raise
+    with pytest.raises(release.ReleaseError, match="empty or unsafe"):
+        release._sanitize_asset_name(".")
+
+    with pytest.raises(release.ReleaseError, match="empty or unsafe"):
+        release._sanitize_asset_name("..")
+
+    with pytest.raises(release.ReleaseError, match="empty or unsafe"):
+        release._sanitize_asset_name("/")
