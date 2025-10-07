@@ -12,7 +12,8 @@ repos:
     rev: v3.19.0
     hooks:
       - id: pyupgrade
-        args: ["--py312-plus"]
+        args:
+          - --py312-plus
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.11.2
     hooks:
@@ -26,7 +27,10 @@ repos:
       - id: pip-audit
         # pip 25.2 is the latest release and ships with GHSA-4xh5-x5gv-qwph; ignore until
         # upstream publishes a patched wheel so the audit stays actionable.
-        args: ["--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"]
+        args:
+          - --strict
+          - --ignore-vuln
+          - GHSA-4xh5-x5gv-qwph
   - repo: local
     hooks:
       - id: hephaestus-cleanup

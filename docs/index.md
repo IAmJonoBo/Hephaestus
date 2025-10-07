@@ -5,12 +5,12 @@ plan rollouts, run the CLI, and keep automation evergreen.
 
 ## Quick Links
 
-- [Lifecycle Playbook](lifecycle.md)
-- [Editor Setup](editor-setup.md)
-- [CLI Autocompletion](cli-completions.md)
-- [Pre-Release Checklist](pre-release-checklist.md)
-- [Architecture Decision Records](adr/0000-template.md)
-- [Toolkit Playbooks](../hephaestus-toolkit/refactoring/docs/README.md)
+- Tutorials: [Getting Started](tutorials/getting-started.md)
+- How-to guides: [Install from a Wheelhouse](how-to/install-wheelhouse.md), [Configure Your Editor](how-to/editor-setup.md)
+- Explanation: [Architecture Overview](explanation/architecture.md), [Lifecycle Playbook](lifecycle.md)
+- Reference: [CLI Reference](reference/cli.md), [CLI Autocompletion](cli-completions.md), [Pre-Release Checklist](pre-release-checklist.md)
+- Appendix: [ADR Template](adr/0000-template.md)
+- Toolkit Playbooks: [Refactoring Toolkit docs](../hephaestus-toolkit/refactoring/docs/README.md)
 
 ## Getting Started
 
@@ -23,5 +23,5 @@ plan rollouts, run the CLI, and keep automation evergreen.
 ## Contributing
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for branching, testing, and release guidance. The docs
-are built with MkDocs Material—use `uv run docs-serve` for a live preview or `uv run docs-build` to
-render static assets.
+are built with MkDocs Material—use `uv run mkdocs serve` for a live preview or `uv run mkdocs build`
+to render static assets.

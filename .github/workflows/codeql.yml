@@ -8,12 +8,12 @@ on:
   schedule:
     - cron: 0 3 * * 0
 
+permissions: read-all
+
 jobs:
   analyze:
     runs-on: ubuntu-latest
     permissions:
-      actions: read
-      contents: read
       security-events: write
     strategy:
       matrix:
@@ -28,7 +28,7 @@ jobs:
           languages: ${{ matrix.language }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v6
 
       - name: Sync dependencies
         run: uv sync --extra dev --extra qa

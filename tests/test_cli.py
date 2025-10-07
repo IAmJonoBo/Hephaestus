@@ -104,3 +104,59 @@ def test_cleanup_command_reports_errors(monkeypatch: pytest.MonkeyPatch, tmp_pat
 
     assert result.exit_code == 1
     assert "Cleanup Errors" in result.stdout
+
+
+def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> None:
+    _, cli = _load_modules()
+
+    cleanup_calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
+
+    def _fake_cleanup(*args: Any, **kwargs: Any) -> None:
+        cleanup_calls.append((args, kwargs))
+
+    monkeypatch.setattr(cli, "cleanup", _fake_cleanup)
+
+    executed: list[list[str]] = []
+
+    def _fake_run(command: list[str], *, check: bool) -> None:
+        assert check is True
+        executed.append(command)
+
+    monkeypatch.setattr(cli.subprocess, "run", _fake_run)
+
+    result = runner.invoke(cli.app, ["guard-rails"])
+
+    assert result.exit_code == 0
+    assert cleanup_calls
+    assert cleanup_calls[0][1]["deep_clean"] is True
+    assert executed == [
+        ["ruff", "check", "."],
+        ["ruff", "format", "."],
+        ["mypy", "src", "tests"],
+        ["pytest"],
+        ["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"],
+    ]
+    assert "Guard rails completed successfully" in result.stdout
+
+
+def test_guard_rails_command_is_registered() -> None:
+    _, cli = _load_modules()
+    command_names = {command.name for command in cli.app.registered_commands}
+    assert "guard-rails" in command_names
+
+
+def test_guard_rails_can_skip_format(monkeypatch: pytest.MonkeyPatch) -> None:
+    _, cli = _load_modules()
+    monkeypatch.setattr(cli, "cleanup", lambda *args, **kwargs: None)
+
+    executed: list[list[str]] = []
+
+    def _fake_run(command: list[str], *, check: bool) -> None:
+        executed.append(command)
+
+    monkeypatch.setattr(cli.subprocess, "run", _fake_run)
+
+    result = runner.invoke(cli.app, ["guard-rails", "--no-format"])
+
+    assert result.exit_code == 0
+    assert ["ruff", "format", "."] not in executed

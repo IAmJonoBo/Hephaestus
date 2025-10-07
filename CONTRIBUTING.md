@@ -6,7 +6,7 @@ ship improvements with confidence.
 ## Prerequisites
 
 - Python 3.12 or newer
-- [`uv`](https://github.com/astral-sh/uv) for dependency management and command aliases
+- [`uv`](https://github.com/astral-sh/uv) for dependency management and isolated command execution
 - GitHub account with access to fork the repository or create branches
 
 Clone the repository and install the toolchain:
@@ -22,19 +22,20 @@ uv run pre-commit install
 - Use descriptive commit messages that explain the change and its impact.
 - Run the full guard rail suite before opening a pull request (see below).
 
-## Command Shortcuts
+## Common Workflows
 
-The project defines `uv` scripts for common workflows:
+Run the guard-rail tooling directly with `uv` so everything stays reproducible:
 
 ```bash
-uv run lint           # Ruff lint checks
-uv run format         # Ruff formatter
-uv run typecheck      # Mypy strict mode across src/ and tests/
-uv run test           # Pytest with coverage gating
-uv run cleanup        # Workspace deep-clean
-uv run audit          # pip-audit with the current suppression list
-uv run docs-serve     # MkDocs local preview (see Documentation)
-uv run docs-build     # MkDocs static site build
+uv run hephaestus guard-rails                            # Full sweep (cleanup, lint, typecheck, tests, audit)
+uv run ruff check .                                      # Lint
+uv run ruff format .                                    # Auto-format
+uv run mypy src tests                                   # Static typing
+uv run pytest                                           # Unit tests with coverage
+uv run hephaestus cleanup --deep-clean                  # Workspace hygiene
+uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph  # Dependency audit
+uv run mkdocs serve                                     # Docs live preview
+uv run mkdocs build                                     # Docs static site build
 ```
 
 ## Pre-Commit Guard Rails
@@ -47,12 +48,14 @@ uv run docs-build     # MkDocs static site build
 
 Before requesting review:
 
-1. `uv run cleanup`
-2. `uv run lint`
-3. `uv run format`
-4. `uv run typecheck`
-5. `uv run test`
-6. `uv run audit`
+- Run `uv run hephaestus guard-rails` for a full sweep, or execute the individual steps below.
+
+1. `uv run hephaestus cleanup --deep-clean`
+2. `uv run ruff check .`
+3. `uv run ruff format .`
+4. `uv run mypy src tests`
+5. `uv run pytest`
+6. `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph`
 7. Confirm `uv run hephaestus plan` shows the change in the rollout timeline when applicable.
 
 For releases, consult `docs/pre-release-checklist.md` for additional automation steps.
@@ -61,9 +64,9 @@ For releases, consult `docs/pre-release-checklist.md` for additional automation 
 
 - The `docs/` folder follows a Diátaxis-inspired layout. Keep tutorials, how-to guides, reference,
   and explanations distinct.
-- Update `docs/editor-setup.md` when onboarding instructions change, and surface major updates in
+- Update `docs/how-to/editor-setup.md` when onboarding instructions change, and surface major updates in
   `docs/lifecycle.md`.
-- Use `uv run docs-serve` while working on MkDocs content (once the site is bootstrapped).
+- Use `uv run mkdocs serve` while working on MkDocs content (once the site is bootstrapped).
 
 ## Testing Strategy
 

@@ -8,22 +8,27 @@ helpers work on Linux, macOS, and Windows runners without extra dependencies.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shutil
 import subprocess
 import sys
 import tarfile
+import time
 import urllib.error
 import urllib.request
 from collections.abc import Sequence
 from dataclasses import dataclass
 from fnmatch import fnmatch
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from typing import IO
 
 __all__ = [
     "DEFAULT_ASSET_PATTERN",
     "DEFAULT_REPOSITORY",
     "DEFAULT_DOWNLOAD_DIRECTORY",
+    "DEFAULT_TIMEOUT",
+    "DEFAULT_MAX_RETRIES",
     "ReleaseDownload",
     "ReleaseError",
     "default_download_dir",
@@ -39,6 +44,15 @@ DEFAULT_ASSET_PATTERN = os.environ.get("HEPHAESTUS_RELEASE_ASSET_PATTERN", "*whe
 
 _GITHUB_API = "https://api.github.com"
 _USER_AGENT = "hephaestus-wheelhouse-client"
+_BACKOFF_INITIAL = 0.5
+_BACKOFF_FACTOR = 2.0
+
+
+DEFAULT_TIMEOUT = 10.0
+DEFAULT_MAX_RETRIES = 3
+
+
+logger = logging.getLogger(__name__)
 
 
 class ReleaseError(RuntimeError):
@@ -91,6 +105,78 @@ def default_download_dir() -> Path:
 DEFAULT_DOWNLOAD_DIRECTORY = default_download_dir()
 
 
+def _sanitize_asset_name(name: str) -> str:
+    """Return a filesystem-safe asset name and log when modifications occur."""
+
+    normalized = name.replace("\\", "/")
+    candidate = PurePosixPath(normalized).name
+    candidate = candidate.replace("..", "_")
+
+    if not candidate or candidate in {".", ""}:
+        raise ReleaseError("Asset name resolved to an empty or unsafe value after sanitisation.")
+
+    if candidate != name:
+        logger.warning(
+            "Sanitised asset name from %r to %r to prevent path traversal.",
+            name,
+            candidate,
+        )
+
+    return candidate
+
+
+def _open_with_retries(
+    request: urllib.request.Request,
+    *,
+    timeout: float,
+    max_retries: int,
+    description: str,
+) -> IO[bytes]:
+    attempt = 0
+    delay = _BACKOFF_INITIAL
+    last_error: Exception | None = None
+
+    while attempt < max_retries:
+        attempt += 1
+        try:
+            return urllib.request.urlopen(  # nosec B310 - HTTPS enforced by callers
+                request,
+                timeout=timeout,
+            )
+        except urllib.error.HTTPError as exc:
+            last_error = exc
+            if exc.code >= 500 and attempt < max_retries:
+                logger.warning(
+                    "%s failed with HTTP %s on attempt %s/%s; retrying in %.1fs.",
+                    description,
+                    exc.code,
+                    attempt,
+                    max_retries,
+                    delay,
+                )
+            else:
+                raise
+        except urllib.error.URLError as exc:  # pragma: no cover - network dependent
+            last_error = exc
+            if attempt >= max_retries:
+                break
+            logger.warning(
+                "%s failed on attempt %s/%s: %s; retrying in %.1fs.",
+                description,
+                attempt,
+                max_retries,
+                getattr(exc, "reason", exc),
+                delay,
+            )
+
+        time.sleep(delay)
+        delay *= _BACKOFF_FACTOR
+
+    if last_error:
+        raise last_error
+    raise ReleaseError(f"Failed to complete {description} after {max_retries} attempts.")
+
+
 def _build_request(
     url: str, token: str | None, accept: str = "application/vnd.github+json"
 ) -> urllib.request.Request:
@@ -102,7 +188,14 @@ def _build_request(
     return request
 
 
-def _fetch_release(repository: str, tag: str | None, token: str | None) -> dict:
+def _fetch_release(
+    repository: str,
+    tag: str | None,
+    token: str | None,
+    *,
+    timeout: float = DEFAULT_TIMEOUT,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+) -> dict:
     owner_repo = repository.strip()
     if not owner_repo or "/" not in owner_repo:
         raise ReleaseError(
@@ -118,9 +211,12 @@ def _fetch_release(repository: str, tag: str | None, token: str | None) -> dict:
         raise ReleaseError(f"Unsupported release URL scheme: {url}")
 
     try:
-        with urllib.request.urlopen(  # nosec B310 - HTTPS enforced above
-            _build_request(url, token)
-        ) as response:  # type: ignore[arg-type]
+        with _open_with_retries(
+            _build_request(url, token),
+            timeout=timeout,
+            max_retries=max_retries,
+            description="GitHub release metadata",
+        ) as response:
             payload = response.read()
     except urllib.error.HTTPError as exc:  # pragma: no cover - network failures vary
         if exc.code == 404:
@@ -145,13 +241,14 @@ def _pick_asset(release_data: dict, asset_pattern: str) -> ReleaseAsset:
     assets = release_data.get("assets", [])
     for asset in assets:
         name = asset.get("name", "")
+        sanitized = _sanitize_asset_name(name)
         if asset_pattern and not fnmatch(name, asset_pattern):
             continue
         download_url = asset.get("browser_download_url") or asset.get("url")
         if not download_url:
             continue
         size = int(asset.get("size", 0))
-        return ReleaseAsset(name=name, download_url=str(download_url), size=size)
+        return ReleaseAsset(name=sanitized, download_url=str(download_url), size=size)
     available = ", ".join(asset.get("name", "<unnamed>") for asset in assets)
     raise ReleaseError(
         "Could not find asset matching pattern"
@@ -160,7 +257,13 @@ def _pick_asset(release_data: dict, asset_pattern: str) -> ReleaseAsset:
 
 
 def _download_asset(
-    asset: ReleaseAsset, destination: Path, token: str | None, overwrite: bool
+    asset: ReleaseAsset,
+    destination: Path,
+    token: str | None,
+    overwrite: bool,
+    *,
+    timeout: float = DEFAULT_TIMEOUT,
+    max_retries: int = DEFAULT_MAX_RETRIES,
 ) -> Path:
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists() and not overwrite:
@@ -174,9 +277,14 @@ def _download_asset(
     request = _build_request(asset.download_url, token, accept="application/octet-stream")
     try:
         with (
-            urllib.request.urlopen(request) as response,  # nosec B310 - HTTPS enforced above
+            _open_with_retries(
+                request,
+                timeout=timeout,
+                max_retries=max_retries,
+                description=f"Download of {asset.name}",
+            ) as response,
             destination.open("wb") as fh,
-        ):  # type: ignore[arg-type]
+        ):
             shutil.copyfileobj(response, fh)
     except urllib.error.HTTPError as exc:  # pragma: no cover - network dependent
         raise ReleaseError(f"Failed to download asset: HTTP {exc.code} {exc.reason}") from exc
@@ -271,17 +379,32 @@ def download_wheelhouse(
     overwrite: bool = False,
     extract: bool = True,
     extract_dir: Path | None = None,
+    timeout: float = DEFAULT_TIMEOUT,
+    max_retries: int = DEFAULT_MAX_RETRIES,
 ) -> ReleaseDownload:
     """Download a wheelhouse archive from a GitHub release."""
 
-    release_data = _fetch_release(repository, tag, token)
+    release_data = _fetch_release(
+        repository,
+        tag,
+        token,
+        timeout=timeout,
+        max_retries=max_retries,
+    )
     asset = _pick_asset(release_data, asset_pattern)
 
     destination_dir = destination_dir.resolve()
     destination_dir.mkdir(parents=True, exist_ok=True)
     archive_path = destination_dir / asset.name
 
-    _download_asset(asset, archive_path, token, overwrite=overwrite)
+    _download_asset(
+        asset,
+        archive_path,
+        token,
+        overwrite=overwrite,
+        timeout=timeout,
+        max_retries=max_retries,
+    )
 
     extracted: Path | None = None
     if extract:

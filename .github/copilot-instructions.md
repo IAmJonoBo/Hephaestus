@@ -1,3 +1,5 @@
+# Copilot Instructions
+
 ## Workspace Setup Checklist
 
 - [x] Verify that the copilot-instructions.md file in the .github directory is created.

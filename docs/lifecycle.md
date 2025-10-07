@@ -75,8 +75,8 @@ experience (DX), user experience (UX), and code quality (CQ).
 - **Wheelhouse Consumption**: Run `uv run hephaestus release install --tag <tag>` from any project to
   download the matching release archive, install its wheels into the active environment, and keep the
   toolkit versions aligned even before PyPI publication.
-- **Deep-Clean Stage**: The release workflow installs `uv` and performs `uv run hephaestus cleanup
---deep-clean` before version detection so archives and tags never include workspace cruft.
+- **Deep-Clean Stage**: The release workflow installs `uv` and performs `uv run hephaestus cleanup --deep-clean`
+  before version detection so archives and tags never include workspace cruft.
 - **Semantic Version Discipline**: Bump the `version` field using semver semantics—patch for safety
   fixes, minor for new features, major for breaking changes.
 - **Pre-Release Checklist**: Run through `docs/pre-release-checklist.md` before pushing the final
@@ -114,6 +114,7 @@ experience (DX), user experience (UX), and code quality (CQ).
 uv sync --extra dev --extra qa
 uv run pre-commit install
 uv run pre-commit run --all-files
+uv run hephaestus guard-rails
 uv run ruff check .
 uv run mypy src tests
 uv run pytest

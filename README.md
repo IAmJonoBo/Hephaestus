@@ -24,6 +24,7 @@ uv run hephaestus tools qa --profile quick --dry-run
 uv run hephaestus tools qa coverage
 uv run hephaestus plan
 uv run hephaestus cleanup --deep-clean
+uv run hephaestus guard-rails
 uv run hephaestus release install --help
 uv run pre-commit install
 uv run pre-commit run --all-files
@@ -60,6 +61,7 @@ See `docs/cli-completions.md` for manual installation steps and regeneration tip
 - Pre-commit hooks trigger `uv run hephaestus cleanup` on commits and pushes so macOS metadata never enters history.
 - Continuous integration runs on GitHub Actions (`CI` workflow) for pushes to `main` and pull requests, exercising the pytest suite against Python 3.12 and 3.13.
 - Linting and typing (Ruff + Mypy) run on every matrix job, with coverage published as artefacts and failing below 85%; each job performs a cleanup sweep immediately after dependency syncing.
+- The `uv run hephaestus guard-rails` command executes the local cleanup, lint, format, typing, testing, and audit pipeline sequentially for quick validation.
 - Automated release tagging (`Automated Release Tagging` workflow) cuts a `v*` tag and GitHub Release whenever the version in `pyproject.toml` advances on `main`, and performs a deep-clean sweep before tagging.
 - Release wheelhouse packaging (`Build Wheelhouse` workflow) zips the built wheels and sdists for each release, uploads them as workflow artefacts, and attaches the bundle to the GitHub Release for easy download while PyPI access is pending.
 - The `hephaestus release install` command fetches the latest (or a specified) wheelhouse archive from GitHub Releases and installs the wheels into the current environment, making consumption trivial from any repo.
@@ -87,10 +89,18 @@ hephaestus/
 ├── pyproject.toml                           # Project metadata and dependencies
 ├── README.md                                # This overview
 ├── LICENSE                                  # MIT licence
-├── src/hephaestus/                          # Python package
+├── docs/                                    # Diátaxis-aligned documentation
+│   ├── index.md                             # Documentation landing page
+│   ├── tutorials/                           # Step-by-step walkthroughs
+│   ├── how-to/                              # Task-oriented guides (includes editor setup)
+│   ├── explanation/                         # Architecture and conceptual material
+│   └── reference/                           # Command and API references
+├── src/hephaestus/                          # Python package installed via wheelhouse
 │   ├── __init__.py                          # Version metadata
 │   ├── cli.py                               # Typer-based CLI entry point
+│   ├── cleanup.py                           # Workspace hygiene engine
 │   ├── planning.py                          # Execution plan rendering helpers
+│   ├── release.py                           # Wheelhouse download/install helpers
 │   └── toolbox.py                           # Quality, coverage, and refactor APIs
 ├── hephaestus-toolkit/                      # Standalone scripts and configs
 │   └── refactoring/
@@ -98,7 +108,8 @@ hephaestus/
 │       ├── docs/                            # Playbooks and implementation notes
 │       ├── scripts/                         # Analysis, codemods, verification helpers
 │       └── ci/                              # Workflow fragment for pipelines
-└── tests/                                   # Pytest suites (see below)
+├── tests/                                   # Pytest suites (CLI, release, planning, cleanup)
+└── dist/                                    # Generated wheels/sdists (created by `uv build`, ignored in git)
 ```
 
 ## Configuration
@@ -113,10 +124,15 @@ Hephaestus reads defaults from `[tool.hephaestus.toolkit]` in `pyproject.toml`. 
 
 ## Documentation
 
-- `docs/lifecycle.md` — Evergreen lifecycle playbook that ties tooling to each development stage.
-- `docs/pre-release-checklist.md` — Hands-on checklist for pre-release hygiene, including cleanup sweeps and guard rails.
-- `docs/adr/` — Architecture Decision Records for capturing context and choices.
-- `hephaestus-toolkit/refactoring/docs/` — Playbooks and implementation notes specific to the refactoring toolkit.
+The documentation site follows the [Diátaxis](https://diataxis.fr/) framework:
+
+- **Tutorials** — e.g. `docs/tutorials/getting-started.md` for first-run guidance.
+- **How-to guides** — task recipes such as `docs/how-to/install-wheelhouse.md` and `docs/how-to/editor-setup.md`.
+- **Explanation** — conceptual material including `docs/explanation/architecture.md` and the lifecycle playbook.
+- **Reference** — factual resources such as `docs/reference/cli.md`, `docs/cli-completions.md`, and the pre-release checklist.
+- **Appendix** — templates and supporting material under `docs/adr/`.
+
+Additional playbooks for the refactoring toolkit live under `hephaestus-toolkit/refactoring/docs/`.
 
 ## Contributing
 

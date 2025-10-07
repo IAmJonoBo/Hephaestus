@@ -1,0 +1,6 @@
+[bandit]
+# Suppress assert-use and subprocess warnings flagged by Bandit.
+#
+# B101: tests use bare asserts by design.
+# B404/B603/B607: subprocess usage is limited to vetted commands within the CLI and cleanup tooling.
+skips = B101,B404,B603,B607

@@ -4,9 +4,9 @@ on:
   workflow_call:
     inputs:
       profile:
-        description: "QA profile to execute"
+        description: QA profile to execute
         required: false
-        default: "quick"
+        default: quick
         type: string
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: 3.12
       - name: Install uv
         run: pip install uv
       - name: Sync dependencies

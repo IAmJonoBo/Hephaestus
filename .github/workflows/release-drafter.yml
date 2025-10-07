@@ -6,12 +6,13 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, closed]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   update_release_draft:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
       - name: Run Release Drafter
         uses: release-drafter/release-drafter@v6
