@@ -7,6 +7,32 @@ import subprocess
 from pathlib import Path
 from typing import Annotated
 
+import typer
+from rich.console import Console
+from rich.table import Table
+
+from hephaestus import __version__
+from hephaestus import cleanup as cleanup_module
+from hephaestus import planning as planning_module
+from hephaestus import release as release_module
+from hephaestus import toolbox
+
+app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
+tools_app = typer.Typer(name="tools", help="Toolkit command groups.", no_args_is_help=True)
+refactor_app = typer.Typer(name="refactor", help="Refactor analysis commands.", no_args_is_help=True)
+qa_app = typer.Typer(name="qa", help="Quality assurance commands.", no_args_is_help=True)
+release_app = typer.Typer(name="release", help="Release management commands.", no_args_is_help=True)
+
+tools_app.add_typer(refactor_app)
+tools_app.add_typer(qa_app)
+app.add_typer(tools_app)
+app.add_typer(release_app)
+
+console = Console()
+
+
+@release_app.command("install")
+def release_install(
     repository: Annotated[
         str,
         typer.Option(
@@ -347,6 +373,44 @@ def plan() -> None:
         ]
     )
     planning_module.display_plan(plan_steps, console=console)
+
+
+@app.command("guard-rails")
+def guard_rails(
+    no_format: Annotated[
+        bool,
+        typer.Option("--no-format", help="Skip the formatting step.", show_default=False),
+    ] = False,
+) -> None:
+    """Run the full guard-rail pipeline: cleanup, lint, format, typecheck, test, and audit."""
+
+    console.print("[cyan]Running guard rails...[/cyan]")
+
+    # Step 1: Deep clean workspace
+    cleanup(deep_clean=True)
+
+    # Step 2: Lint with ruff
+    console.print("\n[cyan]→ Running ruff check...[/cyan]")
+    subprocess.run(["ruff", "check", "."], check=True)
+
+    # Step 3: Format with ruff (unless skipped)
+    if not no_format:
+        console.print("[cyan]→ Running ruff format...[/cyan]")
+        subprocess.run(["ruff", "format", "."], check=True)
+
+    # Step 4: Type check with mypy
+    console.print("[cyan]→ Running mypy...[/cyan]")
+    subprocess.run(["mypy", "src", "tests"], check=True)
+
+    # Step 5: Run tests with pytest
+    console.print("[cyan]→ Running pytest...[/cyan]")
+    subprocess.run(["pytest"], check=True)
+
+    # Step 6: Security audit with pip-audit
+    console.print("[cyan]→ Running pip-audit...[/cyan]")
+    subprocess.run(["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"], check=True)
+
+    console.print("\n[green]✓ Guard rails completed successfully.[/green]")
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -171,3 +171,32 @@ def test_run_cleanup_removes_extended_build_artifacts(tmp_path: Path) -> None:
         "app.tsbuildinfo",
     }
     assert expected.issubset(removed_names)
+
+
+def test_dangerous_path_detection() -> None:
+    """Test that dangerous paths are correctly identified."""
+    from hephaestus.cleanup import is_dangerous_path
+
+    assert is_dangerous_path(Path("/"))
+    assert is_dangerous_path(Path("/home"))
+    assert is_dangerous_path(Path("/usr"))
+    assert is_dangerous_path(Path("/etc"))
+    assert is_dangerous_path(Path.home())
+
+    # Safe paths should not be flagged
+    assert not is_dangerous_path(Path("/home/user/project"))
+    assert not is_dangerous_path(Path.cwd())
+
+
+def test_resolve_root_refuses_dangerous_paths() -> None:
+    """Test that resolve_root refuses to clean dangerous paths."""
+    from hephaestus.cleanup import resolve_root
+
+    with pytest.raises(ValueError, match="Refusing to clean dangerous path"):
+        resolve_root(Path("/"))
+
+    with pytest.raises(ValueError, match="Refusing to clean dangerous path"):
+        resolve_root(Path("/usr"))
+
+    with pytest.raises(ValueError, match="Refusing to clean dangerous path"):
+        resolve_root(Path.home())

@@ -1,6 +1,33 @@
 # Next Steps Tracker
 
-Last updated: 2025-10-08
+Last updated: 2025-01-08
+
+## Implementation Status Summary
+
+**High Priority (Security & Safety):**
+- ✅ SECURITY.md published with disclosure process
+- ✅ STRIDE threat model completed (ADR-0001)
+- ✅ Guard-rails command implemented at module scope
+- ✅ Cleanup safety rails with dangerous path protection
+- ✅ Operating Safely guide created
+- ✅ Rollback procedures documented
+- ✅ Test order independence (pytest-randomly added)
+- 🔄 Release checksum verification (planned)
+- 🔄 Timeout/backoff enhancements (partially implemented)
+
+**Medium Priority (Quality & Observability):**
+- ✅ Dependency versions refreshed (ruff, black, mypy, pip-audit)
+- ✅ Documentation comprehensive and up-to-date
+- 🔄 Structured logging/telemetry (planned)
+- 🔄 Asset name sanitization (planned)
+
+**Low Priority (Operational Excellence):**
+- ✅ Rollback documentation complete with templates
+- 🔄 CI lint for nested decorators (planned)
+
+Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
+
+---
 
 ## Red Team Findings
 
@@ -26,10 +53,33 @@ Last updated: 2025-10-08
 ## Action Queue
 
 1. **Secure the release channel** – land checksum/signature verification and timeout/backoff handling, then backfill signed artefacts for historical releases.
+   - [ ] Implement SHA-256 checksum verification for wheelhouse downloads
+   - [ ] Add Sigstore attestation support
+   - [ ] Enhance timeout/backoff handling with circuit breaker pattern
 2. **Ship cleanup safety rails** – introduce protective defaults and update docs/tests to demonstrate safe usage.
+   - [x] Implemented dangerous path blocklist (/, /home, /usr, /etc)
+   - [x] Added is_dangerous_path() validation in resolve_root()
+   - [x] Created tests for dangerous path protection
+   - [x] Documented safety features in Operating Safely guide
 3. **Unblock guard rails everywhere** – move the command registration to module scope, randomise pytest order, and add CI lint to prevent nested decorators.
-   - [x] Guard-rails command registered at import time with regression test (`tests/test_cli.py`).
-   - [ ] Restore CLI wiring after recent local regressions and add documentation snippet to README/Next Steps.
+   - [x] Guard-rails command registered at module scope with full pipeline (`src/hephaestus/cli.py`).
+   - [x] Regression test validates command registration (`tests/test_cli.py`).
+   - [x] Added pytest-randomly to dependencies for test order independence
+   - [x] CLI wiring restored and documented in README
+   - [ ] Add CI lint to prevent nested decorators
 4. **Formalise AppSec posture** – publish `SECURITY.md`, threat model notes, and operational runbooks (rollback, telemetry, disclosure).
+   - [x] Published SECURITY.md with disclosure process, contact channels, and SLAs
+   - [x] Created STRIDE threat model (docs/adr/0001-stride-threat-model.md)
+   - [x] Documented rollback procedures in pre-release-checklist.md
+   - [x] Created Operating Safely guide with operational runbooks
+   - [x] Linked security documentation from README
 5. **Refresh automation dependencies** – bump pre-commit hooks and revisit the pip-audit CVE waiver once patched.
+   - [x] Updated ruff from 0.6.8 to 0.8.6
+   - [x] Updated black from 24.8.0 to 25.1.0
+   - [x] Updated mypy from 1.11.2 to 1.14.1
+   - [x] Updated pip-audit from 2.7.3 to 2.9.2
+   - [x] Updated pyupgrade from 3.19.0 to 3.19.3
+   - [ ] Revisit GHSA-4xh5-x5gv-qwph waiver once upstream patches
 6. **Resynchronise with upstream** – fetch and merge `origin/main` to reconcile CLI and release command divergences before landing further changes.
+   - [x] Working from grafted main branch
+   - [ ] Final sync before merge

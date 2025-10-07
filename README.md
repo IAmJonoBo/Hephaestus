@@ -44,6 +44,7 @@ Use the Typer-based CLI to move quickly from discovery to delivery:
 - `tools qa coverage`: highlights uncovered lines and risk scores tuned to your coverage goals.
 - `release install`: downloads the latest (or specified) wheelhouse from GitHub Releases, installs the bundled wheels, and optionally cleans up caches when you're integrating Hephaestus into another repository.
 - `cleanup`: scrubs macOS cruft and optional caches/build artefacts from the workspace (also available via `./cleanup-macos-cruft.sh`).
+- `guard-rails`: runs the full quality and security pipeline (cleanup, lint, format, type check, test, audit) in one command. Use `--no-format` to skip auto-formatting.
 - `plan`: renders a rich execution plan so teams can visualise orchestration progress during a rollout.
 
 #### Shell Completions
@@ -142,3 +143,12 @@ Additional playbooks for the refactoring toolkit live under `hephaestus-toolkit/
 4. Open a pull request with clear before/after context and updated documentation.
 
 Hephaestus embraces incremental, evidence-based change. Use the provided tools to gather metrics, add characterization tests, and stage refactors safely.
+
+For security concerns, please review our [Security Policy](SECURITY.md).
+
+## Security
+
+We take security seriously. If you discover a security vulnerability, please follow our [Security Policy](SECURITY.md) for responsible disclosure. See also:
+
+- [STRIDE Threat Model](docs/adr/0001-stride-threat-model.md) - Comprehensive security analysis
+- [Operating Safely Guide](docs/how-to/operating-safely.md) - Safe usage practices and constraints

@@ -10,7 +10,13 @@ from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
-__all__ = ["CleanupOptions", "CleanupResult", "run_cleanup", "resolve_root"]
+__all__ = [
+    "CleanupOptions",
+    "CleanupResult",
+    "run_cleanup",
+    "resolve_root",
+    "is_dangerous_path",
+]
 
 GIT_DIR = ".git"
 VENV_DIR = ".venv"
@@ -144,12 +150,58 @@ BUILD_ARTIFACT_PATTERNS: tuple[str, ...] = (
 
 IPYNB_CHECKPOINT_DIR = ".ipynb_checkpoints"
 
+# Dangerous paths that should never be cleaned
+DANGEROUS_PATHS: tuple[str, ...] = (
+    "/",
+    "/home",
+    "/usr",
+    "/etc",
+    "/var",
+    "/bin",
+    "/sbin",
+    "/lib",
+    "/lib64",
+    "/opt",
+    "/boot",
+    "/root",
+    "/sys",
+    "/proc",
+    "/dev",
+)
+
+
+def is_dangerous_path(path: Path) -> bool:
+    """Check if a path is in the dangerous paths list."""
+    resolved = path.resolve()
+    str_path = str(resolved)
+    
+    # Check exact match
+    if str_path in DANGEROUS_PATHS:
+        return True
+    
+    # Check if it's home directory
+    home = Path.home()
+    if resolved == home:
+        return True
+    
+    return False
+
 
 def resolve_root(root: Path | None) -> Path:
     """Return the workspace root or the git repository root if available."""
 
     if root is not None:
-        return Path(root).resolve()
+        resolved = Path(root).resolve()
+        
+        # Safety check: refuse dangerous paths
+        if is_dangerous_path(resolved):
+            raise ValueError(
+                f"Refusing to clean dangerous path: {resolved}. "
+                "If you really need to clean this path, use a tool specifically "
+                "designed for system administration."
+            )
+        
+        return resolved
 
     try:
         completed = subprocess.run(
