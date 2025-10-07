@@ -1,0 +1,26 @@
+name: Hephaestus Toolkit Advisory Gates
+
+on:
+  workflow_call:
+    inputs:
+      profile:
+        description: "QA profile to execute"
+        required: false
+        default: "quick"
+        type: string
+
+jobs:
+  toolkit-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: pip install uv
+      - name: Sync dependencies
+        run: uv sync
+      - name: Run toolkit QA profile
+        run: uv run hephaestus tools qa profile ${{ inputs.profile }}

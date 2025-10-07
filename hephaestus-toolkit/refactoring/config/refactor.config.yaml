@@ -1,0 +1,13 @@
+# Default configuration for the Hephaestus toolkit.
+coverage_threshold: 0.78
+hotspot_limit: 10
+repositories:
+  - monolith
+  - services/api
+qa_profiles:
+  quick:
+    coverage_goal: 0.7
+    requires_ci: false
+  full:
+    coverage_goal: 0.9
+    requires_ci: true
