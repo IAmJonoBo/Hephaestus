@@ -386,31 +386,37 @@ def guard_rails(
 
     console.print("[cyan]Running guard rails...[/cyan]")
 
-    # Step 1: Deep clean workspace
-    cleanup(deep_clean=True)
+    try:
+        # Step 1: Deep clean workspace
+        cleanup(deep_clean=True)
 
-    # Step 2: Lint with ruff
-    console.print("\n[cyan]→ Running ruff check...[/cyan]")
-    subprocess.run(["ruff", "check", "."], check=True)
+        # Step 2: Lint with ruff
+        console.print("\n[cyan]→ Running ruff check...[/cyan]")
+        subprocess.run(["ruff", "check", "."], check=True)
 
-    # Step 3: Format with ruff (unless skipped)
-    if not no_format:
-        console.print("[cyan]→ Running ruff format...[/cyan]")
-        subprocess.run(["ruff", "format", "."], check=True)
+        # Step 3: Format with ruff (unless skipped)
+        if not no_format:
+            console.print("[cyan]→ Running ruff format...[/cyan]")
+            subprocess.run(["ruff", "format", "."], check=True)
 
-    # Step 4: Type check with mypy
-    console.print("[cyan]→ Running mypy...[/cyan]")
-    subprocess.run(["mypy", "src", "tests"], check=True)
+        # Step 4: Type check with mypy
+        console.print("[cyan]→ Running mypy...[/cyan]")
+        subprocess.run(["mypy", "src", "tests"], check=True)
 
-    # Step 5: Run tests with pytest
-    console.print("[cyan]→ Running pytest...[/cyan]")
-    subprocess.run(["pytest"], check=True)
+        # Step 5: Run tests with pytest
+        console.print("[cyan]→ Running pytest...[/cyan]")
+        subprocess.run(["pytest"], check=True)
 
-    # Step 6: Security audit with pip-audit
-    console.print("[cyan]→ Running pip-audit...[/cyan]")
-    subprocess.run(["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"], check=True)
+        # Step 6: Security audit with pip-audit
+        console.print("[cyan]→ Running pip-audit...[/cyan]")
+        subprocess.run(["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"], check=True)
 
-    console.print("\n[green]✓ Guard rails completed successfully.[/green]")
+        console.print("\n[green]✓ Guard rails completed successfully.[/green]")
+    
+    except subprocess.CalledProcessError as exc:
+        console.print(f"\n[red]✗ Guard rails failed at: {exc.cmd[0]}[/red]")
+        console.print(f"[yellow]Exit code: {exc.returncode}[/yellow]")
+        raise typer.Exit(code=exc.returncode)
 
 
 if __name__ == "__main__":  # pragma: no cover

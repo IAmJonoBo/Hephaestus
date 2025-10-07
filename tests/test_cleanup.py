@@ -200,3 +200,31 @@ def test_resolve_root_refuses_dangerous_paths() -> None:
 
     with pytest.raises(ValueError, match="Refusing to clean dangerous path"):
         resolve_root(Path.home())
+
+
+def test_extra_paths_validation_refuses_dangerous_paths(tmp_path: Path) -> None:
+    """Test that extra_paths are validated against dangerous paths during normalization."""
+    # Create a safe root directory
+    safe_root = tmp_path / "safe_project"
+    safe_root.mkdir()
+
+    # Attempt to add dangerous path as extra_path should raise ValueError
+    with pytest.raises(ValueError, match="Refusing to include dangerous path"):
+        options = CleanupOptions(root=safe_root, extra_paths=(Path("/"),))
+        options.normalize()
+
+    with pytest.raises(ValueError, match="Refusing to include dangerous path"):
+        options = CleanupOptions(root=safe_root, extra_paths=(Path("/usr"),))
+        options.normalize()
+
+    with pytest.raises(ValueError, match="Refusing to include dangerous path"):
+        options = CleanupOptions(root=safe_root, extra_paths=(Path.home(),))
+        options.normalize()
+
+    # Safe extra_paths should work fine
+    safe_extra = tmp_path / "safe_extra"
+    safe_extra.mkdir()
+    options = CleanupOptions(root=safe_root, extra_paths=(safe_extra,))
+    normalized = options.normalize()
+    assert safe_extra.resolve() in normalized.extra_paths
+

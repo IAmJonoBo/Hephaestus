@@ -275,3 +275,54 @@ def test_sanitize_asset_name_strips_path_separators() -> None:
 
     with pytest.raises(release.ReleaseError, match="empty or unsafe"):
         release._sanitize_asset_name("/")
+
+
+def test_fetch_release_validates_timeout() -> None:
+    """Test that _fetch_release validates timeout parameter."""
+    with pytest.raises(release.ReleaseError, match="Timeout must be positive"):
+        release._fetch_release("owner/repo", None, None, timeout=0)
+    
+    with pytest.raises(release.ReleaseError, match="Timeout must be positive"):
+        release._fetch_release("owner/repo", None, None, timeout=-1)
+
+
+def test_fetch_release_validates_max_retries() -> None:
+    """Test that _fetch_release validates max_retries parameter."""
+    with pytest.raises(release.ReleaseError, match="Max retries must be at least 1"):
+        release._fetch_release("owner/repo", None, None, max_retries=0)
+    
+    with pytest.raises(release.ReleaseError, match="Max retries must be at least 1"):
+        release._fetch_release("owner/repo", None, None, max_retries=-1)
+
+
+def test_download_asset_validates_timeout(tmp_path: Path) -> None:
+    """Test that _download_asset validates timeout parameter."""
+    asset = release.ReleaseAsset(
+        name="test.tar.gz",
+        download_url="https://example.invalid/test.tar.gz",
+        size=100,
+    )
+    destination = tmp_path / "test.tar.gz"
+    
+    with pytest.raises(release.ReleaseError, match="Timeout must be positive"):
+        release._download_asset(asset, destination, None, False, timeout=0)
+    
+    with pytest.raises(release.ReleaseError, match="Timeout must be positive"):
+        release._download_asset(asset, destination, None, False, timeout=-1)
+
+
+def test_download_asset_validates_max_retries(tmp_path: Path) -> None:
+    """Test that _download_asset validates max_retries parameter."""
+    asset = release.ReleaseAsset(
+        name="test.tar.gz",
+        download_url="https://example.invalid/test.tar.gz",
+        size=100,
+    )
+    destination = tmp_path / "test.tar.gz"
+    
+    with pytest.raises(release.ReleaseError, match="Max retries must be at least 1"):
+        release._download_asset(asset, destination, None, False, max_retries=0)
+    
+    with pytest.raises(release.ReleaseError, match="Max retries must be at least 1"):
+        release._download_asset(asset, destination, None, False, max_retries=-1)
+

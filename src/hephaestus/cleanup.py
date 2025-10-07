@@ -54,7 +54,16 @@ class CleanupOptions:
         build_artifacts = self.build_artifacts or self.deep_clean
         node_modules = self.node_modules or self.deep_clean
 
-        paths = tuple(Path(path).resolve() for path in self.extra_paths)
+        # Validate and resolve extra paths
+        validated_paths: list[Path] = []
+        for path in self.extra_paths:
+            resolved_path = Path(path).resolve()
+            if is_dangerous_path(resolved_path):
+                raise ValueError(
+                    f"Refusing to include dangerous path in cleanup: {resolved_path}. "
+                    "Dangerous paths include system directories like /, /home, /usr, /etc, and your home directory."
+                )
+            validated_paths.append(resolved_path)
 
         return NormalizedCleanupOptions(
             root=root,
@@ -63,7 +72,7 @@ class CleanupOptions:
             python_cache=python_cache,
             build_artifacts=build_artifacts,
             node_modules=node_modules,
-            extra_paths=paths,
+            extra_paths=tuple(validated_paths),
         )
 
 
