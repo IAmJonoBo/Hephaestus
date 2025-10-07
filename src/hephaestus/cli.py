@@ -7,6 +7,32 @@ import subprocess
 from pathlib import Path
 from typing import Annotated
 
+import typer
+from rich.console import Console
+from rich.table import Table
+
+from hephaestus import __version__
+from hephaestus import cleanup as cleanup_module
+from hephaestus import planning as planning_module
+from hephaestus import release as release_module
+from hephaestus import toolbox
+
+app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
+tools_app = typer.Typer(name="tools", help="Toolkit command groups.", no_args_is_help=True)
+refactor_app = typer.Typer(name="refactor", help="Refactor analysis commands.", no_args_is_help=True)
+qa_app = typer.Typer(name="qa", help="Quality assurance commands.", no_args_is_help=True)
+release_app = typer.Typer(name="release", help="Release management commands.", no_args_is_help=True)
+
+tools_app.add_typer(refactor_app)
+tools_app.add_typer(qa_app)
+app.add_typer(tools_app)
+app.add_typer(release_app)
+
+console = Console()
+
+
+@release_app.command("install")
+def release_install(
     repository: Annotated[
         str,
         typer.Option(
