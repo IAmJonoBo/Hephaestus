@@ -202,6 +202,12 @@ def _fetch_release(
             "Repository must be provided as 'owner/repository'. Received: " + repr(repository)
         )
 
+    if timeout <= 0:
+        raise ReleaseError(f"Timeout must be positive, got {timeout}")
+    
+    if max_retries < 1:
+        raise ReleaseError(f"Max retries must be at least 1, got {max_retries}")
+
     if tag:
         url = f"{_GITHUB_API}/repos/{owner_repo}/releases/tags/{tag}"
     else:
@@ -265,6 +271,12 @@ def _download_asset(
     timeout: float = DEFAULT_TIMEOUT,
     max_retries: int = DEFAULT_MAX_RETRIES,
 ) -> Path:
+    if timeout <= 0:
+        raise ReleaseError(f"Timeout must be positive, got {timeout}")
+    
+    if max_retries < 1:
+        raise ReleaseError(f"Max retries must be at least 1, got {max_retries}")
+
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists() and not overwrite:
         raise ReleaseError(
@@ -358,6 +370,8 @@ def install_from_directory(
     if not wheels:
         raise ReleaseError(f"No wheel files were found in {wheel_directory}.")
 
+    logger.info("Installing %d wheel(s) from %s", len(wheels), wheel_directory)
+
     python_executable = python_executable or sys.executable
     cmd: list[str] = [python_executable, "-m", "pip", "install"]
     if upgrade:
@@ -366,7 +380,9 @@ def install_from_directory(
         cmd.extend(pip_args)
     cmd.extend(str(wheel) for wheel in wheels)
 
+    logger.info("Running pip install command")
     subprocess.check_call(cmd)
+    logger.info("Installation completed successfully")
 
 
 def download_wheelhouse(
@@ -384,6 +400,7 @@ def download_wheelhouse(
 ) -> ReleaseDownload:
     """Download a wheelhouse archive from a GitHub release."""
 
+    logger.info("Fetching release metadata for repository %s (tag=%s)", repository, tag or "latest")
     release_data = _fetch_release(
         repository,
         tag,
@@ -392,11 +409,13 @@ def download_wheelhouse(
         max_retries=max_retries,
     )
     asset = _pick_asset(release_data, asset_pattern)
+    logger.info("Selected asset: %s (size=%d bytes)", asset.name, asset.size)
 
     destination_dir = destination_dir.resolve()
     destination_dir.mkdir(parents=True, exist_ok=True)
     archive_path = destination_dir / asset.name
 
+    logger.info("Downloading asset to %s", archive_path)
     _download_asset(
         asset,
         archive_path,
@@ -405,10 +424,13 @@ def download_wheelhouse(
         timeout=timeout,
         max_retries=max_retries,
     )
+    logger.info("Download completed successfully")
 
     extracted: Path | None = None
     if extract:
+        logger.info("Extracting archive to %s", extract_dir or destination_dir)
         extracted = extract_archive(archive_path, destination=extract_dir, overwrite=overwrite)
+        logger.info("Extraction completed: %s", extracted)
 
     return ReleaseDownload(asset=asset, archive_path=archive_path, extracted_path=extracted)
 
