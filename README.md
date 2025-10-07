@@ -142,3 +142,12 @@ Additional playbooks for the refactoring toolkit live under `hephaestus-toolkit/
 4. Open a pull request with clear before/after context and updated documentation.
 
 Hephaestus embraces incremental, evidence-based change. Use the provided tools to gather metrics, add characterization tests, and stage refactors safely.
+
+For security concerns, please review our [Security Policy](SECURITY.md).
+
+## Security
+
+We take security seriously. If you discover a security vulnerability, please follow our [Security Policy](SECURITY.md) for responsible disclosure. See also:
+
+- [STRIDE Threat Model](docs/adr/0001-stride-threat-model.md) - Comprehensive security analysis
+- [Operating Safely Guide](docs/how-to/operating-safely.md) - Safe usage practices and constraints
