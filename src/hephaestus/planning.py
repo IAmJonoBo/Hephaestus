@@ -1,9 +1,10 @@
 """Utilities for constructing and rendering execution plans."""
+
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Iterable, List
 
 from rich.console import Console
 from rich.table import Table
@@ -27,7 +28,7 @@ class PlanStep:
     status: StepStatus = StepStatus.PENDING
 
 
-def build_plan(steps: Iterable[PlanStep]) -> List[PlanStep]:
+def build_plan(steps: Iterable[PlanStep]) -> list[PlanStep]:
     """Return a normalized list of plan steps.
 
     The function defensively copies the iterable so that downstream consumers can mutate

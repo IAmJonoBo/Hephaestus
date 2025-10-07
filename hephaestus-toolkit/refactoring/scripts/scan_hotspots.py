@@ -2,10 +2,17 @@
 """CLI helper to emit hotspot analytics using the Hephaestus toolbox."""
 from __future__ import annotations
 
-from pathlib import Path
 import sys
+from collections.abc import Callable, Iterable
 from importlib import import_module
-from typing import Callable, Tuple
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    from hephaestus.toolbox import Hotspot, ToolkitSettings
+
+Analyzer = Callable[["ToolkitSettings"], Iterable["Hotspot"]]
+Loader = Callable[[], "ToolkitSettings"]
 
 
 def main() -> None:
@@ -15,7 +22,7 @@ def main() -> None:
         print(f"{hotspot.path}: churn={hotspot.churn}, coverage={hotspot.coverage:.0%}")
 
 
-def _resolve_toolbox() -> Tuple[Callable, Callable]:
+def _resolve_toolbox() -> tuple[Analyzer, Loader]:
     try:
         module = import_module("hephaestus.toolbox")
         return module.analyze_hotspots, module.load_settings

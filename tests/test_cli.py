@@ -1,11 +1,11 @@
 """CLI smoke tests for the Hephaestus toolkit."""
+
 from __future__ import annotations
 
+import sys
 from importlib import import_module
 from pathlib import Path
-import sys
 from types import ModuleType
-from typing import Tuple
 
 from typer.testing import CliRunner
 
@@ -17,7 +17,7 @@ if str(SRC) not in sys.path:
 runner = CliRunner()
 
 
-def _load_modules() -> Tuple[ModuleType, ModuleType]:
+def _load_modules() -> tuple[ModuleType, ModuleType]:
     toolkit = import_module("hephaestus")
     cli = import_module("hephaestus.cli")
     return toolkit, cli
@@ -42,3 +42,19 @@ def test_qa_profile_command_lists_profile_data() -> None:
     result = runner.invoke(cli.app, ["tools", "qa", "profile", "quick"])
     assert result.exit_code == 0
     assert "QA Profile: quick" in result.stdout
+
+
+def test_plan_command_renders_execution_plan() -> None:
+    _, cli = _load_modules()
+    result = runner.invoke(cli.app, ["plan"])
+    assert result.exit_code == 0
+    assert "Execution Plan" in result.stdout
+    assert "Gather Evidence" in result.stdout
+
+
+def test_qa_coverage_command_displays_gaps() -> None:
+    _, cli = _load_modules()
+    result = runner.invoke(cli.app, ["tools", "qa", "coverage"])
+    assert result.exit_code == 0
+    assert "Coverage Gaps" in result.stdout
+    assert "Uncovered Lines" in result.stdout

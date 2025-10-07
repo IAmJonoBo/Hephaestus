@@ -41,19 +41,6 @@ Examples:
 EOF
 }
 
-add_search_root() {
-	local candidate="$1"
-	if [[ -z ${candidate} ]]; then
-		return
-	fi
-	for existing in "${SEARCH_ROOTS[@]}"; do
-		if [[ ${existing} == "${candidate}" ]]; then
-			return
-		fi
-	done
-	SEARCH_ROOTS+=("${candidate}")
-}
-
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 	--include-git)
@@ -175,6 +162,10 @@ cleanup_macos_cruft() {
 		".AppleDouble"
 		"Icon?"
 		"__MACOSX"
+		".Spotlight-V100"
+		".Trashes"
+		".fseventsd"
+		".TemporaryItems"
 	)
 
 	echo "Cleaning macOS cruft in: ${search_root}" >&2

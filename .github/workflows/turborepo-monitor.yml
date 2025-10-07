@@ -1,0 +1,83 @@
+name: TurboRepo Release Monitor
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  check-latest-release:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read tracked TurboRepo release
+        id: tracked
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          manifest = pathlib.Path('ops/turborepo-release.json')
+          data = json.loads(manifest.read_text())
+          tag = data['tracked_tag']
+          pathlib.Path(os.environ['GITHUB_OUTPUT']).write_text(f"tag={tag}\n", encoding='utf-8')
+          PY
+
+      - name: Fetch latest TurboRepo release
+        id: latest
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          request = urllib.request.Request(
+              "https://api.github.com/repos/vercel/turborepo/releases/latest",
+              headers={
+                  "Accept": "application/vnd.github+json",
+                  "User-Agent": "hephaestus-release-monitor"
+              }
+          )
+          with urllib.request.urlopen(request) as response:
+              data = json.load(response)
+
+          tag = data["tag_name"]
+          html_url = data["html_url"]
+          with open(os.environ["GITHUB_OUTPUT"], "w", encoding="utf-8") as fh:
+              fh.write(f"tag={tag}\n")
+              fh.write(f"html_url={html_url}\n")
+          PY
+
+      - name: Log release comparison
+        run: |
+          echo "Tracked: ${{ steps.tracked.outputs.tag }}"
+          echo "Latest: ${{ steps.latest.outputs.tag }}"
+
+      - name: Create issue when update is required
+        if: steps.latest.outputs.tag != steps.tracked.outputs.tag
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const latest = '${{ steps.latest.outputs.tag }}';
+            const tracked = '${{ steps.tracked.outputs.tag }}';
+            const htmlUrl = '${{ steps.latest.outputs.html_url }}';
+            const title = `Track TurboRepo release ${latest}`;
+            const existing = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+            if (!existing.find(issue => issue.title === title)) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: `Latest TurboRepo release is **${latest}** (${htmlUrl}). Repository is currently tracking **${tracked}** in ops/turborepo-release.json. Update the toolkit or config as needed, then bump the tracked tag.`
+              });
+            }

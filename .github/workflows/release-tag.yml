@@ -1,0 +1,59 @@
+name: Automated Release Tagging
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  tag-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine project version
+        id: version
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          try:
+              import tomllib as toml
+          except ModuleNotFoundError:  # pragma: no cover
+              import tomli as toml
+          data = toml.loads(pathlib.Path('pyproject.toml').read_text())
+          version = data['project']['version']
+          print(f"version={version}")
+          pathlib.Path(os.environ['GITHUB_OUTPUT']).write_text(f"version={version}\n", encoding='utf-8')
+          PY
+
+      - name: Check for existing tag
+        id: tag_check
+        run: |
+          git fetch --tags --force
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Create and push tag
+        if: steps.tag_check.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: Publish GitHub Release
+        if: steps.tag_check.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Hephaestus v${{ steps.version.outputs.version }}
+          generate_release_notes: true

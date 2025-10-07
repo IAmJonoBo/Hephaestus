@@ -6,19 +6,57 @@ Hephaestus is a standalone developer experience toolkit extracted from the spiri
 
 - Quality-suite orchestration with configurable gates and monitoring
 - Coverage analytics (hotspots, gaps, guard rails, focus views)
+- Lifecycle-aware CLI workflows (hotspot ranking, opportunity scouting, QA profiles, rollout plans)
 - Evidence-based refactoring workflows (hotspot analysis, opportunity scans)
 - Safe automation helpers (LibCST codemods, characterization test scaffolds)
+- Pre-commit guardrails (Ruff, Black, PyUpgrade, Mypy, Pip Audit)
 - Documentation synchronisation utilities for Diátaxis style guides
 - Portable scripts and CI fragments for churn analysis and rollout planning
 
 ## Getting Started
 
 ```bash
-uv sync
+uv sync --extra dev --extra qa
 uv run hephaestus --help
 uv run hephaestus tools refactor hotspots --limit 10
 uv run hephaestus tools qa --profile quick --dry-run
+uv run hephaestus tools qa coverage
+uv run hephaestus plan
+uv run pre-commit install
+uv run pre-commit run --all-files
 ```
+
+### CLI Workflows
+
+Use the Typer-based CLI to move quickly from discovery to delivery:
+
+- `tools refactor hotspots`: surfaces the highest-churn modules, respecting toolkit configuration overrides.
+- `tools refactor opportunities`: summarises advisory refactors with qualitative effort signals to aid prioritisation.
+- `tools qa profile <name>`: inspects guard-rail thresholds and rollout toggles for an individual QA profile.
+- `tools qa coverage`: highlights uncovered lines and risk scores tuned to your coverage goals.
+- `plan`: renders a rich execution plan so teams can visualise orchestration progress during a rollout.
+
+### Automation & CI
+
+- Continuous integration runs on GitHub Actions (`CI` workflow) for pushes to `main` and pull requests, exercising the pytest suite against Python 3.12 and 3.13.
+- Linting and typing (Ruff + Mypy) run on every matrix job, with coverage published as artefacts and failing below 85%.
+- Automated release tagging (`Automated Release Tagging` workflow) cuts a `v*` tag and GitHub Release whenever the version in `pyproject.toml` advances on `main`.
+- The repository ships with `cleanup-macos-cruft.sh` for scrubbing macOS metadata, caches, and build artefacts; run it with `--deep-clean` before creating archives or syncing workspaces.
+- A scheduled TurboRepo monitor (`TurboRepo Release Monitor` workflow) compares the pinned version in `ops/turborepo-release.json` with upstream releases and opens an issue if an update is available.
+- Weekly Dependabot scans cover Python packages and GitHub Actions while the CI pipeline executes `pip-audit --strict` on Python 3.13.
+
+### Development-to-Deployment Flow
+
+| Stage                  | Tooling                                                                                                                  | Purpose                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| Discovery & planning   | `docs/lifecycle.md`, `docs/adr/`, `plan` command                                                                         | Capture intent, align stakeholders, and visualise rollouts.                                |
+| Local analytics        | `tools refactor hotspots`, `tools refactor opportunities`                                                                | Identify high-value refactor targets with churn and qualitative signals.                   |
+| Quality gates          | `tools qa profile`, `tools qa coverage`, `pyproject.toml` thresholds                                                     | Inspect guard rails, coverage gaps, and tighten criteria before shipping changes.          |
+| Automation             | `hephaestus-toolkit/refactoring/scripts/`                                                                                | Execute codemods, hotspot scans, and characterization harnesses with reproducible scripts. |
+| Developer guard rails  | `.pre-commit-config.yaml`, Ruff, Black, PyUpgrade, Mypy, Pip Audit                                                       | Keep code style, types, and security evergreen before commits land.                        |
+| Continuous integration | `.github/workflows/ci.yml`, `tests/test_cli.py`                                                                          | Enforce linting, typing, coverage, and pytest during PRs with artefact uploads.            |
+| Release & monitoring   | `.github/workflows/release-tag.yml`, `.github/workflows/turborepo-monitor.yml`, `ops/turborepo-release.json`, Dependabot | Cut releases automatically and track upstream updates while nudging dependency hygiene.    |
+| Post-release hygiene   | `cleanup-macos-cruft.sh`                                                                                                 | Keep workspaces clean before packaging or mirroring artefacts.                             |
 
 ### Project Layout
 
@@ -53,7 +91,9 @@ Hephaestus reads defaults from `[tool.hephaestus.toolkit]` in `pyproject.toml`. 
 
 ## Documentation
 
-Detailed playbooks, plans, and operational guidance live under `hephaestus-toolkit/refactoring/docs/`. Start with `README.md` for an overview, then consult `PLAN.md` and `PLAYBOOK.md` for deep dives into methodology and day-to-day workflows.
+- `docs/lifecycle.md` — Evergreen lifecycle playbook that ties tooling to each development stage.
+- `docs/adr/` — Architecture Decision Records for capturing context and choices.
+- `hephaestus-toolkit/refactoring/docs/` — Playbooks and implementation notes specific to the refactoring toolkit.
 
 ## Contributing
 

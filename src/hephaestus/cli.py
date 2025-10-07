@@ -1,16 +1,21 @@
 """Typer-based command line interface for the Hephaestus toolkit."""
+
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from . import __version__
+from . import (
+    __version__,
+)
 from . import planning as planning_module
-from . import toolbox
+from . import (
+    toolbox,
+)
 
 console = Console()
 app = typer.Typer(help="Automation helpers for refactoring and quality rollouts.")
@@ -39,7 +44,7 @@ def version() -> None:
 @refactor_app.command("hotspots")
 def refactor_hotspots(
     limit: Annotated[int, typer.Option(help="Maximum number of hotspots to report.")] = 10,
-    config: Annotated[Optional[Path], typer.Option(help="Path to override configuration.")] = None,
+    config: Annotated[Path | None, typer.Option(help="Path to override configuration.")] = None,
 ) -> None:
     """List the highest churn modules that merit refactoring."""
 
@@ -59,7 +64,7 @@ def refactor_hotspots(
 
 @refactor_app.command("opportunities")
 def refactor_opportunities(
-    config: Annotated[Optional[Path], typer.Option(help="Path to override configuration.")] = None,
+    config: Annotated[Path | None, typer.Option(help="Path to override configuration.")] = None,
 ) -> None:
     """Summarise advisory refactor opportunities."""
 
@@ -79,7 +84,7 @@ def refactor_opportunities(
 
 @qa_app.command("coverage")
 def qa_coverage(
-    config: Annotated[Optional[Path], typer.Option(help="Path to override configuration.")] = None,
+    config: Annotated[Path | None, typer.Option(help="Path to override configuration.")] = None,
 ) -> None:
     """Display coverage gaps against the configured threshold."""
 
@@ -100,7 +105,7 @@ def qa_coverage(
 @qa_app.command("profile")
 def qa_profile(
     profile: Annotated[str, typer.Argument(help="Profile name, e.g. quick or full.")],
-    config: Annotated[Optional[Path], typer.Option(help="Path to override configuration.")] = None,
+    config: Annotated[Path | None, typer.Option(help="Path to override configuration.")] = None,
 ) -> None:
     """Inspect a QA profile defined in the toolkit configuration."""
 
@@ -124,7 +129,11 @@ def plan() -> None:
     plan_steps = planning_module.build_plan(
         [
             planning_module.PlanStep("Gather Evidence", "Collect churn and coverage analytics"),
-            planning_module.PlanStep("Codemod", "Run the selected refactor automation", planning_module.StepStatus.RUNNING),
+            planning_module.PlanStep(
+                "Codemod",
+                "Run the selected refactor automation",
+                planning_module.StepStatus.RUNNING,
+            ),
             planning_module.PlanStep("Verify", "Execute characterization and regression suites"),
         ]
     )

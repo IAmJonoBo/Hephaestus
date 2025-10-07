@@ -1,13 +1,13 @@
 """Core quality, coverage, and refactor helpers for the Hephaestus toolkit."""
+
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List
 
 import yaml
 from pydantic import BaseModel, Field
-
 
 _DEFAULT_CONFIG = Path("hephaestus-toolkit/refactoring/config/refactor.config.yaml")
 
@@ -17,7 +17,7 @@ class ToolkitSettings(BaseModel):
 
     coverage_threshold: float = Field(default=0.75, ge=0.0, le=1.0)
     hotspot_limit: int = Field(default=10, ge=1)
-    repositories: List[str] = Field(default_factory=list)
+    repositories: list[str] = Field(default_factory=list)
     qa_profiles: dict[str, dict[str, float | int | str]] = Field(default_factory=dict)
 
 
@@ -61,7 +61,7 @@ def load_settings(path: str | Path | None = None) -> ToolkitSettings:
     return ToolkitSettings.model_validate(raw)
 
 
-def analyze_hotspots(settings: ToolkitSettings, *, limit: int | None = None) -> List[Hotspot]:
+def analyze_hotspots(settings: ToolkitSettings, *, limit: int | None = None) -> list[Hotspot]:
     """Return a ranked list of hotspots using mock analytics.
 
     In the real system this would join churn analytics with coverage data and detection
@@ -72,7 +72,7 @@ def analyze_hotspots(settings: ToolkitSettings, *, limit: int | None = None) -> 
     limit = limit or settings.hotspot_limit
     repositories: Iterable[str] = settings.repositories or ["monolith", "services/api"]
 
-    hotspots: List[Hotspot] = []
+    hotspots: list[Hotspot] = []
     churn_seed = 17
     for repo in repositories:
         for index in range(1, 4):
@@ -90,7 +90,7 @@ def analyze_hotspots(settings: ToolkitSettings, *, limit: int | None = None) -> 
     return sorted(hotspots, key=lambda item: item.churn, reverse=True)[:limit]
 
 
-def find_coverage_gaps(settings: ToolkitSettings) -> List[CoverageGap]:
+def find_coverage_gaps(settings: ToolkitSettings) -> list[CoverageGap]:
     """Surface coverage gaps based on configured thresholds."""
 
     target = settings.coverage_threshold
@@ -110,7 +110,9 @@ def find_coverage_gaps(settings: ToolkitSettings) -> List[CoverageGap]:
     ]
 
 
-def enumerate_refactor_opportunities(settings: ToolkitSettings) -> List[RefactorOpportunity]:
+def enumerate_refactor_opportunities(
+    settings: ToolkitSettings,
+) -> list[RefactorOpportunity]:
     """Return a set of advisory refactor opportunities."""
 
     repositories = settings.repositories or ["monolith"]
