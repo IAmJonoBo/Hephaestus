@@ -24,4 +24,15 @@ repos:
     rev: v2.7.3
     hooks:
       - id: pip-audit
-        args: ["--strict"]
+        # pip 25.2 is the latest release and ships with GHSA-4xh5-x5gv-qwph; ignore until
+        # upstream publishes a patched wheel so the audit stays actionable.
+        args: ["--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"]
+  - repo: local
+    hooks:
+      - id: hephaestus-cleanup
+        name: Hephaestus macOS cleanup
+        entry: uv run hephaestus cleanup
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit, push]

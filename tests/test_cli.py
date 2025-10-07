@@ -6,7 +6,9 @@ import sys
 from importlib import import_module
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
+import pytest
 from typer.testing import CliRunner
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,3 +60,47 @@ def test_qa_coverage_command_displays_gaps() -> None:
     assert result.exit_code == 0
     assert "Coverage Gaps" in result.stdout
     assert "Uncovered Lines" in result.stdout
+
+
+def test_cleanup_command_removes_macos_cruft(tmp_path: Path) -> None:
+    _, cli = _load_modules()
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / ".DS_Store").write_text("metadata", encoding="utf-8")
+
+    result = runner.invoke(cli.app, ["cleanup", str(workspace)])
+
+    assert result.exit_code == 0
+    assert "Cleanup Summary" in result.stdout
+    assert "Cleanup completed successfully" in result.stdout
+    assert not (workspace / ".DS_Store").exists()
+
+
+def test_cleanup_command_handles_missing_path(tmp_path: Path) -> None:
+    _, cli = _load_modules()
+    missing = tmp_path / "missing"
+
+    result = runner.invoke(cli.app, ["cleanup", str(missing)])
+
+    assert result.exit_code == 0
+    assert "No files required removal" in result.stdout
+
+
+def test_cleanup_command_reports_errors(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    import hephaestus.cleanup as cleanup
+
+    _, cli = _load_modules()
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+
+    def _broken_run_cleanup(*_args: Any, **_kwargs: Any) -> cleanup.CleanupResult:
+        result = cleanup.CleanupResult()
+        result.errors.append((workspace, "boom"))
+        return result
+
+    monkeypatch.setattr(cleanup, "run_cleanup", _broken_run_cleanup)
+
+    result = runner.invoke(cli.app, ["cleanup", str(workspace)])
+
+    assert result.exit_code == 1
+    assert "Cleanup Errors" in result.stdout

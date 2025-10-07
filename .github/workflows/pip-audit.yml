@@ -1,0 +1,22 @@
+name: pip-audit
+
+on:
+  schedule:
+    - cron: 0 4 * * 1
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Sync dependencies
+        run: uv sync --extra dev --extra qa
+
+      - name: Run pip-audit
+        run: uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph

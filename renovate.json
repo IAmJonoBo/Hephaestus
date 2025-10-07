@@ -1,6 +1,23 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":separateMultipleMajorReleases",
+    ":semanticCommits"
+  ],
+  "pip_requirements": {
+    "fileMatch": ["(^|/)uv\\.lock$"]
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["pip_requirements", "pip_setup"],
+      "groupName": "python-runtime",
+      "separateMinorPatch": true
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "schedule": ["every weekend"],
+      "groupName": "github-actions"
+    }
   ]
 }

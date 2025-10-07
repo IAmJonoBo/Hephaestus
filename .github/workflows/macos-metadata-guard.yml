@@ -1,0 +1,28 @@
+name: macOS Metadata Guard
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify workspace is free of macOS artefacts
+        run: |
+          set -euo pipefail
+          offending=$(git ls-files --cached --others --exclude-standard | \
+            grep -E '(^|/)(\.DS_Store|\.Apple(Double|Desktop|DB)|\.DocumentRevisions-V100|\.LSOverride|\.Spotlight-V100|\.Trashes|\.fseventsd|\.TemporaryItems|\.apdisk|\._[^/]+)$' || true)
+          if [ -n "$offending" ]; then
+            echo "Found macOS metadata files in repository history or working tree:"
+            echo "$offending"
+            exit 1
+          fi
+          echo "No macOS metadata detected."

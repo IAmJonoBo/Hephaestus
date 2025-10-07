@@ -1,6 +1,9 @@
 # Python artifacts
 __pycache__/
 *.py[cod]
+dist/
+build/
+wheelhouse/
 
 # Virtual environments
 .venv/
@@ -12,3 +15,14 @@ venv/
 
 # macOS metadata
 .DS_Store
+._*
+.AppleDouble
+.AppleDB
+.AppleDesktop
+.DocumentRevisions-V100
+.LSOverride
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+.apdisk

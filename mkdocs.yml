@@ -1,0 +1,44 @@
+site_name: Hephaestus Toolkit
+site_description: Documentation for the Hephaestus developer experience toolkit
+site_url: https://hephaestus.example.com
+repo_url: https://github.com/IAmJonoBo/Hephaestus
+repo_name: Hephaestus
+nav:
+  - Home: index.md
+  - Lifecycle:
+      - Evergreen Lifecycle Playbook: lifecycle.md
+      - Pre-Release Checklist: pre-release-checklist.md
+      - Editor Setup: editor-setup.md
+  - CLI:
+      - Autocompletion: cli-completions.md
+  - ADR Template: adr/0000-template.md
+  - Refactoring Toolkit: refactoring-toolkit.md
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.instant
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: deep purple
+markdown_extensions:
+  - admonition
+  - codehilite
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+plugins:
+  - search
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/IAmJonoBo/Hephaestus
+watch:
+  - docs
+  - README.md

@@ -24,6 +24,9 @@ jobs:
       - name: Sync dependencies (qa + dev extras)
         run: uv sync --extra qa --extra dev
 
+      - name: Scrub Apple cruft
+        run: uv run hephaestus cleanup
+
       - name: Ruff lint
         run: uv run ruff check .
 
@@ -45,4 +48,6 @@ jobs:
 
       - name: Security audit (pip-audit)
         if: matrix.python-version == '3.13'
-        run: uv run pip-audit --strict
+        run: uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph
+        # pip 25.2 currently ships with GHSA-4xh5-x5gv-qwph and no patched release;
+        # ignore until upstream publishes a fix to keep the audit actionable.

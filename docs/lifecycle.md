@@ -7,17 +7,17 @@ experience (DX), user experience (UX), and code quality (CQ).
 
 ## Overview Matrix
 
-| Stage                    | Purpose                               | Tooling & Techniques                                                           | Outcomes                                           |
-| ------------------------ | ------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------- |
-| Discovery                | Capture product and technical context | Architecture Decision Records (ADRs), `hephaestus plan`                        | Shared understanding of the refactor mission       |
-| Planning                 | Align scope, owners, and guard rails  | Rich-rendered execution plans, Diátaxis documentation, roadmap issues          | Clear backlog and review cadence                   |
-| Development              | Implement changes with fast feedback  | `pre-commit`, Ruff, Black, PyUpgrade, Typer CLI workflows, type-driven toolbox | Consistent codebase with ergonomic CLI flows       |
-| Testing                  | Safeguard behaviour and coverage      | Pytest with coverage gating, characterization harness templates                | Confident refactors with measurable coverage       |
-| Security & Quality Gates | Catch regressions early               | Mypy, Pip Audit, QA profiles, coverage thresholds                              | Automated quality floor with actionable reports    |
-| Release                  | Publish and document change           | Automated Release Tagging workflow, semantic version policy                    | Repeatable, traceable releases                     |
-| Deployment               | Package and ship artefacts            | `uv` environments, pip-installable package, cleanup script                     | Predictable install and clean substrate            |
-| Operations               | Observe, upgrade, and respond         | TurboRepo Release Monitor, Dependabot, Ops README                              | Proactive dependency hygiene and response triggers |
-| Feedback                 | Bake learnings back in                | Issue templates, ADR rollups, docs updates                                     | Continuous improvement loop                        |
+| Stage                    | Purpose                               | Tooling & Techniques                                                                                                | Outcomes                                           |
+| ------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Discovery                | Capture product and technical context | Architecture Decision Records (ADRs), `hephaestus plan`                                                             | Shared understanding of the refactor mission       |
+| Planning                 | Align scope, owners, and guard rails  | Rich-rendered execution plans, Diátaxis documentation, roadmap issues                                               | Clear backlog and review cadence                   |
+| Development              | Implement changes with fast feedback  | `pre-commit`, Ruff, Black, PyUpgrade, Typer CLI workflows, type-driven toolbox, automated `hephaestus cleanup` hook | Consistent codebase with ergonomic CLI flows       |
+| Testing                  | Safeguard behaviour and coverage      | Pytest with coverage gating, cleanup pre-flight for CI, characterization harness templates                          | Confident refactors with measurable coverage       |
+| Security & Quality Gates | Catch regressions early               | Mypy, Pip Audit, QA profiles, coverage thresholds, repo cleanup sweeps                                              | Automated quality floor with actionable reports    |
+| Release                  | Publish and document change           | Automated Release Tagging workflow, semantic version policy, deep-clean stage                                       | Repeatable, traceable releases                     |
+| Deployment               | Package and ship artefacts            | `uv` environments, pip-installable package, cleanup script                                                          | Predictable install and clean substrate            |
+| Operations               | Observe, upgrade, and respond         | TurboRepo Release Monitor, Dependabot, Ops README                                                                   | Proactive dependency hygiene and response triggers |
+| Feedback                 | Bake learnings back in                | Issue templates, ADR rollups, docs updates                                                                          | Continuous improvement loop                        |
 
 ## Stage Details
 
@@ -39,6 +39,8 @@ experience (DX), user experience (UX), and code quality (CQ).
 
 - **Pre-Commit**: Install the hooks one time with `uv run pre-commit install` to ensure Ruff, Black,
   PyUpgrade, Mypy, and Pip Audit run before every commit.
+- **Cleanup Guard Rail**: The pre-commit configuration now runs `uv run hephaestus cleanup` on commit
+  and push stages so macOS metadata never lands in history.
 - **Type-Driven Helpers**: The toolbox exposes typed dataclasses (`Hotspot`, `CoverageGap`,
   `RefactorOpportunity`) so IDEs and editors surface completions automatically.
 - **CLI Ergonomics**: New README coverage showcases how to drive hotspot triage, QA profile
@@ -48,6 +50,8 @@ experience (DX), user experience (UX), and code quality (CQ).
 
 - **Coverage Gates**: Pytest defaults now emit XML + terminal reports and fail when coverage drops
   below 85%.
+- **CI Pre-Flight Cleanup**: The main CI workflow executes `uv run hephaestus cleanup` immediately
+  after syncing dependencies so linting, typing, and tests always start from a pristine tree.
 - **Characterisation Harnesses**: The toolkit scripts provide scaffolding for protecting behaviour
   during refactors—extend them with targeted regression tests as you modernise modules.
 - **Matrix CI**: Tests execute across Python 3.12 and 3.13 ensuring future compatibility.
@@ -65,8 +69,18 @@ experience (DX), user experience (UX), and code quality (CQ).
 
 - **Automated Release Tagging**: Pushes to `main` automatically tag new versions based on
   `pyproject.toml` and publish GitHub Releases with changelog-ready artefacts.
+- **Wheelhouse Distribution**: The `Build Wheelhouse` workflow assembles wheels and sdists via
+  `uv build`, stores them as a downloadable GitHub Actions artefact, and attaches the bundle to each
+  GitHub Release so consumers can install without a PyPI publish.
+- **Wheelhouse Consumption**: Run `uv run hephaestus release install --tag <tag>` from any project to
+  download the matching release archive, install its wheels into the active environment, and keep the
+  toolkit versions aligned even before PyPI publication.
+- **Deep-Clean Stage**: The release workflow installs `uv` and performs `uv run hephaestus cleanup
+--deep-clean` before version detection so archives and tags never include workspace cruft.
 - **Semantic Version Discipline**: Bump the `version` field using semver semantics—patch for safety
   fixes, minor for new features, major for breaking changes.
+- **Pre-Release Checklist**: Run through `docs/pre-release-checklist.md` before pushing the final
+  changes to confirm automation parity, forcing a local cleanup sweep and re-running guard rails.
 
 ### 7. Deployment
 
@@ -76,7 +90,8 @@ experience (DX), user experience (UX), and code quality (CQ).
   or internal indices; consider enabling the publishing workflow in `.github/workflows` when the
   first release candidate is ready.
 - **Cleanup Script**: `./cleanup-macos-cruft.sh --deep-clean` keeps artefacts out of release
-  archives and ensures reproducible builds.
+  archives and ensures reproducible builds, and the automation hooks ensure those commands run
+  automatically during CI, releases, and pre-commit flows.
 
 ### 8. Operations
 

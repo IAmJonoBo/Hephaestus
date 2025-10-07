@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """CLI helper to emit hotspot analytics using the Hephaestus toolbox."""
+
 from __future__ import annotations
 
 import sys

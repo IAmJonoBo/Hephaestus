@@ -1,0 +1,52 @@
+name: pre-commit autoupdate
+
+on:
+  schedule:
+    - cron: 0 5 * * 1
+  workflow_dispatch:
+
+jobs:
+  autoupdate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Sync dev dependencies
+        run: uv sync --extra dev
+
+      - name: Update hook revisions
+        run: uv run pre-commit autoupdate
+
+      - name: Run hooks with updated revisions
+        run: uv run pre-commit run --all-files
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git status --porcelain | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v6
+        if: ${{ steps.changes.outputs.changed == 'true' }}
+        with:
+          branch: chore/pre-commit-autoupdate
+          delete-branch: true
+          title: "chore: autoupdate pre-commit hooks"
+          commit-message: "chore: autoupdate pre-commit hooks"
+          body: |
+            ## Summary
+            - run `pre-commit autoupdate`
+            - execute hooks across the repository to verify new revisions

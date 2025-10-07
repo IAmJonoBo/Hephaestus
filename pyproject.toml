@@ -29,6 +29,9 @@ dev = [
   "mypy>=1.11",
   "pip-audit>=2.7",
   "types-PyYAML>=6.0.12.20240808",
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
+  "pymdown-extensions>=10.8",
 ]
 
 [project.scripts]
@@ -77,3 +80,13 @@ source = ["src/hephaestus"]
 [tool.coverage.report]
 fail_under = 85
 show_missing = true
+
+[tool.uv.scripts]
+lint = "ruff check ."
+format = "ruff format ."
+typecheck = "mypy src tests"
+test = "pytest"
+cleanup = "hephaestus cleanup --deep-clean"
+audit = "pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph"
+docs-serve = "mkdocs serve"
+docs-build = "mkdocs build"
