@@ -2,6 +2,21 @@
 
 Last updated: 2025-01-08
 
+## Recent Improvements (Latest Session)
+
+**Security & Safety Enhancements:**
+- ✅ Extra paths validation: Added dangerous path checks for `--extra-path` arguments
+- ✅ Parameter validation: Added timeout and max_retries validation in release functions
+- ✅ Status updates: Marked completed red team findings as Complete in tracker
+
+**Observability Improvements:**
+- ✅ Enhanced logging: Added info-level logging for release download/install operations
+- ✅ Error handling: Improved guard-rails error reporting with clear failure messages
+
+**Testing:**
+- ✅ Added tests for extra_paths dangerous path validation
+- ✅ Added tests for timeout and max_retries parameter validation
+
 ## Implementation Status Summary
 
 **High Priority (Security & Safety):**
@@ -19,7 +34,8 @@ Last updated: 2025-01-08
 - ✅ Dependency versions refreshed (ruff, black, mypy, pip-audit)
 - ✅ Documentation comprehensive and up-to-date
 - ✅ Asset name sanitization implemented and tested
-- 🔄 Structured logging/telemetry (planned)
+- ✅ Basic logging added for release operations (fetch, download, install)
+- 🔄 Structured JSON logging/telemetry (planned for Q2)
 
 **Low Priority (Operational Excellence):**
 - ✅ Rollback documentation complete with templates
