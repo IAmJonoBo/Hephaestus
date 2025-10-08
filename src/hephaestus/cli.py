@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import shlex
 import subprocess
 from pathlib import Path
 from typing import Annotated
@@ -19,7 +18,9 @@ from hephaestus import toolbox
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
 tools_app = typer.Typer(name="tools", help="Toolkit command groups.", no_args_is_help=True)
-refactor_app = typer.Typer(name="refactor", help="Refactor analysis commands.", no_args_is_help=True)
+refactor_app = typer.Typer(
+    name="refactor", help="Refactor analysis commands.", no_args_is_help=True
+)
 qa_app = typer.Typer(name="qa", help="Quality assurance commands.", no_args_is_help=True)
 release_app = typer.Typer(name="release", help="Release management commands.", no_args_is_help=True)
 
@@ -409,14 +410,16 @@ def guard_rails(
 
         # Step 6: Security audit with pip-audit
         console.print("[cyan]→ Running pip-audit...[/cyan]")
-        subprocess.run(["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"], check=True)
+        subprocess.run(
+            ["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"], check=True
+        )
 
         console.print("\n[green]✓ Guard rails completed successfully.[/green]")
-    
+
     except subprocess.CalledProcessError as exc:
         console.print(f"\n[red]✗ Guard rails failed at: {exc.cmd[0]}[/red]")
         console.print(f"[yellow]Exit code: {exc.returncode}[/yellow]")
-        raise typer.Exit(code=exc.returncode)
+        raise typer.Exit(code=exc.returncode) from exc
 
 
 if __name__ == "__main__":  # pragma: no cover

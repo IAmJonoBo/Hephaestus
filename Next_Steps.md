@@ -5,21 +5,25 @@ Last updated: 2025-01-08
 ## Recent Improvements (Latest Session)
 
 **Security & Safety Enhancements:**
+
 - ✅ Extra paths validation: Added dangerous path checks for `--extra-path` arguments
 - ✅ Parameter validation: Added timeout and max_retries validation in release functions
 - ✅ Status updates: Marked completed red team findings as Complete in tracker
 
 **Observability Improvements:**
+
 - ✅ Enhanced logging: Added info-level logging for release download/install operations
 - ✅ Error handling: Improved guard-rails error reporting with clear failure messages
 
 **Testing:**
+
 - ✅ Added tests for extra_paths dangerous path validation
 - ✅ Added tests for timeout and max_retries parameter validation
 
 ## Implementation Status Summary
 
 **High Priority (Security & Safety):**
+
 - ✅ SECURITY.md published with disclosure process
 - ✅ STRIDE threat model completed (ADR-0001)
 - ✅ Guard-rails command implemented at module scope
@@ -31,6 +35,7 @@ Last updated: 2025-01-08
 - 🔄 Release checksum verification (planned)
 
 **Medium Priority (Quality & Observability):**
+
 - ✅ Dependency versions refreshed (ruff, black, mypy, pip-audit)
 - ✅ Documentation comprehensive and up-to-date
 - ✅ Asset name sanitization implemented and tested
@@ -38,6 +43,7 @@ Last updated: 2025-01-08
 - 🔄 Structured JSON logging/telemetry (planned for Q2)
 
 **Low Priority (Operational Excellence):**
+
 - ✅ Rollback documentation complete with templates
 - 🔄 CI lint for nested decorators (planned)
 
@@ -47,13 +53,13 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 
 ## Red Team Findings
 
-| Priority | Area                    | Observation                                                                                                                                                                                                                       | Impact                                                                  | Recommendation                                                                                                                                                                                                                                      | Owner   | Status      |
-| -------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------- |
-| High     | Release supply chain    | `hephaestus release install` downloads wheelhouse archives over HTTPS but never verifies signatures or even checksums. A compromised GitHub release or CDN node could silently deliver poisoned wheels.                           | Supply-chain compromise risk for every consumer invoking the installer. | Publish a manifest with SHA-256/Sigstore attestations for each wheelhouse and verify before install; fail closed on mismatch. Pin the allowed repository/asset pattern and surface overrides behind an explicit `--allow-unsigned` escape hatch.    | Tooling | Open        |
-| Medium   | Release networking      | `download_wheelhouse` performs blocking `urllib.request.urlopen` calls with default timeouts and zero retry logic. A slow or hostile endpoint can hang the CLI indefinitely.                                                      | Denial-of-service against CI pipelines and operators.                   | Add configurable timeouts, bounded retries with exponential backoff, and telemetry for repeated failures. Work-in-progress branch introduces retry helpers—needs completion and validation.                                                         | Tooling | Complete    |
-| High     | Cleanup ergonomics      | `cleanup` will happily scrub any `--extra-path` (even `/`), and when invoked outside a git repo it treats the CWD as root. A typo can wipe unrelated directories.                                                                 | Catastrophic operator error / accidental data loss.                     | Refuse to operate on paths outside the repo unless `--allow-outside-root` (with confirmation), disallow `/` and home directory targets, and emit a dry-run summary before deletion.                                                                 | DX      | Complete    |
-| Medium   | Guard rail availability | The `guard_rails` command is defined inside the `cleanup` function, so it is only registered after the cleanup command runs once per process. Fresh shells cannot invoke guard rails and therefore skip automated security scans. | Guard rails silently unavailable -> reduced local/AppSec coverage.      | Hoist `_format_command` and `guard_rails` to module scope, add a regression test that `cli.app.registered_commands` includes `guard-rails` pre-execution, and document expected usage. Current local edits regressed command wiring—needs re-hoist. | DX      | Complete    |
-| Low      | Asset name sanitisation | Release assets are written to disk using the server-provided filename without validating path separators. GitHub currently rejects `/`, but defensive sanitisation is advisable.                                                  | Future path traversal if upstream validation changes.                   | Strip `..`/path separators from asset names before joining paths and log when sanitisation occurs.                                                                                                                                                  | Tooling | Complete    |
+| Priority | Area                    | Observation                                                                                                                                                                                                                       | Impact                                                                  | Recommendation                                                                                                                                                                                                                                      | Owner   | Status   |
+| -------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- |
+| High     | Release supply chain    | `hephaestus release install` downloads wheelhouse archives over HTTPS but never verifies signatures or even checksums. A compromised GitHub release or CDN node could silently deliver poisoned wheels.                           | Supply-chain compromise risk for every consumer invoking the installer. | Publish a manifest with SHA-256/Sigstore attestations for each wheelhouse and verify before install; fail closed on mismatch. Pin the allowed repository/asset pattern and surface overrides behind an explicit `--allow-unsigned` escape hatch.    | Tooling | Open     |
+| Medium   | Release networking      | `download_wheelhouse` performs blocking `urllib.request.urlopen` calls with default timeouts and zero retry logic. A slow or hostile endpoint can hang the CLI indefinitely.                                                      | Denial-of-service against CI pipelines and operators.                   | Add configurable timeouts, bounded retries with exponential backoff, and telemetry for repeated failures. Work-in-progress branch introduces retry helpers—needs completion and validation.                                                         | Tooling | Complete |
+| High     | Cleanup ergonomics      | `cleanup` will happily scrub any `--extra-path` (even `/`), and when invoked outside a git repo it treats the CWD as root. A typo can wipe unrelated directories.                                                                 | Catastrophic operator error / accidental data loss.                     | Refuse to operate on paths outside the repo unless `--allow-outside-root` (with confirmation), disallow `/` and home directory targets, and emit a dry-run summary before deletion.                                                                 | DX      | Complete |
+| Medium   | Guard rail availability | The `guard_rails` command is defined inside the `cleanup` function, so it is only registered after the cleanup command runs once per process. Fresh shells cannot invoke guard rails and therefore skip automated security scans. | Guard rails silently unavailable -> reduced local/AppSec coverage.      | Hoist `_format_command` and `guard_rails` to module scope, add a regression test that `cli.app.registered_commands` includes `guard-rails` pre-execution, and document expected usage. Current local edits regressed command wiring—needs re-hoist. | DX      | Complete |
+| Low      | Asset name sanitisation | Release assets are written to disk using the server-provided filename without validating path separators. GitHub currently rejects `/`, but defensive sanitisation is advisable.                                                  | Future path traversal if upstream validation changes.                   | Strip `..`/path separators from asset names before joining paths and log when sanitisation occurs.                                                                                                                                                  | Tooling | Complete |
 
 ## Engineering Gaps & Opportunities
 
