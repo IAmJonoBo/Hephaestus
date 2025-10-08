@@ -22,7 +22,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-from hephaestus import release
+from hephaestus import release, resource_forks
 
 
 def _make_wheelhouse_tarball(tmp_path: Path) -> Path:
@@ -30,6 +30,23 @@ def _make_wheelhouse_tarball(tmp_path: Path) -> Path:
     wheelhouse_dir.mkdir()
     wheelhouse_dir.joinpath("sample-0.0.1-py3-none-any.whl").write_bytes(b"placeholder wheel")
     tar_path = tmp_path / "wheelhouse.tar.gz"
+    with tarfile.open(tar_path, "w:gz") as archive:
+        archive.add(wheelhouse_dir, arcname=".")
+    return tar_path
+
+
+def _make_wheelhouse_tarball_with_cruft(tmp_path: Path) -> Path:
+    wheelhouse_dir = tmp_path / "wheelhouse-cruft"
+    wheelhouse_dir.mkdir()
+    wheelhouse_dir.joinpath("sample-0.0.1-py3-none-any.whl").write_bytes(b"placeholder wheel")
+    (wheelhouse_dir / ".DS_Store").write_text("metadata", encoding="utf-8")
+    (wheelhouse_dir / "._hidden").write_text("metadata", encoding="utf-8")
+    (wheelhouse_dir / "IconX").write_text("icon", encoding="utf-8")
+    macos_dir = wheelhouse_dir / "__MACOSX"
+    macos_dir.mkdir()
+    (macos_dir / "extra").write_text("metadata", encoding="utf-8")
+
+    tar_path = tmp_path / "wheelhouse-cruft.tar.gz"
     with tarfile.open(tar_path, "w:gz") as archive:
         archive.add(wheelhouse_dir, arcname=".")
     return tar_path
@@ -226,6 +243,65 @@ def test_extract_archive_blocks_path_escape(tmp_path: Path) -> None:
         release.extract_archive(archive_path, destination=tmp_path / "extract")
 
 
+def test_extract_archive_sanitizes_resource_forks(tmp_path: Path) -> None:
+    archive_path = _make_wheelhouse_tarball_with_cruft(tmp_path)
+
+    destination = release.extract_archive(archive_path, destination=tmp_path / "extracted")
+
+    wheel_files = list(destination.glob("*.whl"))
+    assert wheel_files, "Expected wheel file to remain after sanitisation"
+    assert not list(destination.glob(".DS_Store"))
+    assert not list(destination.glob("__MACOSX"))
+    assert not list(destination.glob("._hidden"))
+    assert not list(destination.glob("IconX"))
+    assert not resource_forks.verify_clean(destination)
+
+
+def test_extract_archive_overwrite_existing_destination(tmp_path: Path) -> None:
+    archive_path = _make_wheelhouse_tarball(tmp_path)
+    destination = tmp_path / "dest"
+    destination.mkdir()
+    marker = destination / "old.txt"
+    marker.write_text("stale", encoding="utf-8")
+
+    extracted = release.extract_archive(archive_path, destination=destination, overwrite=True)
+
+    assert extracted == destination
+    assert not marker.exists()
+    assert list(extracted.glob("*.whl"))
+
+
+def test_extract_archive_raises_on_sanitize_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    archive_path = _make_wheelhouse_tarball(tmp_path)
+
+    failing_report = resource_forks.SanitizationReport(
+        errors=[(Path(".__MACOSX"), "permission denied")]
+    )
+    monkeypatch.setattr(release.resource_forks, "sanitize_path", lambda _path: failing_report)
+
+    with pytest.raises(release.ReleaseError, match="Failed to remove resource fork artefact"):
+        release.extract_archive(archive_path, destination=tmp_path / "extract")
+
+
+def test_extract_archive_raises_when_residuals_detected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    archive_path = _make_wheelhouse_tarball(tmp_path)
+
+    clean_report = resource_forks.SanitizationReport()
+    monkeypatch.setattr(release.resource_forks, "sanitize_path", lambda _path: clean_report)
+    monkeypatch.setattr(
+        release.resource_forks,
+        "verify_clean",
+        lambda _path: [Path("wheelhouse/__MACOSX")],
+    )
+
+    with pytest.raises(release.ReleaseError, match="Resource fork artefacts remain"):
+        release.extract_archive(archive_path, destination=tmp_path / "extract")
+
+
 def test_install_from_directory_invokes_pip(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -251,6 +327,55 @@ def test_install_from_directory_invokes_pip(
     assert "--quiet" in command
     assert "pkg.whl" in command[-1]
     assert "--upgrade" not in command
+
+
+def test_install_from_directory_raises_on_sanitize_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    wheel_dir = tmp_path / "wheel-dir"
+    wheel_dir.mkdir()
+    wheel_dir.joinpath("pkg.whl").write_bytes(b"wheel")
+
+    failing_report = resource_forks.SanitizationReport(
+        errors=[(wheel_dir / "._bad", "permission denied")]
+    )
+    monkeypatch.setattr(release.resource_forks, "sanitize_path", lambda _path: failing_report)
+    called = False
+
+    def _never_called(_cmd: list[str], **_kwargs: Any) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(release.subprocess, "check_call", _never_called)
+
+    with pytest.raises(release.ReleaseError, match="Failed to remove resource fork artefact"):
+        release.install_from_directory(wheel_dir)
+
+    assert called is False
+
+
+def test_install_from_directory_raises_on_residuals(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    wheel_dir = tmp_path / "wheel-dir"
+    wheel_dir.mkdir()
+    wheel_dir.joinpath("pkg.whl").write_bytes(b"wheel")
+
+    clean_report = resource_forks.SanitizationReport()
+    monkeypatch.setattr(release.resource_forks, "sanitize_path", lambda _path: clean_report)
+    monkeypatch.setattr(release.resource_forks, "verify_clean", lambda _path: [wheel_dir / "._bad"])
+    called = False
+
+    def _never_called(_cmd: list[str], **_kwargs: Any) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(release.subprocess, "check_call", _never_called)
+
+    with pytest.raises(release.ReleaseError, match="Resource fork artefacts remain"):
+        release.install_from_directory(wheel_dir)
+
+    assert called is False
 
 
 def test_install_from_archive_cleanup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

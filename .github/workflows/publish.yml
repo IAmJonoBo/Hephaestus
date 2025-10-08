@@ -60,12 +60,16 @@ jobs:
           PY
 
       - name: Assemble wheelhouse
+        env:
+          COPYFILE_DISABLE: "1"
         run: |
           set -euo pipefail
           VERSION='${{ steps.metadata.outputs.version }}'
           ARCHIVE='${{ steps.metadata.outputs.archive }}'
           mkdir -p wheelhouse
           cp dist/* wheelhouse/
+          uv run -- python -m hephaestus.cli wheelhouse sanitize wheelhouse
+          uv run -- python -m hephaestus.cli wheelhouse verify wheelhouse
           tar -czf "$ARCHIVE" -C wheelhouse .
           mv "$ARCHIVE" wheelhouse/
 

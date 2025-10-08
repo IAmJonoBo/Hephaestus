@@ -35,6 +35,9 @@ cd "${PROJECT_ROOT}" || exit 1
 
 ARGS=("$@")
 
+# Prevent cp/tar from emitting AppleDouble files on non-HFS targets.
+export COPYFILE_DISABLE="${COPYFILE_DISABLE:-1}"
+
 # Check if we need to inject the repository root
 should_inject_root=true
 for arg in "${ARGS[@]}"; do
