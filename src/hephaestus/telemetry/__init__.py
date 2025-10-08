@@ -20,15 +20,43 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from hephaestus import events as _events
+
 __all__ = [
     "is_telemetry_enabled",
     "get_tracer",
     "configure_telemetry",
+    "TelemetryEvent",
+    "TelemetryRegistry",
+    "registry",
+    "emit_event",
+    "operation_context",
+    "generate_run_id",
+    "generate_operation_id",
 ]
+
+# Re-export event definitions for backwards compatibility with the legacy
+# ``hephaestus.telemetry`` module.
+__all__ += [name for name in _events.__all__ if name not in __all__]
+
+TelemetryEvent = _events.TelemetryEvent
+TelemetryRegistry = _events.TelemetryRegistry
+registry = _events.registry
+emit_event = _events.emit_event
+operation_context = _events.operation_context
+generate_run_id = _events.generate_run_id
+generate_operation_id = _events.generate_operation_id
+
+
+def __getattr__(name: str) -> Any:
+    if hasattr(_events, name):
+        return getattr(_events, name)
+    raise AttributeError(f"module 'hephaestus.telemetry' has no attribute {name!r}")
 
 
 # Exposed for tests that monkeypatch hephaestus.telemetry.trace
 _trace_module: Any | None = None
+trace: Any | None = None
 
 
 def is_telemetry_enabled() -> bool:
@@ -49,18 +77,22 @@ def get_tracer(name: str) -> Any:
     Returns:
         Tracer instance if telemetry is enabled, otherwise a no-op tracer
     """
+    global trace
+
     if not is_telemetry_enabled():
         return _NoOpTracer()
 
     try:
-        from opentelemetry import trace as otel_trace
-
-        global _trace_module
-        _trace_module = otel_trace
-        return otel_trace.get_tracer(name)
+        from opentelemetry import trace as otel_trace  # type: ignore[import-not-found]
     except ImportError:
         # OpenTelemetry not installed, return no-op tracer
+        trace = None
         return _NoOpTracer()
+    else:
+        global _trace_module
+        _trace_module = otel_trace
+        trace = otel_trace
+        return otel_trace.get_tracer(name)
 
 
 def configure_telemetry() -> None:
@@ -75,39 +107,56 @@ def configure_telemetry() -> None:
     if not is_telemetry_enabled():
         return
 
+    global trace
+
     try:
-        from opentelemetry import trace
-        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
-            OTLPSpanExporter,
+        import importlib
+
+        trace_module = importlib.import_module("opentelemetry.trace")
+        exporter_module = importlib.import_module(
+            "opentelemetry.exporter.otlp.proto.grpc.trace_exporter"
         )
-        from opentelemetry.sdk.resources import SERVICE_NAME, Resource
-        from opentelemetry.sdk.trace import TracerProvider
-        from opentelemetry.sdk.trace.export import BatchSpanProcessor
-
-        # Create resource with service name
-        service_name = os.getenv("OTEL_SERVICE_NAME", "hephaestus")
-        resource = Resource(attributes={SERVICE_NAME: service_name})
-
-        # Configure tracer provider
-        provider = TracerProvider(resource=resource)
-
-        # Add OTLP exporter if endpoint is configured
-        endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-        if endpoint:
-            otlp_exporter = OTLPSpanExporter(endpoint=endpoint)
-            provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
-
-        # Set as global tracer provider
-        trace.set_tracer_provider(provider)
+        resources_module = importlib.import_module("opentelemetry.sdk.resources")
+        sdk_trace_module = importlib.import_module("opentelemetry.sdk.trace")
+        sdk_export_module = importlib.import_module("opentelemetry.sdk.trace.export")
     except ImportError:
         # OpenTelemetry not installed, silently skip
-        pass
+        return
     except Exception as exc:
         # Log configuration errors but do not break functionality
         import logging
 
         logging.getLogger("hephaestus.telemetry").warning("Telemetry configuration error: %s", exc)
-        pass
+        return
+
+    exporter_namespace = exporter_module.__dict__
+    resources_namespace = resources_module.__dict__
+    sdk_trace_namespace = sdk_trace_module.__dict__
+    sdk_export_namespace = sdk_export_module.__dict__
+
+    otlp_span_exporter_cls = exporter_namespace["OTLPSpanExporter"]
+    resource_cls = resources_namespace["Resource"]
+    service_name_attr = resources_namespace["SERVICE_NAME"]
+    tracer_provider_cls = sdk_trace_namespace["TracerProvider"]
+    batch_span_processor_cls = sdk_export_namespace["BatchSpanProcessor"]
+
+    trace = trace_module
+
+    # Create resource with service name
+    service_name = os.getenv("OTEL_SERVICE_NAME", "hephaestus")
+    resource = resource_cls(attributes={service_name_attr: service_name})
+
+    # Configure tracer provider
+    provider = tracer_provider_cls(resource=resource)
+
+    # Add OTLP exporter if endpoint is configured
+    endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    if endpoint:
+        otlp_exporter = otlp_span_exporter_cls(endpoint=endpoint)
+        provider.add_span_processor(batch_span_processor_cls(otlp_exporter))
+
+    # Set as global tracer provider
+    trace_module.set_tracer_provider(provider)
 
 
 class _NoOpTracer:
@@ -120,6 +169,7 @@ class _NoOpTracer:
         **kwargs: Any,
     ) -> _NoOpSpan:
         """Return a no-op context manager."""
+        _ = name
         return _NoOpSpan()
 
 
@@ -130,12 +180,12 @@ class _NoOpSpan:
         return self
 
     def __exit__(self, *args: Any) -> None:
-        pass
+        return None
 
     def set_attribute(self, key: str, value: Any) -> None:
         """No-op attribute setter."""
-        pass
+        _ = (key, value)
 
     def add_event(self, name: str, attributes: dict[str, Any] | None = None) -> None:
         """No-op event recorder."""
-        pass
+        _ = (name, attributes)
