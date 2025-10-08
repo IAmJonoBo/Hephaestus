@@ -14,7 +14,8 @@ jobs:
       contents: read
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
       # Install uv + requested Python (uses GitHub infra; no curl to astral.sh).
       - name: Setup uv and Python
