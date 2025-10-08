@@ -84,6 +84,13 @@ QUALITY_GATES = [
         category="custom",
     ),
     QualityGate(
+        name="Workflow Lint (actionlint)",
+        command=["bash", "scripts/run_actionlint.sh"],
+        required=False,  # Optional: requires external binary
+        description="Validate GitHub Actions workflows",
+        category="linting",
+    ),
+    QualityGate(
         name="Build Artifacts",
         command=["python3", "-m", "build"],
         required=True,

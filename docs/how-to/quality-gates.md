@@ -24,6 +24,7 @@ This runs:
 - YAML linting with yamllint
 - Mypy type checking
 - Nested decorator linting
+- Workflow validation with actionlint (optional)
 - Build artifact generation
 - Security auditing (when available)
 
@@ -126,6 +127,23 @@ python3 scripts/lint_nested_decorators.py src/hephaestus
 ```
 
 This ensures Typer commands are defined at module scope, not nested inside other functions. See the red team findings in `Next_Steps.md` for context on the guard-rails availability bug this prevents.
+
+### Workflow Validation (actionlint)
+
+Validate GitHub Actions workflows:
+
+```bash
+bash scripts/run_actionlint.sh
+```
+
+This optional check:
+
+- Automatically installs actionlint if not present
+- Validates workflow syntax and structure
+- Checks for deprecated actions
+- Reports shellcheck issues in workflow scripts
+
+Note: This is an optional quality gate. The script will download actionlint on first run.
 
 ### Security Audit
 
