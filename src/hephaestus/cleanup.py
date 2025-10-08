@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import fnmatch
+import logging
 import os
 import shutil
 import subprocess
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from hephaestus.logging import log_context, log_event
 
 __all__ = [
     "CleanupOptions",
@@ -25,6 +28,9 @@ SITE_PACKAGES_DIR = "site-packages"
 
 RemovalCallback = Callable[[Path], None]
 SkipCallback = Callable[[Path, str], None]
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True, frozen=True)
@@ -102,14 +108,35 @@ class CleanupResult:
         self.removed_paths.append(path)
         if callback:
             callback(path)
+        log_event(
+            logger,
+            "cleanup.path.removed",
+            message=f"Removed {path}",
+            path=str(path),
+        )
 
     def record_skip(self, path: Path, reason: str, callback: SkipCallback | None) -> None:
         self.skipped_roots.append((path, reason))
         if callback:
             callback(path, reason)
+        log_event(
+            logger,
+            "cleanup.path.skipped",
+            message=f"Skipped {path}",
+            path=str(path),
+            reason=reason,
+        )
 
     def record_error(self, path: Path, message: str) -> None:
         self.errors.append((path, message))
+        log_event(
+            logger,
+            "cleanup.path.error",
+            level=logging.ERROR,
+            message=f"Cleanup error for {path}: {message}",
+            path=str(path),
+            reason=message,
+        )
 
 
 MACOS_PATTERNS: tuple[str, ...] = (
@@ -241,11 +268,35 @@ def run_cleanup(
 
     result = CleanupResult(search_roots=list(search_roots))
 
-    for root in search_roots:
-        if not root.exists():
-            result.record_skip(root, "missing", on_skip)
-            continue
-        _cleanup_root(root, normalized, result, on_remove)
+    with log_context(command="cleanup", root=str(normalized.root)):
+        log_event(
+            logger,
+            "cleanup.run.start",
+            message="Starting cleanup sweep",
+            search_roots=[str(path) for path in result.search_roots],
+            include_git=normalized.include_git,
+            include_poetry_env=normalized.include_poetry_env,
+            python_cache=normalized.python_cache,
+            build_artifacts=normalized.build_artifacts,
+            node_modules=normalized.node_modules,
+            extra_paths=[str(path) for path in normalized.extra_paths],
+        )
+
+        for root in search_roots:
+            if not root.exists():
+                result.record_skip(root, "missing", on_skip)
+                continue
+            with log_context(root=str(root)):
+                _cleanup_root(root, normalized, result, on_remove)
+
+        log_event(
+            logger,
+            "cleanup.run.complete",
+            message="Cleanup sweep completed",
+            removed=len(result.removed_paths),
+            skipped=len(result.skipped_roots),
+            errors=len(result.errors),
+        )
 
     return result
 

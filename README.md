@@ -42,10 +42,12 @@ Use the Typer-based CLI to move quickly from discovery to delivery:
 - `tools refactor opportunities`: summarises advisory refactors with qualitative effort signals to aid prioritisation.
 - `tools qa profile <name>`: inspects guard-rail thresholds and rollout toggles for an individual QA profile.
 - `tools qa coverage`: highlights uncovered lines and risk scores tuned to your coverage goals.
-- `release install`: downloads the latest (or specified) wheelhouse from GitHub Releases, installs the bundled wheels, and optionally cleans up caches when you're integrating Hephaestus into another repository.
+- `release install`: downloads the latest (or specified) wheelhouse from GitHub Releases, verifies SHA-256 manifests, installs the bundled wheels, and optionally cleans up caches when you're integrating Hephaestus into another repository.
 - `cleanup`: scrubs macOS cruft and optional caches/build artefacts from the workspace (also available via `./cleanup-macos-cruft.sh`).
 - `guard-rails`: runs the full quality and security pipeline (cleanup, lint, format, type check, test, audit) in one command. Use `--no-format` to skip auto-formatting.
 - `plan`: renders a rich execution plan so teams can visualise orchestration progress during a rollout.
+
+All commands honour the global logging switches: `--log-format` toggles between human-friendly text and machine-readable JSON, `--log-level` adjusts verbosity, and `--run-id` stamps every log event with a correlation identifier for distributed tracing.
 
 #### Shell Completions
 

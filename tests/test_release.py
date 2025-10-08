@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import io
 import tarfile
+import urllib.error
+from email.message import Message
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import pytest
 
@@ -26,21 +29,44 @@ def _make_wheelhouse_tarball(tmp_path: Path) -> Path:
 def test_download_wheelhouse_happy_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     tar_path = _make_wheelhouse_tarball(tmp_path)
 
-    def fake_fetch_release(repository: str, tag: str | None, token: str | None) -> dict[str, Any]:
+    digest = hashlib.sha256(tar_path.read_bytes()).hexdigest()
+
+    def fake_fetch_release(
+        repository: str,
+        tag: str | None,
+        token: str | None,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> dict[str, Any]:
         return {
             "assets": [
                 {
                     "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
                     "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
                     "size": tar_path.stat().st_size,
-                }
+                },
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.sha256",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.sha256",
+                    "size": 100,
+                },
             ]
         }
 
     def fake_download_asset(
-        asset: release.ReleaseAsset, destination: Path, token: str | None, overwrite: bool
+        asset: release.ReleaseAsset,
+        destination: Path,
+        token: str | None,
+        overwrite: bool,
+        *,
+        timeout: float,
+        max_retries: int,
     ) -> Path:
-        destination.write_bytes(tar_path.read_bytes())
+        if asset.name.endswith(".tar.gz"):
+            destination.write_bytes(tar_path.read_bytes())
+        else:
+            destination.write_text(f"{digest}  hephaestus-1.2.3-wheelhouse.tar.gz\n", encoding="utf-8")
         return destination
 
     monkeypatch.setattr(release, "_fetch_release", fake_fetch_release)
@@ -159,14 +185,15 @@ def test_fetch_release_success(monkeypatch: pytest.MonkeyPatch) -> None:
         def __enter__(self) -> FakeResponse:
             return self
 
-        def __exit__(self, *_args: Any) -> bool:  # pragma: no cover - normal flow
+        def __exit__(self, *_args: Any) -> Literal[False]:  # pragma: no cover - normal flow
             return False
 
         def read(self) -> bytes:
             return payload
 
-    def fake_urlopen(request: Any) -> FakeResponse:
+    def fake_urlopen(request: Any, *, timeout: float) -> FakeResponse:
         captured["url"] = request.full_url
+        captured["timeout"] = timeout
         return FakeResponse()
 
     monkeypatch.setattr(release.urllib.request, "urlopen", fake_urlopen)
@@ -175,6 +202,7 @@ def test_fetch_release_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert data == {"assets": []}
     assert captured["url"].endswith("/releases/latest")
+    assert captured["timeout"] == release.DEFAULT_TIMEOUT
 
 
 def test_fetch_release_validates_repository() -> None:
@@ -201,8 +229,11 @@ def test_download_asset_respects_overwrite(monkeypatch: pytest.MonkeyPatch, tmp_
 
     payload = b"new"
 
-    def fake_urlopen(request: Any) -> contextlib.AbstractContextManager[io.BytesIO]:
+    def fake_urlopen(
+        request: Any, *, timeout: float
+    ) -> contextlib.AbstractContextManager[io.BytesIO]:
         assert request.get_header("Authorization") == "Bearer token"
+        assert timeout == release.DEFAULT_TIMEOUT
         return contextlib.closing(io.BytesIO(payload))
 
     monkeypatch.setattr(release.urllib.request, "urlopen", fake_urlopen)
@@ -219,21 +250,37 @@ def test_download_wheelhouse_without_extract(
     monkeypatch.setattr(
         release,
         "_fetch_release",
-        lambda repository, tag, token: {
+        lambda repository, tag, token, *, timeout, max_retries: {
             "assets": [
                 {
                     "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
                     "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
                     "size": tar_path.stat().st_size,
-                }
+                },
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.sha256",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.sha256",
+                    "size": 100,
+                },
             ]
         },
     )
 
     def fake_download(
-        asset: release.ReleaseAsset, destination: Path, *_args: Any, **_kwargs: Any
+        asset: release.ReleaseAsset,
+        destination: Path,
+        *_args: Any,
+        timeout: float,
+        max_retries: int,
+        **_kwargs: Any,
     ) -> Path:
-        destination.write_bytes(tar_path.read_bytes())
+        if asset.name.endswith(".tar.gz"):
+            destination.write_bytes(tar_path.read_bytes())
+        else:
+            digest = hashlib.sha256(tar_path.read_bytes()).hexdigest()
+            destination.write_text(
+                f"{digest}  hephaestus-1.2.3-wheelhouse.tar.gz\n", encoding="utf-8"
+            )
         return destination
 
     monkeypatch.setattr(release, "_download_asset", fake_download)
@@ -264,7 +311,7 @@ def test_sanitize_asset_name_strips_path_separators() -> None:
     assert release._sanitize_asset_name("..\\..\\file.tar.gz") == "file.tar.gz"
 
     # Double dots should be replaced
-    assert release._sanitize_asset_name("file..tar.gz") == "file_.tar.gz"
+    assert release._sanitize_asset_name("file..tar.gz") == "file_tar.gz"
 
     # Empty or dangerous names should raise
     with pytest.raises(release.ReleaseError, match="empty or unsafe"):
@@ -281,7 +328,7 @@ def test_fetch_release_validates_timeout() -> None:
     """Test that _fetch_release validates timeout parameter."""
     with pytest.raises(release.ReleaseError, match="Timeout must be positive"):
         release._fetch_release("owner/repo", None, None, timeout=0)
-    
+
     with pytest.raises(release.ReleaseError, match="Timeout must be positive"):
         release._fetch_release("owner/repo", None, None, timeout=-1)
 
@@ -290,7 +337,7 @@ def test_fetch_release_validates_max_retries() -> None:
     """Test that _fetch_release validates max_retries parameter."""
     with pytest.raises(release.ReleaseError, match="Max retries must be at least 1"):
         release._fetch_release("owner/repo", None, None, max_retries=0)
-    
+
     with pytest.raises(release.ReleaseError, match="Max retries must be at least 1"):
         release._fetch_release("owner/repo", None, None, max_retries=-1)
 
@@ -303,10 +350,10 @@ def test_download_asset_validates_timeout(tmp_path: Path) -> None:
         size=100,
     )
     destination = tmp_path / "test.tar.gz"
-    
+
     with pytest.raises(release.ReleaseError, match="Timeout must be positive"):
         release._download_asset(asset, destination, None, False, timeout=0)
-    
+
     with pytest.raises(release.ReleaseError, match="Timeout must be positive"):
         release._download_asset(asset, destination, None, False, timeout=-1)
 
@@ -319,10 +366,311 @@ def test_download_asset_validates_max_retries(tmp_path: Path) -> None:
         size=100,
     )
     destination = tmp_path / "test.tar.gz"
-    
+
     with pytest.raises(release.ReleaseError, match="Max retries must be at least 1"):
         release._download_asset(asset, destination, None, False, max_retries=0)
-    
+
     with pytest.raises(release.ReleaseError, match="Max retries must be at least 1"):
         release._download_asset(asset, destination, None, False, max_retries=-1)
 
+
+def test_open_with_retries_handles_transient_http(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_open_with_retries retries on 5xx errors and eventually succeeds."""
+
+    attempts: list[float] = []
+
+    class FakeResponse(io.BytesIO):
+        def __enter__(self) -> FakeResponse:  # pragma: no cover - trivial
+            return self
+
+        def __exit__(self, *_args: Any) -> None:  # pragma: no cover - normal flow
+            return None
+
+    def fake_urlopen(request: Any, *, timeout: float) -> FakeResponse:
+        attempts.append(timeout)
+        if len(attempts) == 1:
+            raise urllib.error.HTTPError(
+                request.full_url,
+                502,
+                "bad gateway",
+                Message(),
+                io.BytesIO(b"error"),
+            )
+        return FakeResponse(b"ok")
+
+    sleeps: list[float] = []
+    monkeypatch.setattr(release.time, "sleep", sleeps.append)
+    monkeypatch.setattr(release.urllib.request, "urlopen", fake_urlopen)
+
+    request = release._build_request("https://example.invalid/resource", token=None)
+    response = release._open_with_retries(
+        request,
+        timeout=1.25,
+        max_retries=3,
+        description="test",
+    )
+
+    with contextlib.closing(response) as fh:
+        assert fh.read() == b"ok"
+
+    assert attempts == [1.25, 1.25]
+    assert sleeps == [release._BACKOFF_INITIAL]
+
+
+def test_open_with_retries_raises_after_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_open_with_retries propagates the final URLError after exhausting retries."""
+
+    def fake_urlopen(_request: Any, *, timeout: float) -> Any:
+        raise urllib.error.URLError("boom")
+
+    monkeypatch.setattr(release.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(release.time, "sleep", lambda _delay: None)
+
+    request = release._build_request("https://example.invalid/resource", token=None)
+
+    with pytest.raises(urllib.error.URLError):
+        release._open_with_retries(
+            request,
+            timeout=0.75,
+            max_retries=2,
+            description="test",
+        )
+
+
+def test_download_wheelhouse_propagates_timeout_and_retries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """download_wheelhouse forwards timeout/retry configuration to helpers."""
+
+    fetch_args: dict[str, Any] = {}
+    download_args: dict[str, Any] = {}
+    tar_path = _make_wheelhouse_tarball(tmp_path)
+
+    def fake_fetch_release(
+        repository: str,
+        tag: str | None,
+        token: str | None,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> dict[str, Any]:
+        fetch_args.update(
+            {
+                "repository": repository,
+                "tag": tag,
+                "token": token,
+                "timeout": timeout,
+                "max_retries": max_retries,
+            }
+        )
+        return {
+            "assets": [
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "size": tar_path.stat().st_size,
+                },
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.sha256",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.sha256",
+                    "size": 100,
+                },
+            ]
+        }
+
+    def fake_download_asset(
+        asset: release.ReleaseAsset,
+        destination: Path,
+        token: str | None,
+        overwrite: bool,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> Path:
+        download_args.update(
+            {
+                "asset": asset,
+                "destination": destination,
+                "token": token,
+                "overwrite": overwrite,
+                "timeout": timeout,
+                "max_retries": max_retries,
+            }
+        )
+        if asset.name.endswith(".tar.gz"):
+            destination.write_bytes(tar_path.read_bytes())
+        else:
+            destination.write_text(
+                f"{hashlib.sha256(tar_path.read_bytes()).hexdigest()}  hephaestus-1.2.3-wheelhouse.tar.gz\n",
+                encoding="utf-8",
+            )
+        return destination
+
+    monkeypatch.setattr(release, "_fetch_release", fake_fetch_release)
+    monkeypatch.setattr(release, "_download_asset", fake_download_asset)
+
+    result = release.download_wheelhouse(
+        repository="IAmJonoBo/Hephaestus",
+        destination_dir=tmp_path / "downloads",
+        timeout=3.5,
+        max_retries=4,
+    )
+
+    assert result.archive_path.exists()
+    assert fetch_args == {
+        "repository": "IAmJonoBo/Hephaestus",
+        "tag": None,
+        "token": None,
+        "timeout": 3.5,
+        "max_retries": 4,
+    }
+    assert download_args["timeout"] == 3.5
+    assert download_args["max_retries"] == 4
+
+
+def test_download_wheelhouse_raises_when_manifest_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tar_path = _make_wheelhouse_tarball(tmp_path)
+
+    def fake_fetch_release(
+        repository: str,
+        tag: str | None,
+        token: str | None,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> dict[str, Any]:
+        return {
+            "assets": [
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "size": tar_path.stat().st_size,
+                }
+            ]
+        }
+
+    def fake_download_asset(
+        asset: release.ReleaseAsset,
+        destination: Path,
+        token: str | None,
+        overwrite: bool,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> Path:
+        destination.write_bytes(tar_path.read_bytes())
+        return destination
+
+    monkeypatch.setattr(release, "_fetch_release", fake_fetch_release)
+    monkeypatch.setattr(release, "_download_asset", fake_download_asset)
+
+    with pytest.raises(release.ReleaseError, match="checksum manifest"):
+        release.download_wheelhouse(
+            repository="IAmJonoBo/Hephaestus",
+            destination_dir=tmp_path / "downloads",
+        )
+
+
+def test_download_wheelhouse_raises_on_checksum_mismatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tar_path = _make_wheelhouse_tarball(tmp_path)
+
+    def fake_fetch_release(
+        repository: str,
+        tag: str | None,
+        token: str | None,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> dict[str, Any]:
+        return {
+            "assets": [
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "size": tar_path.stat().st_size,
+                },
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.sha256",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.sha256",
+                    "size": 100,
+                },
+            ]
+        }
+
+    def fake_download_asset(
+        asset: release.ReleaseAsset,
+        destination: Path,
+        token: str | None,
+        overwrite: bool,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> Path:
+        if asset.name.endswith(".tar.gz"):
+            destination.write_bytes(tar_path.read_bytes())
+        else:
+            destination.write_text(
+                f"{'deadbeef' * 8}  hephaestus-1.2.3-wheelhouse.tar.gz\n",
+                encoding="utf-8",
+            )
+        return destination
+
+    monkeypatch.setattr(release, "_fetch_release", fake_fetch_release)
+    monkeypatch.setattr(release, "_download_asset", fake_download_asset)
+
+    with pytest.raises(release.ReleaseError, match="Checksum verification failed"):
+        release.download_wheelhouse(
+            repository="IAmJonoBo/Hephaestus",
+            destination_dir=tmp_path / "downloads",
+        )
+
+
+def test_download_wheelhouse_can_allow_unsigned(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tar_path = _make_wheelhouse_tarball(tmp_path)
+
+    def fake_fetch_release(
+        repository: str,
+        tag: str | None,
+        token: str | None,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> dict[str, Any]:
+        return {
+            "assets": [
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "size": tar_path.stat().st_size,
+                }
+            ]
+        }
+
+    def fake_download_asset(
+        asset: release.ReleaseAsset,
+        destination: Path,
+        token: str | None,
+        overwrite: bool,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> Path:
+        destination.write_bytes(tar_path.read_bytes())
+        return destination
+
+    monkeypatch.setattr(release, "_fetch_release", fake_fetch_release)
+    monkeypatch.setattr(release, "_download_asset", fake_download_asset)
+
+    result = release.download_wheelhouse(
+        repository="IAmJonoBo/Hephaestus",
+        destination_dir=tmp_path / "downloads",
+        allow_unsigned=True,
+    )
+
+    assert result.archive_path.exists()

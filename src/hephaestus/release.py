@@ -7,9 +7,11 @@ helpers work on Linux, macOS, and Windows runners without extra dependencies.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -21,12 +23,15 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from fnmatch import fnmatch
 from pathlib import Path, PurePosixPath
-from typing import IO
+from typing import IO, cast
+
+from hephaestus.logging import log_context, log_event
 
 __all__ = [
     "DEFAULT_ASSET_PATTERN",
     "DEFAULT_REPOSITORY",
     "DEFAULT_DOWNLOAD_DIRECTORY",
+    "DEFAULT_MANIFEST_PATTERN",
     "DEFAULT_TIMEOUT",
     "DEFAULT_MAX_RETRIES",
     "ReleaseDownload",
@@ -40,12 +45,17 @@ __all__ = [
 
 DEFAULT_REPOSITORY = os.environ.get("HEPHAESTUS_RELEASE_REPOSITORY", "IAmJonoBo/Hephaestus")
 DEFAULT_ASSET_PATTERN = os.environ.get("HEPHAESTUS_RELEASE_ASSET_PATTERN", "*wheelhouse*.tar.gz")
+DEFAULT_MANIFEST_PATTERN = os.environ.get(
+    "HEPHAESTUS_RELEASE_MANIFEST_PATTERN", "*wheelhouse*.sha256"
+)
 
 
 _GITHUB_API = "https://api.github.com"
 _USER_AGENT = "hephaestus-wheelhouse-client"
 _BACKOFF_INITIAL = 0.5
 _BACKOFF_FACTOR = 2.0
+
+_CHECKSUM_LINE = re.compile(r"^(?P<digest>[0-9a-fA-F]{64})[ \t]+[*]?(?P<name>.+)$")
 
 
 DEFAULT_TIMEOUT = 10.0
@@ -75,6 +85,7 @@ class ReleaseDownload:
     asset: ReleaseAsset
     archive_path: Path
     extracted_path: Path | None
+    manifest_path: Path | None = None
 
     @property
     def wheel_directory(self) -> Path:
@@ -109,17 +120,25 @@ def _sanitize_asset_name(name: str) -> str:
     """Return a filesystem-safe asset name and log when modifications occur."""
 
     normalized = name.replace("\\", "/")
-    candidate = PurePosixPath(normalized).name
-    candidate = candidate.replace("..", "_")
+    base_name = PurePosixPath(normalized).name
+    if base_name in {"", ".", ".."}:
+        raise ReleaseError("Asset name resolved to an empty or unsafe value after sanitisation.")
+
+    candidate = base_name.replace("..", "_")
 
     if not candidate or candidate in {".", ""}:
         raise ReleaseError("Asset name resolved to an empty or unsafe value after sanitisation.")
 
     if candidate != name:
-        logger.warning(
-            "Sanitised asset name from %r to %r to prevent path traversal.",
-            name,
-            candidate,
+        log_event(
+            logger,
+            "release.asset.sanitised",
+            level=logging.WARNING,
+            message=(
+                f"Sanitised asset name from {name!r} to {candidate!r} to prevent path traversal."
+            ),
+            original_name=name,
+            sanitised_name=candidate,
         )
 
     return candidate
@@ -139,20 +158,28 @@ def _open_with_retries(
     while attempt < max_retries:
         attempt += 1
         try:
-            return urllib.request.urlopen(  # nosec B310 - HTTPS enforced by callers
+            response = urllib.request.urlopen(  # nosec B310 - HTTPS enforced by callers
                 request,
                 timeout=timeout,
             )
+            return cast(IO[bytes], response)
         except urllib.error.HTTPError as exc:
             last_error = exc
             if exc.code >= 500 and attempt < max_retries:
-                logger.warning(
-                    "%s failed with HTTP %s on attempt %s/%s; retrying in %.1fs.",
-                    description,
-                    exc.code,
-                    attempt,
-                    max_retries,
-                    delay,
+                log_event(
+                    logger,
+                    "release.http.retry",
+                    level=logging.WARNING,
+                    message=(
+                        f"{description} failed with HTTP {exc.code} on attempt "
+                        f"{attempt}/{max_retries}; retrying in {delay:.1f}s."
+                    ),
+                    description=description,
+                    http_status=exc.code,
+                    attempt=attempt,
+                    max_retries=max_retries,
+                    backoff_seconds=delay,
+                    url=request.full_url,
                 )
             else:
                 raise
@@ -160,13 +187,20 @@ def _open_with_retries(
             last_error = exc
             if attempt >= max_retries:
                 break
-            logger.warning(
-                "%s failed on attempt %s/%s: %s; retrying in %.1fs.",
-                description,
-                attempt,
-                max_retries,
-                getattr(exc, "reason", exc),
-                delay,
+            log_event(
+                logger,
+                "release.network.retry",
+                level=logging.WARNING,
+                message=(
+                    f"{description} failed on attempt {attempt}/{max_retries}: "
+                    f"{getattr(exc, 'reason', exc)}; retrying in {delay:.1f}s."
+                ),
+                description=description,
+                attempt=attempt,
+                max_retries=max_retries,
+                backoff_seconds=delay,
+                reason=str(getattr(exc, "reason", exc)),
+                url=request.full_url,
             )
 
         time.sleep(delay)
@@ -204,7 +238,7 @@ def _fetch_release(
 
     if timeout <= 0:
         raise ReleaseError(f"Timeout must be positive, got {timeout}")
-    
+
     if max_retries < 1:
         raise ReleaseError(f"Max retries must be at least 1, got {max_retries}")
 
@@ -273,7 +307,7 @@ def _download_asset(
 ) -> Path:
     if timeout <= 0:
         raise ReleaseError(f"Timeout must be positive, got {timeout}")
-    
+
     if max_retries < 1:
         raise ReleaseError(f"Max retries must be at least 1, got {max_retries}")
 
@@ -303,6 +337,42 @@ def _download_asset(
     except urllib.error.URLError as exc:  # pragma: no cover
         raise ReleaseError(f"Failed to download asset: {exc.reason}") from exc
     return destination
+
+
+def _hash_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _parse_checksum_manifest(manifest_text: str) -> dict[str, str]:
+    checksums: dict[str, str] = {}
+    for idx, raw_line in enumerate(manifest_text.splitlines(), start=1):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+
+        match = _CHECKSUM_LINE.match(line)
+        if not match:
+            raise ReleaseError(
+                f"Invalid checksum manifest entry on line {idx}: {raw_line!r}."
+            )
+
+        digest = match.group("digest").lower()
+        asset_name = match.group("name").strip()
+        sanitized_name = _sanitize_asset_name(asset_name)
+        if sanitized_name in checksums and checksums[sanitized_name] != digest:
+            raise ReleaseError(
+                f"Conflicting checksum entries for {sanitized_name!r} in manifest."
+            )
+        checksums[sanitized_name] = digest
+
+    if not checksums:
+        raise ReleaseError("Checksum manifest did not contain any entries.")
+
+    return checksums
 
 
 def extract_archive(
@@ -370,7 +440,15 @@ def install_from_directory(
     if not wheels:
         raise ReleaseError(f"No wheel files were found in {wheel_directory}.")
 
-    logger.info("Installing %d wheel(s) from %s", len(wheels), wheel_directory)
+    log_event(
+        logger,
+        "release.install.start",
+        message=f"Installing {len(wheels)} wheel(s) from {wheel_directory}",
+        wheels=len(wheels),
+        directory=str(wheel_directory),
+        python_executable=python_executable,
+        upgrade=upgrade,
+    )
 
     python_executable = python_executable or sys.executable
     cmd: list[str] = [python_executable, "-m", "pip", "install"]
@@ -380,9 +458,20 @@ def install_from_directory(
         cmd.extend(pip_args)
     cmd.extend(str(wheel) for wheel in wheels)
 
-    logger.info("Running pip install command")
+    log_event(
+        logger,
+        "release.install.invoke",
+        message="Running pip install command",
+        command=cmd,
+    )
     subprocess.check_call(cmd)
-    logger.info("Installation completed successfully")
+    log_event(
+        logger,
+        "release.install.complete",
+        message="Installation completed successfully",
+        wheels=len(wheels),
+        directory=str(wheel_directory),
+    )
 
 
 def download_wheelhouse(
@@ -391,31 +480,53 @@ def download_wheelhouse(
     destination_dir: Path,
     tag: str | None = None,
     asset_pattern: str = DEFAULT_ASSET_PATTERN,
+    manifest_pattern: str | None = DEFAULT_MANIFEST_PATTERN,
     token: str | None = None,
     overwrite: bool = False,
     extract: bool = True,
+    allow_unsigned: bool = False,
     extract_dir: Path | None = None,
     timeout: float = DEFAULT_TIMEOUT,
     max_retries: int = DEFAULT_MAX_RETRIES,
 ) -> ReleaseDownload:
     """Download a wheelhouse archive from a GitHub release."""
 
-    logger.info("Fetching release metadata for repository %s (tag=%s)", repository, tag or "latest")
-    release_data = _fetch_release(
-        repository,
-        tag,
-        token,
-        timeout=timeout,
-        max_retries=max_retries,
-    )
-    asset = _pick_asset(release_data, asset_pattern)
-    logger.info("Selected asset: %s (size=%d bytes)", asset.name, asset.size)
+    with log_context(repository=repository, tag=tag or "latest"):
+        log_event(
+            logger,
+            "release.metadata.fetch",
+            message=(
+                f"Fetching release metadata for repository {repository} (tag={tag or 'latest'})"
+            ),
+        )
+        release_data = _fetch_release(
+            repository,
+            tag,
+            token,
+            timeout=timeout,
+            max_retries=max_retries,
+        )
+        asset = _pick_asset(release_data, asset_pattern)
+        log_event(
+            logger,
+            "release.asset.selected",
+            message=f"Selected asset: {asset.name} (size={asset.size} bytes)",
+            asset=asset.name,
+            size=asset.size,
+        )
 
     destination_dir = destination_dir.resolve()
     destination_dir.mkdir(parents=True, exist_ok=True)
     archive_path = destination_dir / asset.name
 
-    logger.info("Downloading asset to %s", archive_path)
+    log_event(
+        logger,
+        "release.download.start",
+        message=f"Downloading asset to {archive_path}",
+        asset=asset.name,
+        destination=str(archive_path),
+        overwrite=overwrite,
+    )
     _download_asset(
         asset,
         archive_path,
@@ -424,15 +535,108 @@ def download_wheelhouse(
         timeout=timeout,
         max_retries=max_retries,
     )
-    logger.info("Download completed successfully")
+    log_event(
+        logger,
+        "release.download.complete",
+        message="Download completed successfully",
+        asset=asset.name,
+        destination=str(archive_path),
+    )
+
+    manifest_path: Path | None = None
+    if not allow_unsigned:
+        if not manifest_pattern:
+            raise ReleaseError(
+                "Checksum verification requires a manifest pattern when allow_unsigned is False."
+            )
+        log_event(
+            logger,
+            "release.manifest.locate",
+            message=f"Locating checksum manifest matching {manifest_pattern}",
+            pattern=manifest_pattern,
+        )
+        try:
+            manifest_asset = _pick_asset(release_data, manifest_pattern)
+        except ReleaseError as exc:
+            raise ReleaseError(
+                "Required checksum manifest could not be found; rerun with --allow-unsigned to "
+                "bypass verification if you explicitly trust the source."
+            ) from exc
+
+        manifest_path = destination_dir / manifest_asset.name
+        log_event(
+            logger,
+            "release.manifest.download",
+            message=f"Downloading checksum manifest to {manifest_path}",
+            manifest=manifest_asset.name,
+            destination=str(manifest_path),
+        )
+        _download_asset(
+            manifest_asset,
+            manifest_path,
+            token,
+            overwrite=True,
+            timeout=timeout,
+            max_retries=max_retries,
+        )
+
+        manifest_checksums = _parse_checksum_manifest(
+            manifest_path.read_text(encoding="utf-8")
+        )
+
+        expected_digest = manifest_checksums.get(asset.name)
+        if expected_digest is None:
+            raise ReleaseError(
+                f"Checksum manifest does not include an entry for {asset.name!r}."
+            )
+
+        actual_digest = _hash_file(archive_path)
+        if actual_digest != expected_digest:
+            raise ReleaseError(
+                "Checksum verification failed for asset "
+                f"{asset.name!r}: expected {expected_digest}, got {actual_digest}."
+            )
+
+        log_event(
+            logger,
+            "release.manifest.verified",
+            message=f"Checksum verified for {asset.name}",
+            asset=asset.name,
+        )
+    else:
+        log_event(
+            logger,
+            "release.manifest.skipped",
+            level=logging.WARNING,
+            message=(
+                f"Checksum verification disabled for {asset.name}; accepting unsigned asset."
+            ),
+            asset=asset.name,
+        )
 
     extracted: Path | None = None
     if extract:
-        logger.info("Extracting archive to %s", extract_dir or destination_dir)
+        log_event(
+            logger,
+            "release.extract.start",
+            message=f"Extracting archive to {extract_dir or destination_dir}",
+            destination=str(extract_dir or destination_dir),
+            overwrite=overwrite,
+        )
         extracted = extract_archive(archive_path, destination=extract_dir, overwrite=overwrite)
-        logger.info("Extraction completed: %s", extracted)
+        log_event(
+            logger,
+            "release.extract.complete",
+            message=f"Extraction completed: {extracted}",
+            destination=str(extracted),
+        )
 
-    return ReleaseDownload(asset=asset, archive_path=archive_path, extracted_path=extracted)
+    return ReleaseDownload(
+        asset=asset,
+        archive_path=archive_path,
+        extracted_path=extracted,
+        manifest_path=manifest_path,
+    )
 
 
 def install_from_archive(
