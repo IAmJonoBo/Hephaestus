@@ -27,6 +27,7 @@ By the end of this tutorial, you'll know how to:
    Or use pip: `pip install uv`
 
 2. **Python 3.12+** is required:
+
    ```bash
    python3 --version  # Should show 3.12 or higher
    ```
@@ -35,7 +36,7 @@ By the end of this tutorial, you'll know how to:
 
 Choose one of these installation methods:
 
-**Method A: Clone from Source (for development)**
+### Method A: Clone from Source (for development)
 
 ```bash
 git clone https://github.com/IAmJonoBo/Hephaestus.git
@@ -43,7 +44,7 @@ cd Hephaestus
 uv sync --extra dev --extra qa
 ```
 
-**Method B: Install Wheelhouse (for usage)**
+### Method B: Install Wheelhouse (for usage)
 
 ```bash
 # Install latest stable release
@@ -53,7 +54,7 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 hephaestus release install --repository IAmJonoBo/Hephaestus --tag v0.2.0
 ```
 
-**Method C: Direct pip install (from source)**
+### Method C: Direct pip install (from source)
 
 ```bash
 pip install -e ".[dev,qa]"
@@ -358,19 +359,21 @@ When you're ready to share the toolkit with another repository:
 
 ### Share with Others
 
-**Option A: GitHub Release**
+### Option A: GitHub Release
 
 1. Upload the archive as a GitHub Release asset
 2. Include the SHA256SUMS file
 3. Users can install with:
+
    ```bash
    hephaestus release install --repository IAmJonoBo/Hephaestus --tag v0.2.0
    ```
 
-**Option B: Direct Distribution**
+### Option B: Direct Distribution
 
 1. Pass the archive directly to collaborators
 2. They can extract and install:
+
    ```bash
    tar -xzf hephaestus-wheelhouse.tar.gz
    pip install dist/*.whl
@@ -381,6 +384,7 @@ When you're ready to share the toolkit with another repository:
 - Always include SHA-256 checksums
 - Consider using Sigstore for attestation
 - Verify checksums before installation:
+
   ```bash
   hephaestus release install --verify-checksum
   ```
@@ -451,10 +455,10 @@ hephaestus guard-rails
 
 ### Key Takeaways
 
-✅ Hephaestus provides a comprehensive quality pipeline in a single command  
-✅ Safety features protect against accidental data loss  
-✅ AI-native design enables seamless integration with assistants  
-✅ Data-driven recommendations help prioritize refactoring work  
+✅ Hephaestus provides a comprehensive quality pipeline in a single command
+✅ Safety features protect against accidental data loss
+✅ AI-native design enables seamless integration with assistants
+✅ Data-driven recommendations help prioritize refactoring work
 ✅ Frontier-level quality standards are automatically enforced
 
 You're now ready to use Hephaestus to maintain high-quality codebases! 🔨

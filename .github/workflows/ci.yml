@@ -1,17 +1,24 @@
-# CI references: uv+Actions (https://github.com/astral-sh/uv/tree/main/projects/setup-uv), uv lock export (https://docs.astral.sh/uv/guides/export/), pip wheel/offline installs (https://pip.pypa.io/en/stable/cli/pip_wheel/), GitHub artifact docs (https://docs.github.com/actions/using-workflows/storing-workflow-data-as-artifacts)
+---
+# CI references:
+# - uv + Actions setup: https://github.com/astral-sh/uv/tree/main/projects/setup-uv
+# - uv lock export: https://docs.astral.sh/uv/guides/export/
+# - pip wheel/offline installs: https://pip.pypa.io/en/stable/cli/pip_wheel/
+# - GitHub artifacts: https://docs.github.com/actions/using-workflows/storing-workflow-data-as-artifacts
 name: CI (uv with offline-ready install)
+
+permissions:
+  contents: read
 
 on:
   push:
-    branches: ["**"]
-  pull_request:
+    branches:
+      - "**"
+  pull_request: {}
 
 jobs:
   # Fast/normal path: GitHub-hosted runner with egress allowed to GitHub & PyPI.
   deps-and-tests-online:
     name: Online CI (uv sync)
-    permissions:
-      contents: read
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
@@ -32,11 +39,10 @@ jobs:
         run: uv run pytest -q
 
   # Offline-capable path for restricted networks:
-  # 1) Build a wheelhouse on an internet-enabled runner (must match OS/arch of the offline runner).
+  # 1) Build a wheelhouse on an internet-enabled runner (must match the OS/arch of
+  #    the offline runner).
   build-wheelhouse:
     name: Build wheelhouse artifact (internet required)
-    permissions:
-      contents: read
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -51,7 +57,8 @@ jobs:
       - name: Export locked requirements (dev + qa)
         run: |
           uv export --format requirements-txt \
-            --group dev --group qa \
+            --group dev \
+            --group qa \
             --all-extras \
             -o requirements.txt
 
@@ -75,8 +82,6 @@ jobs:
   ci-offline:
     name: Offline CI (install from wheelhouse)
     needs: build-wheelhouse
-    permissions:
-      contents: read
     runs-on:
       - self-hosted
       - macOS # adjust to match your restricted runner's labels (case sensitive)
@@ -100,9 +105,14 @@ jobs:
           python -m venv .venv
           . .venv/bin/activate
           python -m pip install --upgrade pip
-          pip install --no-index --find-links=wheelhouse -r wheelhouse/requirements.txt
-          # Install our package from the local wheel by name (resolves to wheel in find-links).
-          pip install --no-index --find-links=wheelhouse hephaestus
+          pip install --no-index \
+            --find-links=wheelhouse \
+            -r wheelhouse/requirements.txt
+          # Install our package from the local wheel by name (resolves to wheel in
+          # find-links).
+          pip install --no-index \
+            --find-links=wheelhouse \
+            hephaestus
 
       - name: Run tests (offline env)
         run: . .venv/bin/activate && pytest -q

@@ -6,6 +6,7 @@ import fnmatch
 import json
 import logging
 import os
+import platform
 import shutil
 import subprocess
 from collections.abc import Callable, Iterable, Iterator
@@ -240,6 +241,10 @@ DANGEROUS_PATHS: tuple[str, ...] = (
 
 def is_dangerous_path(path: Path) -> bool:
     """Check if a path is in the dangerous paths list."""
+    original = str(path)
+    if original in DANGEROUS_PATHS:
+        return True
+
     resolved = path.resolve()
     str_path = str(resolved)
 
@@ -609,18 +614,58 @@ def _remove_path(
     *,
     dry_run: bool,
 ) -> None:
-    try:
-        if not dry_run:
+    if dry_run:
+        result.record_removal(path, on_remove, dry_run=True)
+        return
+
+    attempts = 0
+    while True:
+        try:
             if path.is_symlink() or path.is_file():
                 path.unlink(missing_ok=True)
             else:
                 shutil.rmtree(path, ignore_errors=False)
-    except FileNotFoundError:
-        return
-    except PermissionError as exc:  # pragma: no cover - unlikely in tmp based tests
-        result.record_error(path, f"permission denied: {exc}")
-        return
-    result.record_removal(path, on_remove, dry_run=dry_run)
+        except FileNotFoundError:
+            return
+        except PermissionError as exc:  # pragma: no cover - unlikely in tmp based tests
+            if attempts == 0 and _unlock_path(path):
+                attempts += 1
+                continue
+            result.record_error(path, f"permission denied: {exc}")
+            return
+        break
+
+    result.record_removal(path, on_remove, dry_run=False)
+
+
+def _unlock_path(path: Path) -> bool:
+    if platform.system() != "Darwin":
+        return False
+
+    unlocked = False
+
+    try:
+        completed = subprocess.run(
+            ["chflags", "-R", "nouchg,noschg", str(path)],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        unlocked = unlocked or completed.returncode == 0
+    except FileNotFoundError:  # pragma: no cover - chflags missing on non-macOS platforms
+        return False
+
+    try:
+        subprocess.run(
+            ["xattr", "-rc", str(path)],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except FileNotFoundError:  # pragma: no cover - xattr missing on some macOS installs
+        pass
+
+    return unlocked
 
 
 def _resolve_manifest_path(options: NormalizedCleanupOptions) -> Path:

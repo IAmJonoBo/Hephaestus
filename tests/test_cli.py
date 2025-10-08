@@ -380,6 +380,7 @@ def test_guard_rails_drift_mode_no_drift() -> None:
     """Test guard-rails --drift when no drift is detected."""
     _, cli = _load_modules()
     from hephaestus.drift import ToolVersion
+
     # Mock drift detection to return no drifted tools
 
     def mock_detect_drift(_path: Path | None = None) -> list[ToolVersion]:

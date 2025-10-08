@@ -9,6 +9,7 @@ import pytest
 
 from hephaestus.cleanup import (
     CleanupOptions,
+    CleanupResult,
     _matches_any,
     _remove_path,
     _should_skip_venv_site_packages,
@@ -120,6 +121,66 @@ def test_remove_path_handles_missing_files(tmp_path: Path) -> None:
     missing = tmp_path / "missing"
     _remove_path(missing, result, None, dry_run=False)
     assert missing not in result.removed_paths
+
+
+def test_remove_path_unlocks_and_retries(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    target = tmp_path / "locked-file"
+    target.write_text("data", encoding="utf-8")
+
+    result = CleanupResult()
+
+    original_unlink = Path.unlink
+    attempts: dict[str, int] = {"count": 0}
+
+    def fake_unlink(self: Path, *, missing_ok: bool = False) -> None:
+        if self == target:
+            attempts["count"] += 1
+            if attempts["count"] == 1:
+                raise PermissionError("locked")
+        original_unlink(self, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", fake_unlink)
+
+    unlock_called: dict[str, bool] = {"value": False}
+
+    def fake_unlock(path: Path) -> bool:
+        if path == target:
+            unlock_called["value"] = True
+            return True
+        return False
+
+    monkeypatch.setattr("hephaestus.cleanup._unlock_path", fake_unlock)
+
+    _remove_path(target, result, None, dry_run=False)
+
+    assert unlock_called["value"] is True
+    assert attempts["count"] == 2
+    assert not target.exists()
+    assert target in result.removed_paths
+
+
+def test_remove_path_records_error_when_unlock_fails(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target = tmp_path / "locked-file"
+    target.write_text("data", encoding="utf-8")
+
+    result = CleanupResult()
+
+    original_unlink = Path.unlink
+
+    def always_locked(self: Path, *, missing_ok: bool = False) -> None:
+        if self == target:
+            raise PermissionError("locked")
+        original_unlink(self, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", always_locked)
+    monkeypatch.setattr("hephaestus.cleanup._unlock_path", lambda _path: False)
+
+    _remove_path(target, result, None, dry_run=False)
+
+    assert target.exists()
+    assert any(entry[0] == target for entry in result.errors)
 
 
 def test_matches_any_supports_glob_patterns() -> None:

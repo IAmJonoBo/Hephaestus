@@ -1,3 +1,4 @@
+---
 site_name: Hephaestus Toolkit
 site_description: Documentation for the Hephaestus developer experience toolkit
 site_url: https://hephaestus.example.com
@@ -19,7 +20,9 @@ nav:
   - Explanation:
       - Architecture Overview: explanation/architecture.md
       - Evergreen Lifecycle Playbook: lifecycle.md
-      - Frontier Red Team & Gap Analysis: explanation/frontier-red-team-gap-analysis.md
+      - Frontier Standards Charter: explanation/frontier-standards.md
+      - Frontier Red Team & Gap Analysis: >-
+          explanation/frontier-red-team-gap-analysis.md
   - Reference:
       - CLI Reference: reference/cli.md
       - CLI Autocompletion: cli-completions.md
