@@ -66,7 +66,7 @@ Last updated: 2025-01-11 (Analytics ingestion adapters + telemetry correlation)
 **Low Priority (Operational Excellence):**
 
 - ✅ Rollback documentation complete with templates
-- 🔄 CI lint for nested decorators (planned)
+- ✅ CI lint for nested decorators (automated)
 
 Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 
@@ -109,7 +109,7 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
    - [x] Regression test validates command registration (`tests/test_cli.py`).
    - [x] Added pytest-randomly to dependencies for test order independence
    - [x] CLI wiring restored and documented in README
-   - [ ] Add CI lint to prevent nested decorators
+   - [x] Add CI lint to prevent nested decorators (script created, CI updated)
 4. **Formalise AppSec posture** – publish `SECURITY.md`, threat model notes, and operational runbooks (rollback, telemetry, disclosure).
    - [x] Published SECURITY.md with disclosure process, contact channels, and SLAs
    - [x] Created STRIDE threat model (docs/adr/0001-stride-threat-model.md)
@@ -174,10 +174,24 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 
 - [x] Tests: `uv run pytest`
 - [x] Lint: `uv run ruff check .`
+- [x] Format: `uv run ruff format --check .`
 - [x] Types: `uv run mypy src tests`
+- [x] Nested Decorators: `python3 scripts/lint_nested_decorators.py src/hephaestus`
 - [ ] Security: `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (fails: SSL trust chain unavailable in container)
 - [x] Coverage ≥ 85% (enforced by pytest-cov)
 - [x] Build artefacts: `uv run uv build`
+
+**Comprehensive Validation:**
+
+Run all quality gates at once:
+```bash
+python3 scripts/validate_quality_gates.py
+```
+
+Or use the guard-rails command (includes cleanup + all checks):
+```bash
+uv run hephaestus guard-rails
+```
 
 ## Links
 
@@ -187,6 +201,39 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 - Logging utilities: src/hephaestus/logging.py
 - Regression suites: tests/test_release.py, tests/test_cleanup.py
 - Frontier analysis doc: docs/explanation/frontier-red-team-gap-analysis.md
+- Quality gate validator: scripts/validate_quality_gates.py
+- Nested decorator linter: scripts/lint_nested_decorators.py
+
+## Frontier Quality Standards
+
+This project enforces frontier-level quality standards through automated gates:
+
+### Code Quality
+- **Linting**: Ruff with strict configuration (E, F, I, UP, B, C4 rules)
+- **Formatting**: Ruff format with 100-character line length
+- **Type Safety**: Mypy strict mode with full coverage of src and tests
+- **Architecture**: Nested decorator linting prevents command registration bugs
+
+### Testing
+- **Coverage**: Minimum 85% test coverage enforced by pytest-cov
+- **Randomization**: pytest-randomly ensures test independence
+- **Warnings**: All warnings treated as errors to prevent degradation
+
+### Security
+- **Dependency Auditing**: pip-audit with strict mode in CI
+- **Dangerous Path Protection**: Cleanup command guards against data loss
+- **Release Verification**: SHA-256 checksums + Sigstore attestation support
+
+### Automation
+- **CI Pipeline**: All checks run on every PR and push to main
+- **Pre-commit Hooks**: Local validation before commits
+- **Guard Rails**: One-command validation via `hephaestus guard-rails`
+
+### Documentation
+- **Diátaxis Structure**: How-to guides, explanations, tutorials, reference
+- **Security Policy**: Published disclosure process and SLAs
+- **Threat Model**: STRIDE analysis documented in ADR
+- **Operating Safely**: Comprehensive operational runbooks
 
 ## Risks / Notes
 

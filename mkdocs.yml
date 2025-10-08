@@ -10,6 +10,8 @@ nav:
   - How-to guides:
       - Install from a Wheelhouse: how-to/install-wheelhouse.md
       - Configure Your Editor: how-to/editor-setup.md
+      - Operating Safely: how-to/operating-safely.md
+      - Quality Gate Validation: how-to/quality-gates.md
   - Explanation:
       - Architecture Overview: explanation/architecture.md
       - Evergreen Lifecycle Playbook: lifecycle.md
