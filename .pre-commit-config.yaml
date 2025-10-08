@@ -41,3 +41,9 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [commit, push]
+      - id: lint-nested-decorators
+        name: Check for nested Typer decorators
+        entry: python3 scripts/lint_nested_decorators.py
+        language: system
+        types: [python]
+        pass_filenames: true

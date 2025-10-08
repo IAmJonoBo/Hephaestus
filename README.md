@@ -80,7 +80,7 @@ See `docs/cli-completions.md` for manual installation steps and regeneration tip
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | Discovery & planning   | `docs/lifecycle.md`, `docs/adr/`, `plan` command                                                                         | Capture intent, align stakeholders, and visualise rollouts.                                          |
 | Local analytics        | `tools refactor hotspots`, `tools refactor opportunities`                                                                | Identify high-value refactor targets with churn and qualitative signals.                             |
-| Quality gates          | `tools qa profile`, `tools qa coverage`, `pyproject.toml` thresholds                                                     | Inspect guard rails, coverage gaps, and tighten criteria before shipping changes.                    |
+| Quality gates          | `guard-rails`, `scripts/validate_quality_gates.py`, `scripts/lint_nested_decorators.py`                                  | Comprehensive quality validation with frontier-level standards (coverage, linting, typing, security).|
 | Automation             | `hephaestus-toolkit/refactoring/scripts/`                                                                                | Execute codemods, hotspot scans, and characterization harnesses with reproducible scripts.           |
 | Developer guard rails  | `.pre-commit-config.yaml`, Ruff, Black, PyUpgrade, Mypy, Pip Audit, `uv run hephaestus cleanup`                          | Keep code style, types, security, and workspace hygiene evergreen before commits land.               |
 | Continuous integration | `.github/workflows/ci.yml`, `tests/test_cli.py`                                                                          | Enforce linting, typing, cleanup sweeps, and pytest during PRs with artefact uploads.                |
@@ -107,6 +107,9 @@ hephaestus/
 │   ├── planning.py                          # Execution plan rendering helpers
 │   ├── release.py                           # Wheelhouse download/install helpers
 │   └── toolbox.py                           # Quality, coverage, and refactor APIs
+├── scripts/                                 # Quality automation and validation
+│   ├── validate_quality_gates.py            # Comprehensive quality gate runner
+│   └── lint_nested_decorators.py            # Prevent command registration bugs
 ├── hephaestus-toolkit/                      # Standalone scripts and configs
 │   └── refactoring/
 │       ├── config/                          # Default configuration
