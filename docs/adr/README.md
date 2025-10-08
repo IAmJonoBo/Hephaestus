@@ -11,36 +11,32 @@ This directory contains Architecture Decision Records documenting significant te
   - Implementation: Phases 1-2 complete, Phase 3 partially complete
   - Summary: Comprehensive security analysis and threat mitigation strategies for Hephaestus CLI and release pipeline
 
+- **[ADR-0002: Plugin Architecture](./0002-plugin-architecture.md)**
+  - Status: Phase 1 Implemented (2025-01-15)
+  - Implementation: Phase 1 (Foundation) complete - API specification and base classes
+  - Summary: Extensible plugin system for custom quality gates
+
+- **[ADR-0003: OpenTelemetry Integration](./0003-opentelemetry-integration.md)**
+  - Status: Phase 1 Implemented (2025-01-15)
+  - Implementation: Phase 1 (Foundation) complete - Optional telemetry module with no-op fallback
+  - Summary: Integrate OpenTelemetry for distributed tracing, metrics, and observability
+
+- **[ADR-0004: REST/gRPC API](./0004-rest-grpc-api.md)**
+  - Status: Phase 1 Implemented (2025-01-15)
+  - Implementation: Phase 1 (Foundation) complete - OpenAPI specification and module structure
+  - Summary: Dual-protocol API for remote invocation and AI agent integration
+
+- **[ADR-0006: Sigstore Bundle Backfill](./0006-sigstore-backfill.md)**
+  - Status: Phase 1 Implemented (2025-01-15)
+  - Implementation: Phase 1 (Preparation) complete - Metadata schema defined
+  - Summary: Backfill Sigstore attestations for historical releases to close supply chain security gap
+
 ### Proposed - Q1 2025
 
 - **[ADR-0005: PyPI Publication Automation](./0005-pypi-publication.md)**
   - Status: Proposed (2025-01-15)
   - Target: v0.3.0 - Q1 2025
   - Summary: Automated publication to PyPI using GitHub Actions and Trusted Publishers for improved discoverability and standard installation
-
-- **[ADR-0006: Sigstore Bundle Backfill](./0006-sigstore-backfill.md)**
-  - Status: Proposed (2025-01-15)
-  - Target: 2025-01-31 (Q1 2025)
-  - Summary: Backfill Sigstore attestations for historical releases to close supply chain security gap
-
-### Proposed - Q2 2025
-
-- **[ADR-0003: OpenTelemetry Integration](./0003-opentelemetry-integration.md)**
-  - Status: Proposed (2025-01-11)
-  - Target: v0.3.0-v0.6.0 (Q1-Q3 2025, phased)
-  - Summary: Integrate OpenTelemetry for distributed tracing, metrics, and observability
-
-### Proposed - Q2-Q3 2025
-
-- **[ADR-0002: Plugin Architecture](./0002-plugin-architecture.md)**
-  - Status: Proposed (2025-01-11)
-  - Target: v0.3.0-v0.6.0 (Q2-Q3 2025, phased)
-  - Summary: Extensible plugin system for custom quality gates
-
-- **[ADR-0004: REST/gRPC API](./0004-rest-grpc-api.md)**
-  - Status: Proposed (2025-01-11)
-  - Target: v0.4.0-v0.7.0 (Q2-Q3 2025, phased)
-  - Summary: Dual-protocol API for remote invocation and AI agent integration
 
 ## ADR Lifecycle
 

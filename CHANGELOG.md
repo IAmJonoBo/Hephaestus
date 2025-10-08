@@ -7,11 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Phase 1 ADR Implementations**: Foundation for major architectural features
+  - **ADR-0002 (Plugin Architecture)**: Plugin API specification and base classes
+    - `QualityGatePlugin` abstract base class for custom quality gates
+    - `PluginRegistry` for managing plugin instances
+    - `PluginMetadata` and `PluginResult` data models
+  - **ADR-0003 (OpenTelemetry)**: Optional distributed tracing support
+    - Environment-based configuration (`HEPHAESTUS_TELEMETRY_ENABLED`)
+    - No-op tracer fallback when OpenTelemetry not installed
+    - Graceful degradation on configuration errors
+  - **ADR-0004 (REST/gRPC API)**: API module structure and OpenAPI specification
+    - OpenAPI 3.0 spec in `docs/api/openapi.yaml`
+    - Module structure for future FastAPI implementation
+    - Endpoints for quality gates, cleanup, analytics, and tasks
+  - **ADR-0006 (Sigstore Backfill)**: Metadata schema for historical releases
+    - `BackfillMetadata` dataclass with JSON serialization
+    - Verification status constants for distinguishing backfilled bundles
+- **Documentation Updates**:
+  - Observability guide for OpenTelemetry usage
+  - Plugin development guide with examples
+  - REST API reference documentation
+  - Architecture overview updated with new modules
+- **Optional Dependencies**: `telemetry` and `api` extras in `pyproject.toml`
+
+### Changed
+
+- **Module Reorganization**: Renamed `telemetry.py` to `events.py` for clarity
+  - Existing telemetry event definitions moved to `events.py`
+  - New `telemetry/` package for OpenTelemetry integration
+  - All imports updated (`from hephaestus import events as telemetry`)
+
 ### Planned
 
-- REST/gRPC API for remote invocation (Q2 2025)
-- Plugin architecture for custom ranking strategies (Q2 2025)
-- OpenTelemetry spans for observability (Q2 2025)
+- REST/gRPC API Phase 2: FastAPI implementation (Q2 2025)
+- Plugin architecture Phase 2: Plugin discovery and built-in plugins (Q2 2025)
+- OpenTelemetry Phase 2: Actual command instrumentation (Q2 2025)
 - Advanced remediation automation (Q2 2025)
 - Streaming ingestion for analytics (Q1 2025)
 - Drift detection in CI pipeline (Q1 2025)
