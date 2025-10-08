@@ -2,13 +2,25 @@
 
 from __future__ import annotations
 
+import base64
 import contextlib
+import datetime as dt
+import hashlib
 import io
+import json
+import shutil
 import tarfile
+import urllib.error
+from datetime import timedelta
+from email.message import Message
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import pytest
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 
 from hephaestus import release
 
@@ -23,24 +35,107 @@ def _make_wheelhouse_tarball(tmp_path: Path) -> Path:
     return tar_path
 
 
+def _create_sigstore_bundle(
+    tmp_path: Path,
+    artifact: Path,
+    *,
+    identity_uri: str = "https://example.invalid/repos/IAmJonoBo/Hephaestus/actions/workflows/release.yml@refs/tags/v1.2.3",
+) -> Path:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "github-actions")])
+    certificate = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(private_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(dt.datetime.now(tz=dt.UTC) - timedelta(minutes=1))
+        .not_valid_after(dt.datetime.now(tz=dt.UTC) + timedelta(days=1))
+        .add_extension(
+            x509.SubjectAlternativeName(
+                [
+                    x509.UniformResourceIdentifier(identity_uri),
+                    x509.RFC822Name("github-actions@github.com"),
+                ]
+            ),
+            critical=False,
+        )
+        .sign(private_key, hashes.SHA256())
+    )
+
+    digest = hashlib.sha256(artifact.read_bytes()).digest()
+
+    bundle = {
+        "mediaType": "application/vnd.dev.sigstore.bundle+json;version=0.3",
+        "messageSignature": {
+            "messageDigest": {
+                "algorithm": "SHA2_256",
+                "digest": base64.b64encode(digest).decode("ascii"),
+            },
+            "signature": base64.b64encode(b"signature").decode("ascii"),
+        },
+        "verificationMaterial": {
+            "x509CertificateChain": {
+                "certificates": [
+                    {
+                        "rawBytes": base64.b64encode(
+                            certificate.public_bytes(serialization.Encoding.DER)
+                        ).decode("ascii"),
+                    }
+                ]
+            },
+            "tlogEntries": [],
+        },
+    }
+
+    bundle_path = tmp_path / "wheelhouse.sigstore"
+    bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+    return bundle_path
+
+
 def test_download_wheelhouse_happy_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     tar_path = _make_wheelhouse_tarball(tmp_path)
 
-    def fake_fetch_release(repository: str, tag: str | None, token: str | None) -> dict[str, Any]:
+    digest = hashlib.sha256(tar_path.read_bytes()).hexdigest()
+
+    def fake_fetch_release(
+        repository: str,
+        tag: str | None,
+        token: str | None,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> dict[str, Any]:
         return {
             "assets": [
                 {
                     "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
                     "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
                     "size": tar_path.stat().st_size,
-                }
+                },
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.sha256",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.sha256",
+                    "size": 100,
+                },
             ]
         }
 
     def fake_download_asset(
-        asset: release.ReleaseAsset, destination: Path, token: str | None, overwrite: bool
+        asset: release.ReleaseAsset,
+        destination: Path,
+        token: str | None,
+        overwrite: bool,
+        *,
+        timeout: float,
+        max_retries: int,
     ) -> Path:
-        destination.write_bytes(tar_path.read_bytes())
+        if asset.name.endswith(".tar.gz"):
+            destination.write_bytes(tar_path.read_bytes())
+        else:
+            destination.write_text(
+                f"{digest}  hephaestus-1.2.3-wheelhouse.tar.gz\n", encoding="utf-8"
+            )
         return destination
 
     monkeypatch.setattr(release, "_fetch_release", fake_fetch_release)
@@ -57,6 +152,66 @@ def test_download_wheelhouse_happy_path(tmp_path: Path, monkeypatch: pytest.Monk
     assert result.extracted_path is not None
     extracted_files = list(result.extracted_path.glob("*.whl"))
     assert extracted_files and extracted_files[0].name.endswith("sample-0.0.1-py3-none-any.whl")
+
+
+def test_verify_sigstore_bundle_valid(tmp_path: Path) -> None:
+    artifact = tmp_path / "archive.tar.gz"
+    artifact.write_bytes(b"artifact")
+    identity = "https://example.invalid/repos/IAmJonoBo/Hephaestus/actions/workflows/release.yml@refs/tags/v1.2.3"
+    bundle_path = _create_sigstore_bundle(tmp_path, artifact, identity_uri=identity)
+
+    result = release._verify_sigstore_bundle(
+        bundle_path,
+        artifact,
+        identity_patterns=[identity, "github-actions@github.com"],
+    )
+
+    assert identity in result.identities
+    assert "github-actions@github.com" in result.identities
+
+
+def test_verify_sigstore_bundle_accepts_multiple_patterns(tmp_path: Path) -> None:
+    artifact = tmp_path / "archive.tar.gz"
+    artifact.write_bytes(b"artifact")
+    identity = "https://example.invalid/repos/IAmJonoBo/Hephaestus/actions/workflows/release.yml@refs/tags/v1.2.3"
+    bundle_path = _create_sigstore_bundle(tmp_path, artifact, identity_uri=identity)
+
+    wildcard = "https://example.invalid/repos/*/Hephaestus/actions/workflows/*"
+    result = release._verify_sigstore_bundle(
+        bundle_path,
+        artifact,
+        identity_patterns=["https://example.invalid/repos/Other/*", wildcard],
+    )
+
+    assert identity in result.identities
+    assert wildcard not in result.identities
+
+
+def test_verify_sigstore_bundle_identity_mismatch(tmp_path: Path) -> None:
+    artifact = tmp_path / "archive.tar.gz"
+    artifact.write_bytes(b"artifact")
+    bundle_path = _create_sigstore_bundle(tmp_path, artifact)
+
+    with pytest.raises(release.ReleaseError, match="Sigstore identity mismatch"):
+        release._verify_sigstore_bundle(
+            bundle_path,
+            artifact,
+            identity_patterns=["https://example.invalid/other"],
+        )
+
+
+def test_verify_sigstore_bundle_digest_mismatch(tmp_path: Path) -> None:
+    artifact = tmp_path / "archive.tar.gz"
+    artifact.write_bytes(b"artifact")
+    bundle_path = _create_sigstore_bundle(tmp_path, artifact)
+    payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+    payload["messageSignature"]["messageDigest"]["digest"] = base64.b64encode(b"bad-digest").decode(
+        "ascii"
+    )
+    bundle_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(release.ReleaseError, match="Sigstore bundle digest did not match"):
+        release._verify_sigstore_bundle(bundle_path, artifact)
 
 
 def test_extract_archive_blocks_path_escape(tmp_path: Path) -> None:
@@ -159,14 +314,15 @@ def test_fetch_release_success(monkeypatch: pytest.MonkeyPatch) -> None:
         def __enter__(self) -> FakeResponse:
             return self
 
-        def __exit__(self, *_args: Any) -> bool:  # pragma: no cover - normal flow
+        def __exit__(self, *_args: Any) -> Literal[False]:  # pragma: no cover - normal flow
             return False
 
         def read(self) -> bytes:
             return payload
 
-    def fake_urlopen(request: Any) -> FakeResponse:
+    def fake_urlopen(request: Any, *, timeout: float) -> FakeResponse:
         captured["url"] = request.full_url
+        captured["timeout"] = timeout
         return FakeResponse()
 
     monkeypatch.setattr(release.urllib.request, "urlopen", fake_urlopen)
@@ -175,6 +331,7 @@ def test_fetch_release_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert data == {"assets": []}
     assert captured["url"].endswith("/releases/latest")
+    assert captured["timeout"] == release.DEFAULT_TIMEOUT
 
 
 def test_fetch_release_validates_repository() -> None:
@@ -201,8 +358,11 @@ def test_download_asset_respects_overwrite(monkeypatch: pytest.MonkeyPatch, tmp_
 
     payload = b"new"
 
-    def fake_urlopen(request: Any) -> contextlib.AbstractContextManager[io.BytesIO]:
+    def fake_urlopen(
+        request: Any, *, timeout: float
+    ) -> contextlib.AbstractContextManager[io.BytesIO]:
         assert request.get_header("Authorization") == "Bearer token"
+        assert timeout == release.DEFAULT_TIMEOUT
         return contextlib.closing(io.BytesIO(payload))
 
     monkeypatch.setattr(release.urllib.request, "urlopen", fake_urlopen)
@@ -219,21 +379,37 @@ def test_download_wheelhouse_without_extract(
     monkeypatch.setattr(
         release,
         "_fetch_release",
-        lambda repository, tag, token: {
+        lambda repository, tag, token, *, timeout, max_retries: {
             "assets": [
                 {
                     "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
                     "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
                     "size": tar_path.stat().st_size,
-                }
+                },
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.sha256",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.sha256",
+                    "size": 100,
+                },
             ]
         },
     )
 
     def fake_download(
-        asset: release.ReleaseAsset, destination: Path, *_args: Any, **_kwargs: Any
+        asset: release.ReleaseAsset,
+        destination: Path,
+        *_args: Any,
+        timeout: float,
+        max_retries: int,
+        **_kwargs: Any,
     ) -> Path:
-        destination.write_bytes(tar_path.read_bytes())
+        if asset.name.endswith(".tar.gz"):
+            destination.write_bytes(tar_path.read_bytes())
+        else:
+            digest = hashlib.sha256(tar_path.read_bytes()).hexdigest()
+            destination.write_text(
+                f"{digest}  hephaestus-1.2.3-wheelhouse.tar.gz\n", encoding="utf-8"
+            )
         return destination
 
     monkeypatch.setattr(release, "_download_asset", fake_download)
@@ -245,4 +421,575 @@ def test_download_wheelhouse_without_extract(
     )
 
     assert result.extracted_path is None
+    assert result.archive_path.exists()
+
+
+def test_download_wheelhouse_with_sigstore_attestation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tar_path = _make_wheelhouse_tarball(tmp_path)
+    digest = hashlib.sha256(tar_path.read_bytes()).hexdigest()
+    identity = "https://example.invalid/repos/IAmJonoBo/Hephaestus/actions/workflows/release.yml@refs/tags/v1.2.3"
+
+    def fake_fetch_release(
+        repository: str,
+        tag: str | None,
+        token: str | None,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> dict[str, Any]:
+        return {
+            "assets": [
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "size": tar_path.stat().st_size,
+                },
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.sha256",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.sha256",
+                    "size": 100,
+                },
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.sigstore",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.sigstore",
+                    "size": 300,
+                },
+            ]
+        }
+
+    def fake_download_asset(
+        asset: release.ReleaseAsset,
+        destination: Path,
+        token: str | None,
+        overwrite: bool,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> Path:
+        if asset.name.endswith(".tar.gz"):
+            destination.write_bytes(tar_path.read_bytes())
+        elif asset.name.endswith(".sha256"):
+            destination.write_text(
+                f"{digest}  hephaestus-1.2.3-wheelhouse.tar.gz\n",
+                encoding="utf-8",
+            )
+        else:
+            archive_path = destination.parent / "hephaestus-1.2.3-wheelhouse.tar.gz"
+            bundle_path = _create_sigstore_bundle(
+                destination.parent, archive_path, identity_uri=identity
+            )
+            shutil.move(bundle_path, destination)
+        return destination
+
+    monkeypatch.setattr(release, "_fetch_release", fake_fetch_release)
+    monkeypatch.setattr(release, "_download_asset", fake_download_asset)
+
+    result = release.download_wheelhouse(
+        repository="IAmJonoBo/Hephaestus",
+        destination_dir=tmp_path / "downloads",
+        tag="v1.2.3",
+        sigstore_bundle_pattern="*.sigstore",
+        sigstore_identities=[identity],
+        require_sigstore=True,
+    )
+
+    assert result.sigstore_path is not None
+    assert result.manifest_path is not None
+    assert result.archive_path.exists()
+
+
+def test_download_wheelhouse_requires_sigstore(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tar_path = _make_wheelhouse_tarball(tmp_path)
+    digest = hashlib.sha256(tar_path.read_bytes()).hexdigest()
+
+    monkeypatch.setattr(
+        release,
+        "_fetch_release",
+        lambda repository, tag, token, *, timeout, max_retries: {
+            "assets": [
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "size": tar_path.stat().st_size,
+                },
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.sha256",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.sha256",
+                    "size": 100,
+                },
+            ]
+        },
+    )
+
+    def fake_download(
+        asset: release.ReleaseAsset,
+        destination: Path,
+        *_args: Any,
+        timeout: float,
+        max_retries: int,
+        **_kwargs: Any,
+    ) -> Path:
+        if asset.name.endswith(".tar.gz"):
+            destination.write_bytes(tar_path.read_bytes())
+        else:
+            destination.write_text(
+                f"{digest}  hephaestus-1.2.3-wheelhouse.tar.gz\n", encoding="utf-8"
+            )
+        return destination
+
+    monkeypatch.setattr(release, "_download_asset", fake_download)
+
+    with pytest.raises(release.ReleaseError, match="Sigstore attestation required"):
+        release.download_wheelhouse(
+            repository="IAmJonoBo/Hephaestus",
+            destination_dir=tmp_path / "downloads",
+            sigstore_bundle_pattern="*.sigstore",
+            require_sigstore=True,
+        )
+
+
+def test_download_wheelhouse_require_sigstore_without_pattern(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tar_path = _make_wheelhouse_tarball(tmp_path)
+    digest = hashlib.sha256(tar_path.read_bytes()).hexdigest()
+
+    monkeypatch.setattr(
+        release,
+        "_fetch_release",
+        lambda repository, tag, token, *, timeout, max_retries: {
+            "assets": [
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "size": tar_path.stat().st_size,
+                },
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.sha256",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.sha256",
+                    "size": 100,
+                },
+            ]
+        },
+    )
+
+    monkeypatch.setattr(
+        release,
+        "_download_asset",
+        lambda asset, destination, *_args, **_kwargs: (
+            destination.write_bytes(tar_path.read_bytes())
+            if asset.name.endswith(".tar.gz")
+            else destination.write_text(
+                f"{digest}  hephaestus-1.2.3-wheelhouse.tar.gz\n", encoding="utf-8"
+            )
+        ),
+    )
+
+    with pytest.raises(
+        release.ReleaseError,
+        match="Sigstore attestation required but no bundle pattern",
+    ):
+        release.download_wheelhouse(
+            repository="IAmJonoBo/Hephaestus",
+            destination_dir=tmp_path / "downloads",
+            sigstore_bundle_pattern=None,
+            require_sigstore=True,
+        )
+
+
+def test_download_wheelhouse_rejects_allow_unsigned_with_require_sigstore() -> None:
+    with pytest.raises(
+        release.ReleaseError,
+        match="Sigstore attestation cannot be required when allow_unsigned is enabled",
+    ):
+        release.download_wheelhouse(
+            repository="IAmJonoBo/Hephaestus",
+            destination_dir=Path.cwd(),
+            allow_unsigned=True,
+            require_sigstore=True,
+        )
+
+
+def test_sanitize_asset_name_strips_path_separators() -> None:
+    """Test that asset names are sanitized to prevent path traversal."""
+    # Normal names should pass through
+    assert release._sanitize_asset_name("wheelhouse.tar.gz") == "wheelhouse.tar.gz"
+    assert release._sanitize_asset_name("hephaestus-0.1.0.tar.gz") == "hephaestus-0.1.0.tar.gz"
+
+    # Path separators should be stripped
+    assert release._sanitize_asset_name("../../etc/passwd") == "passwd"
+    assert release._sanitize_asset_name("/absolute/path/file.tar.gz") == "file.tar.gz"
+    assert release._sanitize_asset_name("dir/subdir/file.tar.gz") == "file.tar.gz"
+
+    # Windows-style paths
+    assert release._sanitize_asset_name("C:\\Windows\\file.tar.gz") == "file.tar.gz"
+    assert release._sanitize_asset_name("..\\..\\file.tar.gz") == "file.tar.gz"
+
+    # Double dots should be replaced
+    assert release._sanitize_asset_name("file..tar.gz") == "file_tar.gz"
+
+    # Empty or dangerous names should raise
+    with pytest.raises(release.ReleaseError, match="empty or unsafe"):
+        release._sanitize_asset_name(".")
+
+    with pytest.raises(release.ReleaseError, match="empty or unsafe"):
+        release._sanitize_asset_name("..")
+
+    with pytest.raises(release.ReleaseError, match="empty or unsafe"):
+        release._sanitize_asset_name("/")
+
+
+def test_fetch_release_validates_timeout() -> None:
+    """Test that _fetch_release validates timeout parameter."""
+    with pytest.raises(release.ReleaseError, match="Timeout must be positive"):
+        release._fetch_release("owner/repo", None, None, timeout=0)
+
+    with pytest.raises(release.ReleaseError, match="Timeout must be positive"):
+        release._fetch_release("owner/repo", None, None, timeout=-1)
+
+
+def test_fetch_release_validates_max_retries() -> None:
+    """Test that _fetch_release validates max_retries parameter."""
+    with pytest.raises(release.ReleaseError, match="Max retries must be at least 1"):
+        release._fetch_release("owner/repo", None, None, max_retries=0)
+
+    with pytest.raises(release.ReleaseError, match="Max retries must be at least 1"):
+        release._fetch_release("owner/repo", None, None, max_retries=-1)
+
+
+def test_download_asset_validates_timeout(tmp_path: Path) -> None:
+    """Test that _download_asset validates timeout parameter."""
+    asset = release.ReleaseAsset(
+        name="test.tar.gz",
+        download_url="https://example.invalid/test.tar.gz",
+        size=100,
+    )
+    destination = tmp_path / "test.tar.gz"
+
+    with pytest.raises(release.ReleaseError, match="Timeout must be positive"):
+        release._download_asset(asset, destination, None, False, timeout=0)
+
+    with pytest.raises(release.ReleaseError, match="Timeout must be positive"):
+        release._download_asset(asset, destination, None, False, timeout=-1)
+
+
+def test_download_asset_validates_max_retries(tmp_path: Path) -> None:
+    """Test that _download_asset validates max_retries parameter."""
+    asset = release.ReleaseAsset(
+        name="test.tar.gz",
+        download_url="https://example.invalid/test.tar.gz",
+        size=100,
+    )
+    destination = tmp_path / "test.tar.gz"
+
+    with pytest.raises(release.ReleaseError, match="Max retries must be at least 1"):
+        release._download_asset(asset, destination, None, False, max_retries=0)
+
+    with pytest.raises(release.ReleaseError, match="Max retries must be at least 1"):
+        release._download_asset(asset, destination, None, False, max_retries=-1)
+
+
+def test_open_with_retries_handles_transient_http(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_open_with_retries retries on 5xx errors and eventually succeeds."""
+
+    attempts: list[float] = []
+
+    class FakeResponse(io.BytesIO):
+        def __enter__(self) -> FakeResponse:  # pragma: no cover - trivial
+            return self
+
+        def __exit__(self, *_args: Any) -> None:  # pragma: no cover - normal flow
+            return None
+
+    def fake_urlopen(request: Any, *, timeout: float) -> FakeResponse:
+        attempts.append(timeout)
+        if len(attempts) == 1:
+            raise urllib.error.HTTPError(
+                request.full_url,
+                502,
+                "bad gateway",
+                Message(),
+                io.BytesIO(b"error"),
+            )
+        return FakeResponse(b"ok")
+
+    sleeps: list[float] = []
+    monkeypatch.setattr(release.time, "sleep", sleeps.append)
+    monkeypatch.setattr(release.urllib.request, "urlopen", fake_urlopen)
+
+    request = release._build_request("https://example.invalid/resource", token=None)
+    response = release._open_with_retries(
+        request,
+        timeout=1.25,
+        max_retries=3,
+        description="test",
+    )
+
+    with contextlib.closing(response) as fh:
+        assert fh.read() == b"ok"
+
+    assert attempts == [1.25, 1.25]
+    assert sleeps == [release._BACKOFF_INITIAL]
+
+
+def test_open_with_retries_raises_after_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_open_with_retries propagates the final URLError after exhausting retries."""
+
+    def fake_urlopen(_request: Any, *, timeout: float) -> Any:
+        raise urllib.error.URLError("boom")
+
+    monkeypatch.setattr(release.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(release.time, "sleep", lambda _delay: None)
+
+    request = release._build_request("https://example.invalid/resource", token=None)
+
+    with pytest.raises(urllib.error.URLError):
+        release._open_with_retries(
+            request,
+            timeout=0.75,
+            max_retries=2,
+            description="test",
+        )
+
+
+def test_download_wheelhouse_propagates_timeout_and_retries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """download_wheelhouse forwards timeout/retry configuration to helpers."""
+
+    fetch_args: dict[str, Any] = {}
+    download_args: dict[str, Any] = {}
+    tar_path = _make_wheelhouse_tarball(tmp_path)
+
+    def fake_fetch_release(
+        repository: str,
+        tag: str | None,
+        token: str | None,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> dict[str, Any]:
+        fetch_args.update(
+            {
+                "repository": repository,
+                "tag": tag,
+                "token": token,
+                "timeout": timeout,
+                "max_retries": max_retries,
+            }
+        )
+        return {
+            "assets": [
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "size": tar_path.stat().st_size,
+                },
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.sha256",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.sha256",
+                    "size": 100,
+                },
+            ]
+        }
+
+    def fake_download_asset(
+        asset: release.ReleaseAsset,
+        destination: Path,
+        token: str | None,
+        overwrite: bool,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> Path:
+        download_args.update(
+            {
+                "asset": asset,
+                "destination": destination,
+                "token": token,
+                "overwrite": overwrite,
+                "timeout": timeout,
+                "max_retries": max_retries,
+            }
+        )
+        if asset.name.endswith(".tar.gz"):
+            destination.write_bytes(tar_path.read_bytes())
+        else:
+            destination.write_text(
+                f"{hashlib.sha256(tar_path.read_bytes()).hexdigest()}  hephaestus-1.2.3-wheelhouse.tar.gz\n",
+                encoding="utf-8",
+            )
+        return destination
+
+    monkeypatch.setattr(release, "_fetch_release", fake_fetch_release)
+    monkeypatch.setattr(release, "_download_asset", fake_download_asset)
+
+    result = release.download_wheelhouse(
+        repository="IAmJonoBo/Hephaestus",
+        destination_dir=tmp_path / "downloads",
+        timeout=3.5,
+        max_retries=4,
+    )
+
+    assert result.archive_path.exists()
+    assert fetch_args == {
+        "repository": "IAmJonoBo/Hephaestus",
+        "tag": None,
+        "token": None,
+        "timeout": 3.5,
+        "max_retries": 4,
+    }
+    assert download_args["timeout"] == 3.5
+    assert download_args["max_retries"] == 4
+
+
+def test_download_wheelhouse_raises_when_manifest_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tar_path = _make_wheelhouse_tarball(tmp_path)
+
+    def fake_fetch_release(
+        repository: str,
+        tag: str | None,
+        token: str | None,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> dict[str, Any]:
+        return {
+            "assets": [
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "size": tar_path.stat().st_size,
+                }
+            ]
+        }
+
+    def fake_download_asset(
+        asset: release.ReleaseAsset,
+        destination: Path,
+        token: str | None,
+        overwrite: bool,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> Path:
+        destination.write_bytes(tar_path.read_bytes())
+        return destination
+
+    monkeypatch.setattr(release, "_fetch_release", fake_fetch_release)
+    monkeypatch.setattr(release, "_download_asset", fake_download_asset)
+
+    with pytest.raises(release.ReleaseError, match="checksum manifest"):
+        release.download_wheelhouse(
+            repository="IAmJonoBo/Hephaestus",
+            destination_dir=tmp_path / "downloads",
+        )
+
+
+def test_download_wheelhouse_raises_on_checksum_mismatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tar_path = _make_wheelhouse_tarball(tmp_path)
+
+    def fake_fetch_release(
+        repository: str,
+        tag: str | None,
+        token: str | None,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> dict[str, Any]:
+        return {
+            "assets": [
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "size": tar_path.stat().st_size,
+                },
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.sha256",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.sha256",
+                    "size": 100,
+                },
+            ]
+        }
+
+    def fake_download_asset(
+        asset: release.ReleaseAsset,
+        destination: Path,
+        token: str | None,
+        overwrite: bool,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> Path:
+        if asset.name.endswith(".tar.gz"):
+            destination.write_bytes(tar_path.read_bytes())
+        else:
+            destination.write_text(
+                f"{'deadbeef' * 8}  hephaestus-1.2.3-wheelhouse.tar.gz\n",
+                encoding="utf-8",
+            )
+        return destination
+
+    monkeypatch.setattr(release, "_fetch_release", fake_fetch_release)
+    monkeypatch.setattr(release, "_download_asset", fake_download_asset)
+
+    with pytest.raises(release.ReleaseError, match="Checksum verification failed"):
+        release.download_wheelhouse(
+            repository="IAmJonoBo/Hephaestus",
+            destination_dir=tmp_path / "downloads",
+        )
+
+
+def test_download_wheelhouse_can_allow_unsigned(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tar_path = _make_wheelhouse_tarball(tmp_path)
+
+    def fake_fetch_release(
+        repository: str,
+        tag: str | None,
+        token: str | None,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> dict[str, Any]:
+        return {
+            "assets": [
+                {
+                    "name": "hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "browser_download_url": "https://example.invalid/hephaestus-1.2.3-wheelhouse.tar.gz",
+                    "size": tar_path.stat().st_size,
+                }
+            ]
+        }
+
+    def fake_download_asset(
+        asset: release.ReleaseAsset,
+        destination: Path,
+        token: str | None,
+        overwrite: bool,
+        *,
+        timeout: float,
+        max_retries: int,
+    ) -> Path:
+        destination.write_bytes(tar_path.read_bytes())
+        return destination
+
+    monkeypatch.setattr(release, "_fetch_release", fake_fetch_release)
+    monkeypatch.setattr(release, "_download_asset", fake_download_asset)
+
+    result = release.download_wheelhouse(
+        repository="IAmJonoBo/Hephaestus",
+        destination_dir=tmp_path / "downloads",
+        allow_unsigned=True,
+    )
+
     assert result.archive_path.exists()

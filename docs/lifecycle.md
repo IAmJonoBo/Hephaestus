@@ -121,15 +121,30 @@ uv run pytest
 uv run pip-audit --strict
 ```
 
-## Next Potential Enhancements
+## Completed Enhancements
 
-1. **Docs Site**: Stand up an MkDocs Material site that consumes the Diátaxis-ready documentation for
-   richer navigation and search.
-2. **CodeQL Security Scans**: Add GitHub's CodeQL workflow to deepen static analysis beyond pip-audit.
-3. **Runtime Telemetry**: Instrument CLI commands with optional OpenTelemetry spans to capture usage
-   patterns while respecting privacy.
-4. **Publish to PyPI**: Wire the release workflow to publish tagged versions directly to PyPI and
-   generate release notes using `git-cliff`.
+The following enhancements have been successfully delivered:
+
+1. ✅ **Docs Site**: MkDocs Material site is fully operational with Diátaxis-structured documentation,
+   comprehensive navigation, and search capabilities. Run `uv run mkdocs serve` for local preview.
+2. ✅ **CodeQL Security Scans**: GitHub's CodeQL workflow runs on every push, pull request, and weekly
+   schedule, providing deep static analysis beyond pip-audit.
+3. ✅ **Structured Logging**: JSON/text logging with run IDs and telemetry events across all CLI
+   operations (ADR-0003 foundation complete).
+
+## Future Enhancements (Roadmap)
+
+The following enhancements are planned for future releases:
+
+1. **OpenTelemetry Spans** (Q2 2025): Full distributed tracing with span instrumentation across CLI
+   commands for observability and performance monitoring. See [ADR-0003](adr/0003-opentelemetry-integration.md)
+   for implementation plan.
+2. **Plugin Architecture** (Q2-Q3 2025): Extensible quality gate system allowing custom checks and
+   third-party integrations. See [ADR-0002](adr/0002-plugin-architecture.md) for design details.
+3. **REST/gRPC API** (Q2-Q3 2025): Remote invocation capabilities for AI agents, CI/CD orchestration,
+   and centralized dashboards. See [ADR-0004](adr/0004-rest-grpc-api.md) for architecture.
+4. **Publish to PyPI**: Wire the release workflow to publish tagged versions directly to PyPI with
+   automated release notes using `git-cliff`.
 
 Staying evergreen is a journey. This playbook keeps the loop tight so engineering teams can refactor
 confidently, deliver delightful experiences, and maintain uncompromising quality.
