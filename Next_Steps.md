@@ -194,3 +194,45 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 - Attestation coverage: Backfill and enforce Sigstore bundles across historical releases to fully close the supply-chain risk
 - Telemetry backlog blocks observability-driven SLOs; prioritise instrumentation once logging design is ready
 - Monitor operator feedback on new cleanup preview/confirmation flow; extend with undo checkpoints if needed
+
+## Feature Proposals
+
+### 1. Intelligent planning & advisory layer
+
+- Adaptive rollout planner: Upgrade `planning.build_plan` to ingest real churn/coverage metrics and produce prioritised playbooks per repo slice, exporting to JSON for dashboards.
+- Risk radar service: Schedule periodic scans (via `toolbox`) that compute risk scores (coverage deltas, dependency drift) and publish to Ops targets (Slack, Grafana); surface alerts through the `plan` command.
+- Scenario simulation: Provide “what-if” CLI flags (`plan --simulate-new-thresholds`) to model policy changes before touching CI.
+
+### 2. Autonomic guard rails
+
+- Self-healing cleanup agents: Extend `cleanup.run_cleanup` to run in watch mode, auto-reverting risky files and emitting structured reports to CI/CD logs.
+- Policy-as-code bundles: Layer YAML policies on top of guard-rail runs (e.g., forbid certain dependency versions, enforce test naming) with evaluators that gate `guard-rails`.
+- Drift reconciliation: Add a `hephaestus guard-rails --drift` mode comparing current toolchain versions (Ruff, Mypy, MkDocs) with the “golden” versions locked in repo metadata, offering remediation commands.
+
+### 3. AI-native workflows
+
+- Agent SDK: Package Typer command schemas plus expected outputs so external agents (Copilot, Cursor, Claude) can invoke Hephaestus safely with predictable prompts and retry hints.
+- Semantic diff summariser: Integrate LibCST-based explainers that turn PR diffs into risk summaries and recommend characterisation tests or refactors.
+- Code-mod rehearsal: Couple existing scripts with AI prompts to auto-generate candidate codemods, run dry-runs, and publish synthetic “before/after” diff bundles.
+
+### 4. Release intelligence & supply-chain hardening
+
+- Wheelhouse provenance: Extend `release.py` to record SBOM + signature verification, gating installs on attestation success and surfacing via `release install --verify`.
+- Automated upgrade concierge: Use the existing TurboRepo monitor pattern for Python dependencies—detect vulnerable/outdated packages, open issues with reproduction scripts, and suggest minimal bump PR templates.
+
+### 5. Extensibility & ecosystem hooks
+
+- Plugin architecture: Allow declarative registration of new tooling steps (e.g., SAST scans) that plug into `guard-rails` tables, with manifest-driven ordering.
+- Multi-repo orchestration: Offer `hephaestus plan --workspace <dir>` to cascade analytics and guard rails across fleets, syncing results to a central datastore.
+- Telemetry & observability: Emit OpenTelemetry traces from CLI runs so operators can observe latency, failure points, and step-level performance across environments.
+
+### 6. Documentation & knowledge loop
+
+- Living Diátaxis sync: Auto-derive doc stubs from new CLI options/tests and update docs via a `hephaestus docs sync` command to keep instructions in lockstep.
+- Cross-tool tutorials: Generate “playbooks” combining cleanup, planning, release, and refactor scripts for common scenarios (e.g., “ship a refactor in a week”) with CLI commands and expected outputs.
+
+## 🔄 Next Steps
+
+- Decide which theme (intelligence, guard rails, AI co-pilot, release hygiene, extensibility) unlocks the biggest win first.
+- Prototype one feature as a thin Typer subcommand to validate UX and data contracts.
+- Instrument the feature with structured output/tests to keep it deterministic for AI agents.
