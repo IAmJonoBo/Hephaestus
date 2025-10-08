@@ -8,7 +8,7 @@ from collections.abc import Iterator
 import pytest
 
 from hephaestus import logging as heph_logging
-from hephaestus import telemetry
+from hephaestus import events as telemetry
 
 
 def _reset_logging() -> None:

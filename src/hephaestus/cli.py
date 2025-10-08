@@ -19,7 +19,7 @@ from hephaestus import logging as logging_utils
 from hephaestus import planning as planning_module
 from hephaestus import release as release_module
 from hephaestus import schema as schema_module
-from hephaestus import telemetry, toolbox
+from hephaestus import events as telemetry, toolbox
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
