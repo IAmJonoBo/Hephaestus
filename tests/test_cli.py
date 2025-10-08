@@ -281,7 +281,7 @@ def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> 
 
     executed: list[list[str]] = []
 
-    def _fake_run(command: list[str], *, check: bool) -> None:
+    def _fake_run(command: list[str], *, check: bool, timeout: int | None = None) -> None:
         assert check is True
         executed.append(command)
 
@@ -323,7 +323,7 @@ def test_guard_rails_can_skip_format(monkeypatch: pytest.MonkeyPatch) -> None:
 
     executed: list[list[str]] = []
 
-    def _fake_run(command: list[str], *, check: bool) -> None:
+    def _fake_run(command: list[str], *, check: bool, timeout: int | None = None) -> None:
         executed.append(command)
 
     monkeypatch.setattr(cli.subprocess, "run", _fake_run)
@@ -332,6 +332,59 @@ def test_guard_rails_can_skip_format(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert result.exit_code == 0
     assert ["ruff", "format", "."] not in executed
+
+
+def test_wheelhouse_sanitize_removes_metadata(tmp_path: Path) -> None:
+    _, cli = _load_modules()
+    wheelhouse = tmp_path / "wheelhouse"
+    wheelhouse.mkdir()
+    target = wheelhouse / ".DS_Store"
+    target.write_text("metadata", encoding="utf-8")
+
+    result = runner.invoke(cli.app, ["wheelhouse", "sanitize", str(wheelhouse)])
+
+    assert result.exit_code == 0
+    assert "Removed resource fork artefact" in result.stdout
+    assert not target.exists()
+
+
+def test_wheelhouse_sanitize_dry_run(tmp_path: Path) -> None:
+    _, cli = _load_modules()
+    wheelhouse = tmp_path / "wheelhouse"
+    wheelhouse.mkdir()
+    target = wheelhouse / "._shadow"
+    target.write_text("metadata", encoding="utf-8")
+
+    result = runner.invoke(cli.app, ["wheelhouse", "sanitize", str(wheelhouse), "--dry-run"])
+
+    assert result.exit_code == 0
+    assert "Resource fork artefacts (dry run)" in result.stdout
+    assert target.exists()
+
+
+def test_wheelhouse_verify_no_findings(tmp_path: Path) -> None:
+    _, cli = _load_modules()
+    wheelhouse = tmp_path / "wheelhouse"
+    wheelhouse.mkdir()
+
+    result = runner.invoke(cli.app, ["wheelhouse", "verify", str(wheelhouse), "--no-strict"])
+
+    assert result.exit_code == 0
+    assert "No resource fork artefacts detected." in result.stdout
+
+
+def test_wheelhouse_verify_strict_failure(tmp_path: Path) -> None:
+    _, cli = _load_modules()
+    wheelhouse = tmp_path / "wheelhouse"
+    wheelhouse.mkdir()
+    target = wheelhouse / ".DS_Store"
+    target.write_text("metadata", encoding="utf-8")
+
+    result = runner.invoke(cli.app, ["wheelhouse", "verify", str(wheelhouse)])
+
+    assert result.exit_code == 1
+    assert "Resource fork artefacts detected" in result.stdout
+    assert target.exists()
 
 
 def test_schema_command_exports_json() -> None:

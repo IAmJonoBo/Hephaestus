@@ -30,7 +30,7 @@ from typing import IO, cast
 from cryptography import x509
 from cryptography.x509.oid import ExtensionOID
 
-from hephaestus import events as telemetry
+from hephaestus import events as telemetry, resource_forks
 from hephaestus.logging import log_context
 
 __all__ = [
@@ -163,6 +163,53 @@ def _sanitize_asset_name(name: str) -> str:
         )
 
     return candidate
+
+
+def _sanitize_release_path(root: Path, *, action: str) -> None:
+    """Sanitise *root* and fail if resource fork artefacts remain."""
+
+    telemetry.emit_event(
+        logger,
+        telemetry.RELEASE_SANITIZE_START,
+        message=f"Sanitising {action}.",
+        root=str(root),
+    )
+    report = resource_forks.sanitize_path(root)
+    if report.errors:
+        failing_path, reason = report.errors[0]
+        telemetry.emit_event(
+            logger,
+            telemetry.RELEASE_SANITIZE_FAILED,
+            level=logging.ERROR,
+            message=f"Failed to remove resource fork artefact during {action}.",
+            root=str(root),
+            artefacts=[str(path) for path, _ in report.errors],
+            error=reason,
+        )
+        raise ReleaseError(
+            f"Failed to remove resource fork artefact {failing_path} in {action}: {reason}"
+        )
+
+    remaining = resource_forks.verify_clean(root)
+    if remaining:
+        telemetry.emit_event(
+            logger,
+            telemetry.RELEASE_SANITIZE_FAILED,
+            level=logging.ERROR,
+            message=f"Resource fork artefacts detected after sanitising {action}.",
+            root=str(root),
+            artefacts=[str(path) for path in remaining],
+        )
+        formatted = ", ".join(str(path) for path in remaining)
+        raise ReleaseError(f"Resource fork artefacts remain in {action}: {formatted}")
+
+    telemetry.emit_event(
+        logger,
+        telemetry.RELEASE_SANITIZE_COMPLETE,
+        message=f"Resource fork sanitisation completed for {action}.",
+        root=str(root),
+        removed=len(report.removed_paths),
+    )
 
 
 def _open_with_retries(
@@ -554,6 +601,7 @@ def extract_archive(
                 filter="data",
             )
 
+    _sanitize_release_path(destination, action="the extracted wheelhouse directory")
     return destination
 
 
@@ -569,6 +617,8 @@ def install_from_directory(
     wheel_directory = wheel_directory.resolve()
     if not wheel_directory.exists() or not wheel_directory.is_dir():
         raise ReleaseError(f"Wheel directory {wheel_directory} does not exist.")
+
+    _sanitize_release_path(wheel_directory, action="the wheel directory prior to installation")
 
     wheels = sorted(wheel_directory.glob("*.whl"))
     if not wheels:

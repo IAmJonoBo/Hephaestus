@@ -35,39 +35,17 @@ cd "${PROJECT_ROOT}" || exit 1
 
 ARGS=("$@")
 
-VALUE_FLAGS=(
-  "--log-format"
-  "--log-level"
-  "--run-id"
-  "--extra-path"
-  "--audit-manifest"
-)
+# Prevent cp/tar from emitting AppleDouble files on non-HFS targets.
+export COPYFILE_DISABLE="${COPYFILE_DISABLE:-1}"
 
+# Check if we need to inject the repository root
 should_inject_root=true
-i=0
-while [[ ${i} -lt ${#ARGS[@]} ]]; do
-  arg="${ARGS[$i]}"
-  if [[ ${arg} == "--" ]]; then
-    if [[ ${i} -lt $((${#ARGS[@]} - 1)) ]]; then
-      should_inject_root=false
-    fi
-    break
-  fi
-  if [[ ${arg} == -* ]]; then
-    flag_name="${arg%%=*}"
-    for value_flag in "${VALUE_FLAGS[@]}"; do
-      if [[ ${flag_name} == "${value_flag}" ]]; then
-        if [[ ${arg} != *=* ]]; then
-          ((i++))
-        fi
-        break
-      fi
-    done
-  else
+for arg in "${ARGS[@]}"; do
+  if [[ ${arg} != -* ]]; then
+    # Found a non-flag argument, assume it's the root
     should_inject_root=false
     break
   fi
-  ((i++))
 done
 
 if [[ ${should_inject_root} == true ]]; then

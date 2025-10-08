@@ -302,15 +302,15 @@ See `docs/cli-completions.md` for manual installation steps and regeneration tip
 
 ### CI Dependency Provisioning
 
-- `deps-and-tests-online` runs on ubuntu-24.04 with `astral-sh/setup-uv@v7`, caching Python 3.12 and executing `uv sync --locked --extra dev --extra qa`.
-- Quality checks execute through `uv run` (pytest, Ruff lint + format, Mypy) so tests reuse the synced virtual environment.
-- `build-wheelhouse` exports `uv.lock` to `requirements.txt`, builds wheels for every dependency, and adds the project wheel via `uv build --wheel`.
-- Wheels and the exported requirements file upload as the `wheelhouse` artefact; re-run this job after updating `uv.lock` to refresh the bundle.
-- `ci-offline` downloads the artefact, validates Python 3.12 parity, and installs strictly with `pip --no-index --find-links=wheelhouse/wheelhouse`.
-- Offline QA replays pytest and Ruff/Mypy entirely from the wheelhouse to ensure zero network reliance.
-- Keep the offline runner on ubuntu-24.04 (or match whichever OS builds the wheels) to avoid ABI drift.
-- When dependencies change, run `uv lock` locally, commit the updated lock, and let CI regenerate the wheelhouse on the next push.
-- Missing or stale artefacts trigger explicit failures so teams can rebuild the wheelhouse before retrying restricted runs.
+- `deps-and-tests-online` runs on ubuntu-24.04, sets up Python 3.12 via `astral-sh/setup-uv@v7`, and relies on its cache-backed `uv sync --locked --extra dev --extra qa` install.
+- All hosted-runner quality gates execute with `uv run` (pytest, Ruff lint + format, Mypy) so tests share the synced environment and cached wheels.
+- `build-wheelhouse` exports `uv.lock` with `uv export --format requirements-txt` and builds every dependency wheel before adding the project wheel through `uv build --wheel`.
+- The job publishes a `wheelhouse` artifact containing `wheelhouse/` and `requirements.txt`; rerun it whenever `uv.lock` changes to refresh offline bundles.
+- `ci-offline` downloads that artifact, checks for Python 3.12 parity, and refuses to continue if the expected files are missing.
+- Offline installation uses `pip install --no-index --find-links=wheelhouse/wheelhouse` for both dependencies and the project wheel.
+- The same offline venv replays pytest plus Ruff lint/format and Mypy, proving the cache suffices without external network access.
+- Keep offline runners on ubuntu-24.04 (or match the build job’s OS/arch) to avoid ABI or manylinux mismatches.
+- Update `uv.lock` locally with `uv lock`, commit it, and CI will regenerate and attach the refreshed wheelhouse automatically.
 
 ### Development-to-Deployment Flow
 

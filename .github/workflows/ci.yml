@@ -73,11 +73,17 @@ jobs:
 
       # Build wheels for *all* deps + build a wheel for this project itself.
       - name: Build wheelhouse
+        env:
+          COPYFILE_DISABLE: "1"
         run: |
+          set -xeuo pipefail
+          export PYTHONPATH="src:${PYTHONPATH:-}"
           python -m pip install --upgrade pip
           pip wheel -r requirements.txt -w wheelhouse
           uv build --wheel
           cp dist/*.whl wheelhouse/
+          uv run -- python -m hephaestus.cli wheelhouse sanitize wheelhouse
+          uv run -- python -m hephaestus.cli wheelhouse verify wheelhouse
 
       - name: Upload wheelhouse artifact
         uses: actions/upload-artifact@v4

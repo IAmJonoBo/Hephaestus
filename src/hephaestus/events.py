@@ -37,6 +37,10 @@ __all__ = [
     "CLEANUP_PATH_ERROR",
     "CLEANUP_PATH_PREVIEW",
     "CLEANUP_PATH_REMOVED",
+    "RESOURCE_FORK_SANITIZE_SKIPPED",
+    "RESOURCE_FORK_SANITIZE_PREVIEW",
+    "RESOURCE_FORK_SANITIZE_ERROR",
+    "RESOURCE_FORK_SANITIZE_REMOVED",
     "RELEASE_METADATA_FETCH",
     "RELEASE_ASSET_SELECTED",
     "RELEASE_ASSET_SANITISED",
@@ -54,6 +58,9 @@ __all__ = [
     "RELEASE_SIGSTORE_VERIFIED",
     "RELEASE_EXTRACT_START",
     "RELEASE_EXTRACT_COMPLETE",
+    "RELEASE_SANITIZE_START",
+    "RELEASE_SANITIZE_COMPLETE",
+    "RELEASE_SANITIZE_FAILED",
     "RELEASE_INSTALL_START",
     "RELEASE_INSTALL_INVOKE",
     "RELEASE_INSTALL_COMPLETE",
@@ -94,13 +101,13 @@ class TelemetryRegistry:
 
     def register(self, event: TelemetryEvent) -> TelemetryEvent:
         """Register a new telemetry event definition.
-        
+
         Args:
             event: Event to register
-            
+
         Returns:
             The registered event
-            
+
         Raises:
             ValueError: If event name is already registered
         """
@@ -111,13 +118,13 @@ class TelemetryRegistry:
 
     def get(self, name: str) -> TelemetryEvent:
         """Retrieve a registered event by name.
-        
+
         Args:
             name: Event name to look up
-            
+
         Returns:
             The registered event
-            
+
         Raises:
             KeyError: If event name is not registered
         """
@@ -128,7 +135,7 @@ class TelemetryRegistry:
 
     def all_events(self) -> Iterable[TelemetryEvent]:
         """Return all registered telemetry events.
-        
+
         Returns:
             Iterable of all registered events
         """
@@ -358,6 +365,38 @@ CLEANUP_PATH_REMOVED = _register(
     )
 )
 
+RESOURCE_FORK_SANITIZE_SKIPPED = _register(
+    TelemetryEvent(
+        "resource_fork.sanitize.skipped",
+        "Resource fork sanitisation skipped because the target path is missing.",
+        required_fields=("path",),
+    )
+)
+
+RESOURCE_FORK_SANITIZE_PREVIEW = _register(
+    TelemetryEvent(
+        "resource_fork.sanitize.preview",
+        "Resource fork artefact identified during dry run.",
+        required_fields=("path",),
+    )
+)
+
+RESOURCE_FORK_SANITIZE_ERROR = _register(
+    TelemetryEvent(
+        "resource_fork.sanitize.error",
+        "Removing a resource fork artefact failed.",
+        required_fields=("path", "reason"),
+    )
+)
+
+RESOURCE_FORK_SANITIZE_REMOVED = _register(
+    TelemetryEvent(
+        "resource_fork.sanitize.removed",
+        "Resource fork artefact removed successfully.",
+        required_fields=("path",),
+    )
+)
+
 
 # Release pipeline telemetry events
 RELEASE_METADATA_FETCH = _register(
@@ -496,6 +535,32 @@ RELEASE_EXTRACT_COMPLETE = _register(
         "release.extract.complete",
         "Extraction of release archive completed.",
         required_fields=("destination",),
+    )
+)
+
+RELEASE_SANITIZE_START = _register(
+    TelemetryEvent(
+        "release.sanitize.start",
+        "Starting resource fork sanitisation for extracted wheelhouse directories.",
+        required_fields=("root",),
+    )
+)
+
+RELEASE_SANITIZE_COMPLETE = _register(
+    TelemetryEvent(
+        "release.sanitize.complete",
+        "Completed resource fork sanitisation for extracted wheelhouse directories.",
+        required_fields=("root",),
+        optional_fields=("removed",),
+    )
+)
+
+RELEASE_SANITIZE_FAILED = _register(
+    TelemetryEvent(
+        "release.sanitize.failed",
+        "Resource fork sanitisation failed to complete.",
+        required_fields=("root",),
+        optional_fields=("artefacts", "error"),
     )
 )
 
