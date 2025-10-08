@@ -30,7 +30,7 @@ from typing import IO, cast
 from cryptography import x509
 from cryptography.x509.oid import ExtensionOID
 
-from hephaestus import resource_forks, telemetry
+from hephaestus import events as telemetry, resource_forks
 from hephaestus.logging import log_context
 
 __all__ = [

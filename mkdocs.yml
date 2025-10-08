@@ -17,6 +17,8 @@ nav:
       - Release Process: how-to/release-process.md
       - Testing Guide: how-to/testing.md
       - Troubleshooting: how-to/troubleshooting.md
+      - Observability (OpenTelemetry): how-to/observability.md
+      - Plugin Development: how-to/plugin-development.md
   - Explanation:
       - Architecture Overview: explanation/architecture.md
       - Evergreen Lifecycle Playbook: lifecycle.md
@@ -25,6 +27,7 @@ nav:
           explanation/frontier-red-team-gap-analysis.md
   - Reference:
       - CLI Reference: reference/cli.md
+      - REST API Reference: reference/api.md
       - Telemetry Events: reference/telemetry-events.md
       - CLI Autocompletion: cli-completions.md
       - Pre-Release Checklist: pre-release-checklist.md

@@ -41,6 +41,15 @@ dev = [
   "mkdocs-material>=9.6.21",
   "pymdown-extensions>=10.16.1",
 ]
+telemetry = [
+  "opentelemetry-api>=1.20.0",
+  "opentelemetry-sdk>=1.20.0",
+  "opentelemetry-exporter-otlp>=1.20.0",
+]
+api = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.32.0",
+]
 
 [project.scripts]
 hephaestus = "hephaestus.cli:app"

@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
-from hephaestus import telemetry
+from hephaestus import events as telemetry
 from hephaestus.logging import log_context
 
 __all__ = [

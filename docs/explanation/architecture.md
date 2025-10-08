@@ -23,6 +23,14 @@ The `src/hephaestus/` directory is structured as a standard Python package:
 - `release.py`: Functions for downloading, validating, and installing wheelhouse archives.
 - `planning.py`: Utilities that build execution plans for refactoring rollouts.
 - `toolbox.py`: Data models and helper functions consumed by CLI subcommands and scripts.
+- `events.py`: Telemetry event definitions for structured logging.
+- `backfill.py`: Sigstore backfill metadata schema for historical releases (ADR-0006).
+
+### New Modules (Phase 1 Implementations)
+
+- `telemetry/`: OpenTelemetry integration for optional distributed tracing (ADR-0003).
+- `plugins/`: Plugin architecture for extensible quality gates (ADR-0002).
+- `api/`: REST/gRPC API module structure for remote invocation (ADR-0004).
 
 All CLI commands run through the same console abstraction (`rich.Console`) to ensure consistent
 colourised output across shells and CI environments.
@@ -59,6 +67,8 @@ Actions runners, Codespaces, and developer laptops without extra packaging steps
 ## Extensibility
 
 - Add new CLI commands by extending `src/hephaestus/cli.py` and corresponding modules.
+- Create custom quality gate plugins using the `QualityGatePlugin` interface (see [Plugin Development Guide](../how-to/plugin-development.md)).
+- Enable optional OpenTelemetry tracing via environment variables (see [Observability Guide](../how-to/observability.md)).
 - Provide additional how-to guides under `docs/how-to/` and link them via `mkdocs.yml`.
 - Customise the refactoring toolkit by editing `hephaestus-toolkit/refactoring/config/refactor.config.yaml`.
 
