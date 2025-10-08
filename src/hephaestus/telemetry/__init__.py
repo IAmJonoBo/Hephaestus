@@ -102,9 +102,7 @@ def configure_telemetry() -> None:
     except Exception as exc:  # pragma: no cover - defensive logging path
         import logging
 
-        logging.getLogger("hephaestus.telemetry").warning(
-            "Telemetry configuration error: %s", exc
-        )
+        logging.getLogger("hephaestus.telemetry").warning("Telemetry configuration error: %s", exc)
         return
 
     trace = otel_trace
