@@ -54,10 +54,17 @@ for arg in "${ARGS[@]}"; do
 done
 
 if [[ ${has_deep_clean} != true ]]; then
-  if ! flag_present "--include-git"; then
+  set +e
+  flag_present "--include-git"
+  git_present=$?
+  flag_present "--include-poetry-env"
+  env_present=$?
+  set -e
+
+  if [[ ${git_present} -ne 0 ]]; then
     ARGS+=("--include-git")
   fi
-  if ! flag_present "--include-poetry-env"; then
+  if [[ ${env_present} -ne 0 ]]; then
     ARGS+=("--include-poetry-env")
   fi
 fi
@@ -79,15 +86,15 @@ unlock_apple_metadata() {
     if [[ ${#expr[@]} -gt 0 ]]; then
       expr+=(-o)
     fi
-    expr+=(-name "$pattern")
+    expr+=(-name "${pattern}")
   done
   if [[ ${#expr[@]} -eq 0 ]]; then
     return 0
   fi
 
-  find "$root" '(' "${expr[@]}" ')' -exec chflags nouchg,noschg {} + 2>/dev/null || true
+  find "${root}" '(' "${expr[@]}" ')' -exec chflags nouchg,noschg {} + 2>/dev/null || true
   if command -v xattr >/dev/null 2>&1; then
-    find "$root" '(' "${expr[@]}" ')' -exec xattr -c {} + 2>/dev/null || true
+    find "${root}" '(' "${expr[@]}" ')' -exec xattr -c {} + 2>/dev/null || true
   fi
 }
 
