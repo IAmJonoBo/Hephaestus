@@ -62,6 +62,61 @@ python3 scripts/lint_nested_decorators.py src/hephaestus tests
 
 This linter prevents regression of the "guard-rails availability bug" where the `guard_rails` command was accidentally defined inside the `cleanup` function, making it unavailable until cleanup ran first. See `Next_Steps.md` red team findings for full context.
 
+### bump_version.sh
+
+Interactive version bumping script that updates version numbers across the project.
+
+**Usage:**
+```bash
+# Bump to a new version
+./scripts/bump_version.sh 0.3.0
+
+# Or with bash explicitly
+bash scripts/bump_version.sh 0.3.0
+```
+
+**What it does:**
+1. Validates version format (semantic versioning)
+2. Checks version is actually increasing
+3. Determines release type (MAJOR, MINOR, PATCH)
+4. Updates `pyproject.toml`
+5. Updates `src/hephaestus/__init__.py` (if version present)
+6. Generates CHANGELOG template
+7. Provides next steps guidance
+
+**Features:**
+- Semantic versioning validation
+- Prevents version downgrades
+- Interactive confirmation
+- Color-coded output
+- Context-aware next steps
+- CHANGELOG template generation
+
+**Exit codes:**
+- 0: Success
+- 1: Validation error or user cancellation
+
+**Example output:**
+```bash
+$ ./scripts/bump_version.sh 0.3.0
+Current version: 0.2.0
+New version: 0.3.0
+Release type: MINOR
+
+This will:
+  1. Update version in pyproject.toml: 0.2.0 → 0.3.0
+  2. Update version in src/hephaestus/__init__.py (if present)
+
+Continue? [y/N] y
+✓ Version bumped to 0.3.0
+
+CHANGELOG template for version 0.3.0:
+...
+```
+
+**See also:**
+- [Release Process Guide](../docs/how-to/release-process.md)
+
 ## Integration
 
 ### CI Pipeline
