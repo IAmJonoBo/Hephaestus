@@ -38,6 +38,15 @@ jobs:
       - name: Run tests
         run: uv run pytest -q
 
+      - name: Run ruff lint
+        run: uv run python -m ruff check .
+
+      - name: Run ruff format check
+        run: uv run python -m ruff format --check .
+
+      - name: Run mypy
+        run: uv run mypy src tests
+
   # Offline-capable path for restricted networks:
   # 1) Build a wheelhouse on an internet-enabled runner (must match the OS/arch of
   #    the offline runner).
@@ -56,7 +65,7 @@ jobs:
       # Export the uv.lock to requirements.txt for pip-only installs.
       - name: Export locked requirements (dev + qa)
         run: |
-          uv export --format requirements-txt \
+          uv export --locked --format requirements-txt \
             --group dev \
             --group qa \
             --all-extras \
@@ -79,19 +88,30 @@ jobs:
             requirements.txt
 
   # 2) Fully offline install from the wheelhouse on a restricted runner.
+  #    Ensure the offline runner uses the same OS/arch as build-wheelhouse (here: ubuntu-24.04).
   ci-offline:
     name: Offline CI (install from wheelhouse)
     needs: build-wheelhouse
-    runs-on:
-      - self-hosted
-      - macOS # adjust to match your restricted runner's labels (case sensitive)
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          python-version: "3.12"
+
+      - name: Verify Python version
+        run: |
+          python - <<'PY'
+          import platform, sys
+          expected = (3, 12)
+          if sys.version_info[:2] != expected:
+              raise SystemExit(
+                  f"Offline environment Python {sys.version_info[:2]} does not match expected {expected}."
+              )
+          print(f"Verified Python {platform.python_version()} for offline install parity.")
+          PY
 
       - name: Download wheelhouse artifact
         uses: actions/download-artifact@v5
@@ -99,19 +119,24 @@ jobs:
           name: wheelhouse
           path: wheelhouse
 
+      - name: Validate wheelhouse contents
+        run: |
+          test -d wheelhouse/wheelhouse || (echo "wheelhouse directory missing in artifact" && exit 1)
+          test -f wheelhouse/requirements.txt || (echo "requirements.txt missing in wheelhouse artifact" && exit 1)
+
       # No internet: install only from local wheels.
       - name: Install from wheelhouse (no network)
         run: |
           python -m venv .venv
           . .venv/bin/activate
-          python -m pip install --upgrade pip
+          # The wheels reside in wheelhouse/wheelhouse after artifact extraction.
           pip install --no-index \
-            --find-links=wheelhouse \
+            --find-links=wheelhouse/wheelhouse \
             -r wheelhouse/requirements.txt
           # Install our package from the local wheel by name (resolves to wheel in
           # find-links).
           pip install --no-index \
-            --find-links=wheelhouse \
+            --find-links=wheelhouse/wheelhouse \
             hephaestus
 
       - name: Run tests (offline env)
