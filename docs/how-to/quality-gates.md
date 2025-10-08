@@ -21,6 +21,7 @@ This runs:
 - Pytest with coverage ≥85%
 - Ruff linting
 - Ruff formatting checks
+- YAML linting with yamllint
 - Mypy type checking
 - Nested decorator linting
 - Build artifact generation
@@ -39,9 +40,10 @@ This performs:
 1. Deep cleanup of build artifacts
 2. Ruff linting with auto-fix
 3. Ruff formatting
-4. Mypy type checking
-5. Full test suite with coverage
-6. Security audit with pip-audit
+4. YAML linting with yamllint
+5. Mypy type checking
+6. Full test suite with coverage
+7. Security audit with pip-audit
 
 ## Individual Quality Gates
 
@@ -86,6 +88,20 @@ Apply formatting:
 ```bash
 uv run ruff format .
 ```
+
+### YAML Linting
+
+Lint YAML files for consistency and correctness:
+
+```bash
+uv run yamllint -c .trunk/configs/.yamllint.yaml .github/ .pre-commit-config.yaml mkdocs.yml hephaestus-toolkit/
+```
+
+Requirements:
+
+- Uses custom configuration from `.trunk/configs/.yamllint.yaml`
+- Checks workflow files, configuration files, and documentation
+- Enforces consistent quote usage and structure
 
 ### Type Checking
 

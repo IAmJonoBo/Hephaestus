@@ -886,15 +886,30 @@ def guard_rails(
                 console.print("[cyan]→ Running ruff format...[/cyan]")
                 subprocess.run(["ruff", "format", "."], check=True)
 
-            # Step 4: Type check with mypy
+            # Step 4: Lint YAML files with yamllint
+            console.print("[cyan]→ Running yamllint...[/cyan]")
+            subprocess.run(
+                [
+                    "yamllint",
+                    "-c",
+                    ".trunk/configs/.yamllint.yaml",
+                    ".github/",
+                    ".pre-commit-config.yaml",
+                    "mkdocs.yml",
+                    "hephaestus-toolkit/",
+                ],
+                check=True,
+            )
+
+            # Step 5: Type check with mypy
             console.print("[cyan]→ Running mypy...[/cyan]")
             subprocess.run(["mypy", "src", "tests"], check=True)
 
-            # Step 5: Run tests with pytest
+            # Step 6: Run tests with pytest
             console.print("[cyan]→ Running pytest...[/cyan]")
             subprocess.run(["pytest"], check=True)
 
-            # Step 6: Security audit with pip-audit
+            # Step 7: Security audit with pip-audit
             console.print("[cyan]→ Running pip-audit...[/cyan]")
             subprocess.run(
                 ["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"], check=True

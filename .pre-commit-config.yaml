@@ -32,6 +32,11 @@ repos:
           - --strict
           - --ignore-vuln
           - GHSA-4xh5-x5gv-qwph
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.37.1
+    hooks:
+      - id: yamllint
+        args: [-c, .trunk/configs/.yamllint.yaml]
   - repo: local
     hooks:
       - id: hephaestus-cleanup

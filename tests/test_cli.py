@@ -298,6 +298,15 @@ def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> 
     assert executed == [
         ["ruff", "check", "."],
         ["ruff", "format", "."],
+        [
+            "yamllint",
+            "-c",
+            ".trunk/configs/.yamllint.yaml",
+            ".github/",
+            ".pre-commit-config.yaml",
+            "mkdocs.yml",
+            "hephaestus-toolkit/",
+        ],
         ["mypy", "src", "tests"],
         ["pytest"],
         ["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"],

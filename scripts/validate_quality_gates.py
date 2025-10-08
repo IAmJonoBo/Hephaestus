@@ -55,6 +55,21 @@ QUALITY_GATES = [
         category="linting",
     ),
     QualityGate(
+        name="YAML Lint",
+        command=[
+            "yamllint",
+            "-c",
+            ".trunk/configs/.yamllint.yaml",
+            ".github/",
+            ".pre-commit-config.yaml",
+            "mkdocs.yml",
+            "hephaestus-toolkit/",
+        ],
+        required=True,
+        description="Lint YAML files with yamllint",
+        category="linting",
+    ),
+    QualityGate(
         name="Mypy Type Check",
         command=["mypy", "src", "tests"],
         required=True,
