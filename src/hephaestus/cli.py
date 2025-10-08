@@ -14,10 +14,13 @@ from rich.table import Table
 
 from hephaestus import __version__
 from hephaestus import cleanup as cleanup_module
+from hephaestus import drift as drift_module
 from hephaestus import logging as logging_utils
 from hephaestus import planning as planning_module
 from hephaestus import release as release_module
+from hephaestus import schema as schema_module
 from hephaestus import telemetry, toolbox
+from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
 tools_app = typer.Typer(name="tools", help="Toolkit command groups.", no_args_is_help=True)
@@ -368,6 +371,82 @@ def refactor_opportunities(
     console.print(table)
 
 
+@refactor_app.command("rankings")
+def refactor_rankings(
+    strategy: Annotated[
+        RankingStrategy,
+        typer.Option(
+            help="Ranking strategy to apply.",
+            show_default=True,
+            case_sensitive=False,
+        ),
+    ] = RankingStrategy.RISK_WEIGHTED,
+    limit: Annotated[
+        int | None,
+        typer.Option(help="Maximum number of ranked modules to display."),
+    ] = 20,
+    config: Annotated[Path | None, typer.Option(help="Path to override configuration.")] = None,
+) -> None:
+    """Rank modules by refactoring priority using analytics data."""
+
+    settings = toolbox.load_settings(config)
+
+    if settings.analytics is None or not settings.analytics.is_configured:
+        console.print(
+            "[yellow]No analytics sources configured. "
+            "Configure churn_file, coverage_file, or embeddings_file in your settings.[/yellow]"
+        )
+        raise typer.Exit(code=1)
+
+    signals = load_module_signals(settings.analytics)
+
+    if not signals:
+        console.print(
+            "[yellow]No module signals loaded from analytics sources. "
+            "Check your analytics configuration.[/yellow]"
+        )
+        raise typer.Exit(code=1)
+
+    ranked = rank_modules(
+        signals,
+        strategy=strategy,
+        coverage_threshold=settings.coverage_threshold,
+        limit=limit,
+    )
+
+    table = Table(title=f"Module Rankings ({strategy.value})")
+    table.add_column("Rank", justify="right", style="bold")
+    table.add_column("Path", style="cyan")
+    table.add_column("Score", justify="right", style="magenta")
+    table.add_column("Churn", justify="right", style="yellow")
+    table.add_column("Coverage", justify="right", style="green")
+    table.add_column("Uncovered", justify="right", style="red")
+    table.add_column("Rationale", style="white")
+
+    for module in ranked:
+        coverage_display = (
+            f"{module.coverage:.0%}" if module.coverage is not None else "N/A"
+        )
+        uncovered_display = str(module.uncovered_lines) if module.uncovered_lines else "0"
+
+        table.add_row(
+            str(module.rank),
+            module.path,
+            f"{module.score:.4f}",
+            str(module.churn),
+            coverage_display,
+            uncovered_display,
+            module.rationale,
+        )
+
+    console.print(table)
+    console.print(
+        f"\n[dim]Ranked {len(ranked)} modules using {strategy.value} strategy "
+        f"with coverage threshold {settings.coverage_threshold:.0%}[/dim]"
+    )
+
+
+
 @qa_app.command("coverage")
 def qa_coverage(
     config: Annotated[Path | None, typer.Option(help="Path to override configuration.")] = None,
@@ -413,6 +492,55 @@ def version() -> None:
     """Show the toolkit version."""
 
     console.print(f"Hephaestus v{__version__}")
+
+
+@app.command()
+def schema(
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            "-o",
+            help="Write schemas to JSON file instead of stdout.",
+            writable=True,
+        ),
+    ] = None,
+    format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            help="Output format for schemas.",
+            show_default=True,
+        ),
+    ] = "json",
+) -> None:
+    """Export command schemas for AI agent integration.
+
+    Generates machine-readable schemas describing all CLI commands,
+    their parameters, examples, and expected outputs. Designed for
+    consumption by AI agents like GitHub Copilot, Cursor, or Claude.
+    """
+    import json
+
+    # Extract schemas from the app
+    registry = schema_module.CommandRegistry()
+    registry.commands = schema_module.extract_command_schemas(app)
+
+    # Convert to JSON
+    schema_dict = registry.to_json_dict()
+
+    if format.lower() == "json":
+        output_text = json.dumps(schema_dict, indent=2)
+    else:
+        raise typer.BadParameter(f"Unsupported format: {format}")
+
+    # Write to file or stdout
+    if output:
+        output.write_text(output_text, encoding="utf-8")
+        console.print(f"[green]Schemas exported to {output}[/green]")
+    else:
+        console.print(output_text)
+
 
 
 @app.command()
@@ -662,6 +790,10 @@ def guard_rails(
         bool,
         typer.Option("--no-format", help="Skip the formatting step.", show_default=False),
     ] = False,
+    drift: Annotated[
+        bool,
+        typer.Option("--drift", help="Check for tool version drift and show remediation.", show_default=False),
+    ] = False,
 ) -> None:
     """Run the full guard-rail pipeline: cleanup, lint, format, typecheck, test, and audit."""
 
@@ -671,7 +803,71 @@ def guard_rails(
         operation_id=operation_id,
         command="guard-rails",
         skip_format=no_format,
+        check_drift=drift,
     ):
+        # Drift detection mode
+        if drift:
+            console.print("[cyan]Checking for tool version drift...[/cyan]")
+            try:
+                tool_versions = drift_module.detect_drift()
+                
+                drift_table = Table(title="Tool Version Drift")
+                drift_table.add_column("Tool", style="cyan")
+                drift_table.add_column("Expected", style="yellow")
+                drift_table.add_column("Actual", style="green")
+                drift_table.add_column("Status", style="white")
+                
+                drifted = []
+                for tool in tool_versions:
+                    if tool.is_missing:
+                        status = "[red]Missing[/red]"
+                        drifted.append(tool)
+                    elif tool.has_drift:
+                        status = "[yellow]Drift[/yellow]"
+                        drifted.append(tool)
+                    else:
+                        status = "[green]OK[/green]"
+                    
+                    drift_table.add_row(
+                        tool.name,
+                        tool.expected or "N/A",
+                        tool.actual or "Not installed",
+                        status,
+                    )
+                
+                console.print(drift_table)
+                
+                if drifted:
+                    console.print("\n[yellow]Tool version drift detected![/yellow]")
+                    commands = drift_module.generate_remediation_commands(drifted)
+                    
+                    console.print("\n[cyan]Remediation commands:[/cyan]")
+                    for cmd in commands:
+                        if cmd.startswith("#"):
+                            console.print(f"[dim]{cmd}[/dim]")
+                        else:
+                            console.print(f"  {cmd}")
+                    
+                    telemetry.emit_event(
+                        logger,
+                        telemetry.CLI_GUARD_RAILS_DRIFT,
+                        message="Tool version drift detected",
+                        drifted_tools=[t.name for t in drifted],
+                    )
+                    raise typer.Exit(code=1)
+                else:
+                    console.print("\n[green]✓ All tools are up to date.[/green]")
+                    telemetry.emit_event(
+                        logger,
+                        telemetry.CLI_GUARD_RAILS_DRIFT_OK,
+                        message="No tool version drift detected",
+                    )
+                return
+            except drift_module.DriftDetectionError as exc:
+                console.print(f"[red]✗ Drift detection failed: {exc}[/red]")
+                raise typer.Exit(code=1) from exc
+        
+        # Standard guard-rails pipeline
         console.print("[cyan]Running guard rails...[/cyan]")
         telemetry.emit_event(
             logger,

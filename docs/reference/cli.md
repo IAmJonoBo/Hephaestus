@@ -21,6 +21,17 @@ uv run hephaestus [OPTIONS] COMMAND [ARGS]...
 
 Print the installed toolkit version.
 
+### `schema`
+
+Export command schemas for AI agent integration.
+
+| Option | Description |
+| ------ | ----------- |
+| `--output PATH` | Write schemas to JSON file instead of stdout. |
+| `--format [json]` | Output format for schemas (default: `json`). |
+
+Generates machine-readable schemas describing all CLI commands, their parameters, examples, and expected outputs. See [AI Agent Integration Guide](../how-to/ai-agent-integration.md) for usage patterns.
+
 ### `cleanup`
 
 Scrub development cruft (macOS metadata, caches, build artefacts). Key options:
@@ -37,6 +48,29 @@ Scrub development cruft (macOS metadata, caches, build artefacts). Key options:
 
 Render the refactoring execution plan as a Rich table to share rollout status.
 
+### `guard-rails`
+
+Run the full guard-rail pipeline: cleanup, lint, format, typecheck, test, and audit.
+
+| Option | Description |
+| ------ | ----------- |
+| `--no-format` | Skip the formatting step (useful during code review). |
+| `--drift` | Check for tool version drift and show remediation commands. |
+
+**Standard pipeline**:
+1. Deep clean workspace
+2. Lint with ruff
+3. Format with ruff (unless `--no-format`)
+4. Type check with mypy
+5. Run tests with pytest
+6. Security audit with pip-audit
+
+**Drift detection mode** (`--drift`):
+- Compares installed tool versions against `pyproject.toml`
+- Reports missing or outdated tools
+- Generates remediation commands (manual or via `uv sync`)
+- Exits with code 1 if drift is detected
+
 ### `tools refactor hotspots`
 
 List the highest churn modules. Options include:
@@ -47,6 +81,23 @@ List the highest churn modules. Options include:
 ### `tools refactor opportunities`
 
 Summarise advisory refactor opportunities with estimated effort.
+
+### `tools refactor rankings`
+
+Rank modules by refactoring priority using analytics data. Requires analytics sources to be configured.
+
+| Option | Description |
+| ------ | ----------- |
+| `--strategy [risk_weighted|coverage_first|churn_based|composite]` | Ranking algorithm to apply (default: `risk_weighted`). |
+| `--limit INTEGER` | Maximum number of ranked modules to display (default: 20). |
+| `--config PATH` | Load alternate configuration. |
+
+**Strategies:**
+
+- `risk_weighted`: Balances coverage gaps, uncovered lines, and churn (recommended).
+- `coverage_first`: Prioritizes modules with the largest coverage gaps.
+- `churn_based`: Focuses on high-change-frequency modules.
+- `composite`: Balanced approach with bonus for modules with embeddings.
 
 ### `tools qa profile NAME`
 

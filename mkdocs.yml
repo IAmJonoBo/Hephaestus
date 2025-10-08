@@ -12,6 +12,7 @@ nav:
       - Configure Your Editor: how-to/editor-setup.md
       - Operating Safely: how-to/operating-safely.md
       - Quality Gate Validation: how-to/quality-gates.md
+      - AI Agent Integration: how-to/ai-agent-integration.md
   - Explanation:
       - Architecture Overview: explanation/architecture.md
       - Evergreen Lifecycle Playbook: lifecycle.md

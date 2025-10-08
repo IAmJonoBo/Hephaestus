@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -59,6 +60,28 @@ class ModuleSignal:
 
 class AnalyticsLoadError(RuntimeError):
     """Raised when analytics data cannot be parsed."""
+
+
+class RankingStrategy(str, Enum):
+    """Strategies for ranking modules by refactoring priority."""
+
+    RISK_WEIGHTED = "risk_weighted"
+    COVERAGE_FIRST = "coverage_first"
+    CHURN_BASED = "churn_based"
+    COMPOSITE = "composite"
+
+
+@dataclass(slots=True, frozen=True)
+class RankedModule:
+    """Module with computed ranking score."""
+
+    path: str
+    score: float
+    churn: int
+    coverage: float | None
+    uncovered_lines: int | None
+    rank: int
+    rationale: str
 
 
 def load_module_signals(config: AnalyticsConfig | None) -> dict[str, ModuleSignal]:
@@ -181,3 +204,146 @@ def _iter_records(data: Any, *, required_keys: tuple[str, ...]) -> Iterable[dict
 
     msg = f"Unsupported analytics payload type: {type(data)!r}"
     raise AnalyticsLoadError(msg)
+
+
+def rank_modules(
+    signals: dict[str, ModuleSignal],
+    *,
+    strategy: RankingStrategy = RankingStrategy.RISK_WEIGHTED,
+    coverage_threshold: float = 0.75,
+    limit: int | None = None,
+) -> list[RankedModule]:
+    """Rank modules by refactoring priority using the specified strategy.
+
+    Args:
+        signals: Module signals loaded from analytics sources
+        strategy: Ranking strategy to apply
+        coverage_threshold: Target coverage for gap calculations
+        limit: Maximum number of ranked modules to return
+
+    Returns:
+        List of ranked modules sorted by descending score
+    """
+    if not signals:
+        return []
+
+    ranked: list[tuple[str, float, str]] = []
+
+    for path, signal in signals.items():
+        if strategy == RankingStrategy.RISK_WEIGHTED:
+            score, rationale = _calculate_risk_weighted_score(signal, coverage_threshold)
+        elif strategy == RankingStrategy.COVERAGE_FIRST:
+            score, rationale = _calculate_coverage_first_score(signal, coverage_threshold)
+        elif strategy == RankingStrategy.CHURN_BASED:
+            score, rationale = _calculate_churn_based_score(signal)
+        elif strategy == RankingStrategy.COMPOSITE:
+            score, rationale = _calculate_composite_score(signal, coverage_threshold)
+        else:  # pragma: no cover - defensive guard
+            msg = f"Unsupported ranking strategy: {strategy}"
+            raise ValueError(msg)
+
+        ranked.append((path, score, rationale))
+
+    ranked.sort(key=lambda item: item[1], reverse=True)
+
+    if limit is not None:
+        ranked = ranked[:limit]
+
+    return [
+        RankedModule(
+            path=path,
+            score=round(score, 4),
+            churn=signals[path].churn,
+            coverage=signals[path].coverage,
+            uncovered_lines=signals[path].uncovered_lines,
+            rank=idx + 1,
+            rationale=rationale,
+        )
+        for idx, (path, score, rationale) in enumerate(ranked)
+    ]
+
+
+def _calculate_risk_weighted_score(
+    signal: ModuleSignal, coverage_threshold: float
+) -> tuple[float, str]:
+    """Calculate score emphasizing risk factors (coverage gap, churn, uncovered lines)."""
+    coverage = signal.coverage if signal.coverage is not None else 0.0
+    uncovered = signal.uncovered_lines or 0
+    churn = signal.churn
+
+    coverage_gap = max(0.0, coverage_threshold - coverage)
+    normalized_uncovered = min(uncovered / 200.0, 1.0)
+    normalized_churn = min(churn / 200.0, 1.0)
+
+    score = (coverage_gap * 0.5) + (normalized_uncovered * 0.3) + (normalized_churn * 0.2)
+
+    factors = []
+    if coverage_gap > 0:
+        factors.append(f"coverage_gap={coverage_gap:.2f}")
+    if uncovered > 0:
+        factors.append(f"uncovered={uncovered}")
+    if churn > 0:
+        factors.append(f"churn={churn}")
+
+    rationale = f"Risk-weighted: {', '.join(factors) if factors else 'low_risk'}"
+    return score, rationale
+
+
+def _calculate_coverage_first_score(
+    signal: ModuleSignal, coverage_threshold: float
+) -> tuple[float, str]:
+    """Calculate score prioritizing coverage gaps above all else."""
+    coverage = signal.coverage if signal.coverage is not None else 0.0
+    uncovered = signal.uncovered_lines or 0
+
+    coverage_gap = max(0.0, coverage_threshold - coverage)
+    normalized_uncovered = min(uncovered / 200.0, 1.0)
+
+    score = (coverage_gap * 0.8) + (normalized_uncovered * 0.2)
+
+    rationale = f"Coverage-first: gap={coverage_gap:.2f}, uncovered={uncovered}"
+    return score, rationale
+
+
+def _calculate_churn_based_score(signal: ModuleSignal) -> tuple[float, str]:
+    """Calculate score based primarily on change frequency."""
+    churn = signal.churn
+    coverage = signal.coverage if signal.coverage is not None else 1.0
+
+    normalized_churn = min(churn / 200.0, 1.0)
+    coverage_penalty = (1.0 - coverage) * 0.3
+
+    score = normalized_churn + coverage_penalty
+
+    rationale = f"Churn-based: churn={churn}, coverage={coverage:.2f}"
+    return score, rationale
+
+
+def _calculate_composite_score(
+    signal: ModuleSignal, coverage_threshold: float
+) -> tuple[float, str]:
+    """Calculate balanced score considering all factors with embedding boost."""
+    coverage = signal.coverage if signal.coverage is not None else 0.0
+    uncovered = signal.uncovered_lines or 0
+    churn = signal.churn
+    has_embedding = signal.embedding is not None
+
+    coverage_gap = max(0.0, coverage_threshold - coverage)
+    normalized_uncovered = min(uncovered / 200.0, 1.0)
+    normalized_churn = min(churn / 200.0, 1.0)
+
+    base_score = (
+        (coverage_gap * 0.35) + (normalized_uncovered * 0.25) + (normalized_churn * 0.25)
+    )
+
+    if has_embedding:
+        base_score += 0.15
+
+    score = base_score
+
+    factors = [f"coverage_gap={coverage_gap:.2f}", f"uncovered={uncovered}", f"churn={churn}"]
+    if has_embedding:
+        factors.append("embedding_available")
+
+    rationale = f"Composite: {', '.join(factors)}"
+    return score, rationale
