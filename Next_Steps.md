@@ -232,6 +232,7 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 - [x] Tests: `uv run pytest`
 - [x] Lint: `uv run ruff check .`
 - [x] Format: `uv run ruff format --check .`
+- [x] YAML Lint: `uv run yamllint -c .trunk/configs/.yamllint.yaml .github/ .pre-commit-config.yaml mkdocs.yml hephaestus-toolkit/`
 - [x] Types: `uv run mypy src tests`
 - [x] Nested Decorators: `python3 scripts/lint_nested_decorators.py src/hephaestus`
 - [ ] Security: `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (fails: SSL trust chain unavailable in container)

@@ -1,18 +1,18 @@
 version: 2
 updates:
-  - package-ecosystem: "pip"
-    directory: "/"
+  - package-ecosystem: pip
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: weekly
     allow:
-      - dependency-type: "direct"
+      - dependency-type: direct
     commit-message:
-      prefix: "deps"
-    labels: ["dependencies"]
-  - package-ecosystem: "github-actions"
-    directory: "/"
+      prefix: deps
+    labels: [dependencies]
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: weekly
     commit-message:
-      prefix: "ci"
-    labels: ["dependencies", "ci"]
+      prefix: ci
+    labels: [dependencies, ci]

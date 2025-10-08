@@ -62,9 +62,10 @@ Run the full guard-rail pipeline: cleanup, lint, format, typecheck, test, and au
 1. Deep clean workspace
 2. Lint with ruff
 3. Format with ruff (unless `--no-format`)
-4. Type check with mypy
-5. Run tests with pytest
-6. Security audit with pip-audit
+4. Lint YAML files with yamllint
+5. Type check with mypy
+6. Run tests with pytest
+7. Security audit with pip-audit
 
 **Drift detection mode** (`--drift`):
 

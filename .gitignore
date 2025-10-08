@@ -13,6 +13,10 @@ venv/
 .pytest_cache/
 .mypy_cache/
 
+# Node.js
+node_modules/
+package-lock.json
+
 # macOS metadata
 .DS_Store
 ._*

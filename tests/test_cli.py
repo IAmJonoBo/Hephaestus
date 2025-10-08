@@ -298,6 +298,15 @@ def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> 
     assert executed == [
         ["ruff", "check", "."],
         ["ruff", "format", "."],
+        [
+            "yamllint",
+            "-c",
+            ".trunk/configs/.yamllint.yaml",
+            ".github/",
+            ".pre-commit-config.yaml",
+            "mkdocs.yml",
+            "hephaestus-toolkit/",
+        ],
         ["mypy", "src", "tests"],
         ["pytest"],
         ["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"],
@@ -326,3 +335,81 @@ def test_guard_rails_can_skip_format(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert result.exit_code == 0
     assert ["ruff", "format", "."] not in executed
+
+
+def test_schema_command_exports_json() -> None:
+    """Test that schema command exports command schemas as JSON."""
+    _, cli = _load_modules()
+    result = runner.invoke(cli.app, ["schema"])
+    assert result.exit_code == 0
+    assert "version" in result.stdout
+    assert "commands" in result.stdout
+
+
+def test_schema_command_with_output_file(tmp_path: Path) -> None:
+    """Test schema command writing to file."""
+    _, cli = _load_modules()
+    output_file = tmp_path / "schemas.json"
+    result = runner.invoke(cli.app, ["schema", "--output", str(output_file)])
+    assert result.exit_code == 0
+    assert output_file.exists()
+    content = output_file.read_text()
+    assert "version" in content
+    assert "commands" in content
+
+
+def test_invalid_log_format_raises_error() -> None:
+    """Test that invalid log format is rejected."""
+    _, cli = _load_modules()
+    result = runner.invoke(cli.app, ["--log-format", "invalid", "version"])
+    assert result.exit_code != 0
+    # Error message is in the exception/stderr
+    assert result.exception is not None
+
+
+def test_invalid_log_level_raises_error() -> None:
+    """Test that invalid log level is rejected."""
+    _, cli = _load_modules()
+    result = runner.invoke(cli.app, ["--log-level", "TRACE", "version"])
+    assert result.exit_code != 0
+    # Error message is in the exception/stderr
+    assert result.exception is not None
+
+
+def test_guard_rails_drift_mode_no_drift() -> None:
+    """Test guard-rails --drift when no drift is detected."""
+    _, cli = _load_modules()
+    from hephaestus.drift import ToolVersion
+    # Mock drift detection to return no drifted tools
+
+    def mock_detect_drift(_path: Path | None = None) -> list[ToolVersion]:
+        # Create actual ToolVersion instances
+        return [ToolVersion(name="ruff", expected="0.14.0", actual="0.14.0")]
+
+    import hephaestus.drift as drift_mod
+
+    original_detect = drift_mod.detect_drift
+    drift_mod.detect_drift = mock_detect_drift  # type: ignore[assignment]
+
+    try:
+        result = runner.invoke(cli.app, ["guard-rails", "--drift"])
+        assert result.exit_code == 0
+        assert "All tools are up to date" in result.stdout
+    finally:
+        drift_mod.detect_drift = original_detect
+
+
+def test_refactor_opportunities_command() -> None:
+    """Test refactor opportunities command."""
+    _, cli = _load_modules()
+    result = runner.invoke(cli.app, ["tools", "refactor", "opportunities"])
+    assert result.exit_code == 0
+    assert "Refactor Opportunities" in result.stdout
+
+
+def test_refactor_rankings_command() -> None:
+    """Test refactor rankings command."""
+    _, cli = _load_modules()
+    result = runner.invoke(cli.app, ["tools", "refactor", "rankings"])
+    # Command may exit with 1 if no analytics sources are configured
+    assert "Refactor Rankings" in result.stdout or "No analytics sources" in result.stdout

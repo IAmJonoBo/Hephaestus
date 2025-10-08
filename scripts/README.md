@@ -69,6 +69,34 @@ python3 scripts/lint_nested_decorators.py src/hephaestus tests
 
 This linter prevents regression of the "guard-rails availability bug" where the `guard_rails` command was accidentally defined inside the `cleanup` function, making it unavailable until cleanup ran first. See `Next_Steps.md` red team findings for full context.
 
+### run_actionlint.sh
+
+Installs and runs actionlint for GitHub Actions workflow validation.
+
+**Usage:**
+
+```bash
+bash scripts/run_actionlint.sh
+```
+
+**What it does:**
+
+- Downloads and installs actionlint v1.7.7 if not present
+- Validates all workflow files in `.github/workflows/`
+- Checks for syntax errors, deprecated actions, and common mistakes
+- Reports shellcheck issues in workflow scripts
+
+**Features:**
+
+- Automatic installation to `~/.local/bin`
+- Version pinning for reproducibility
+- Comprehensive workflow validation
+
+**Exit codes:**
+
+- 0: All workflows valid
+- 1: Validation errors found
+
 ### bump_version.sh
 
 Interactive version bumping script that updates version numbers across the project.

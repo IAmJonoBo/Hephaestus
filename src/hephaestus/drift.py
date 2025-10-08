@@ -6,12 +6,11 @@ import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 try:
     import tomllib  # Python 3.11+
 except ImportError:
-    import tomli as tomllib  # type: ignore[import,no-redef]
+    import tomli as tomllib  # type: ignore[import-not-found,no-redef]
 
 
 @dataclass(frozen=True)

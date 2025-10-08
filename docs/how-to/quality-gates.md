@@ -21,8 +21,10 @@ This runs:
 - Pytest with coverage ≥85%
 - Ruff linting
 - Ruff formatting checks
+- YAML linting with yamllint
 - Mypy type checking
 - Nested decorator linting
+- Workflow validation with actionlint (optional)
 - Build artifact generation
 - Security auditing (when available)
 
@@ -39,9 +41,10 @@ This performs:
 1. Deep cleanup of build artifacts
 2. Ruff linting with auto-fix
 3. Ruff formatting
-4. Mypy type checking
-5. Full test suite with coverage
-6. Security audit with pip-audit
+4. YAML linting with yamllint
+5. Mypy type checking
+6. Full test suite with coverage
+7. Security audit with pip-audit
 
 ## Individual Quality Gates
 
@@ -87,6 +90,20 @@ Apply formatting:
 uv run ruff format .
 ```
 
+### YAML Linting
+
+Lint YAML files for consistency and correctness:
+
+```bash
+uv run yamllint -c .trunk/configs/.yamllint.yaml .github/ .pre-commit-config.yaml mkdocs.yml hephaestus-toolkit/
+```
+
+Requirements:
+
+- Uses custom configuration from `.trunk/configs/.yamllint.yaml`
+- Checks workflow files, configuration files, and documentation
+- Enforces consistent quote usage and structure
+
 ### Type Checking
 
 Verify type annotations:
@@ -110,6 +127,23 @@ python3 scripts/lint_nested_decorators.py src/hephaestus
 ```
 
 This ensures Typer commands are defined at module scope, not nested inside other functions. See the red team findings in `Next_Steps.md` for context on the guard-rails availability bug this prevents.
+
+### Workflow Validation (actionlint)
+
+Validate GitHub Actions workflows:
+
+```bash
+bash scripts/run_actionlint.sh
+```
+
+This optional check:
+
+- Automatically installs actionlint if not present
+- Validates workflow syntax and structure
+- Checks for deprecated actions
+- Reports shellcheck issues in workflow scripts
+
+Note: This is an optional quality gate. The script will download actionlint on first run.
 
 ### Security Audit
 

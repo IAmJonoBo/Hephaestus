@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Annotated
 
-import pytest
 import typer
 
 from hephaestus.schema import CommandSchema, extract_command_schemas
