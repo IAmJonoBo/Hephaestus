@@ -17,6 +17,7 @@ from hephaestus import cleanup as cleanup_module
 from hephaestus import logging as logging_utils
 from hephaestus import planning as planning_module
 from hephaestus import release as release_module
+from hephaestus import schema as schema_module
 from hephaestus import telemetry, toolbox
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
 
@@ -490,6 +491,55 @@ def version() -> None:
     """Show the toolkit version."""
 
     console.print(f"Hephaestus v{__version__}")
+
+
+@app.command()
+def schema(
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            "-o",
+            help="Write schemas to JSON file instead of stdout.",
+            writable=True,
+        ),
+    ] = None,
+    format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            help="Output format for schemas.",
+            show_default=True,
+        ),
+    ] = "json",
+) -> None:
+    """Export command schemas for AI agent integration.
+
+    Generates machine-readable schemas describing all CLI commands,
+    their parameters, examples, and expected outputs. Designed for
+    consumption by AI agents like GitHub Copilot, Cursor, or Claude.
+    """
+    import json
+
+    # Extract schemas from the app
+    registry = schema_module.CommandRegistry()
+    registry.commands = schema_module.extract_command_schemas(app)
+
+    # Convert to JSON
+    schema_dict = registry.to_json_dict()
+
+    if format.lower() == "json":
+        output_text = json.dumps(schema_dict, indent=2)
+    else:
+        raise typer.BadParameter(f"Unsupported format: {format}")
+
+    # Write to file or stdout
+    if output:
+        output.write_text(output_text, encoding="utf-8")
+        console.print(f"[green]Schemas exported to {output}[/green]")
+    else:
+        console.print(output_text)
+
 
 
 @app.command()

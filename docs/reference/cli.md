@@ -21,6 +21,17 @@ uv run hephaestus [OPTIONS] COMMAND [ARGS]...
 
 Print the installed toolkit version.
 
+### `schema`
+
+Export command schemas for AI agent integration.
+
+| Option | Description |
+| ------ | ----------- |
+| `--output PATH` | Write schemas to JSON file instead of stdout. |
+| `--format [json]` | Output format for schemas (default: `json`). |
+
+Generates machine-readable schemas describing all CLI commands, their parameters, examples, and expected outputs. See [AI Agent Integration Guide](../how-to/ai-agent-integration.md) for usage patterns.
+
 ### `cleanup`
 
 Scrub development cruft (macOS metadata, caches, build artefacts). Key options:
