@@ -4,6 +4,16 @@ Last updated: 2025-01-11 (Analytics ingestion adapters + telemetry correlation)
 
 ## Recent Improvements (Latest Session)
 
+**AI-Native Workflows & Analytics (2025-01-XX):**
+
+- ✅ Analytics ranking API: 4 strategies (risk_weighted, coverage_first, churn_based, composite)
+- ✅ CLI command: `hephaestus tools refactor rankings` with strategy selection
+- ✅ Command schema export: `hephaestus schema` for AI agent integration
+- ✅ AI integration guide: Comprehensive docs for Copilot/Cursor/Claude
+- ✅ Guard-rails drift detection: `hephaestus guard-rails --drift` with remediation
+- ✅ Tool version management: Automatic detection and fix suggestions
+- ✅ Telemetry events: Added drift detection events to registry
+
 **Security & Safety Enhancements:**
 
 - ✅ Extra paths validation: Added dangerous path checks for `--extra-path` arguments
@@ -144,8 +154,12 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 - [ ] (Tooling, due 2025-02-28) Backfill Sigstore bundles for historical releases and add CI enforcement for attestations
 - [x] (DX, due 2025-01-31) Add cleanup dry-run previews, confirmations, and audit manifests
 - [ ] (Platform, due 2025-02-15) Ship structured JSON logging and OpenTelemetry spans across CLI/release/cleanup _(logging complete; spans pending)_
-- [ ] (AI Insights, due 2025-03-01) Replace synthetic analytics with churn/coverage/embedding adapters and ranking API
-  - Status: 🔄 Adapters delivered this pass (`src/hephaestus/analytics.py`); ranking API & streaming ingestion pending
+- [x] (AI Insights, due 2025-03-01) Replace synthetic analytics with churn/coverage/embedding adapters and ranking API
+  - Status: ✅ Complete - Ranking API with 4 strategies shipped (`src/hephaestus/analytics.py`, `hephaestus tools refactor rankings`)
+- [x] (AI Workflows, due 2025-03-15) AI-native command schema export for agent integration
+  - Status: ✅ Complete - Schema export and AI integration guide delivered (`hephaestus schema`, `docs/how-to/ai-agent-integration.md`)
+- [x] (Autonomic Guard Rails, due 2025-03-15) Tool version drift detection
+  - Status: ✅ Complete - Drift detection with remediation commands shipped (`hephaestus guard-rails --drift`)
 - [ ] (Platform AI, due 2025-03-15) Expose secured REST/gRPC endpoints for AI/automation clients with policy guard rails
 
 ## Steps
