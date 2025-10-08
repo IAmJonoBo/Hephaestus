@@ -26,6 +26,8 @@ __all__ = [
     "CLI_GUARD_RAILS_START",
     "CLI_GUARD_RAILS_COMPLETE",
     "CLI_GUARD_RAILS_FAILED",
+    "CLI_GUARD_RAILS_DRIFT",
+    "CLI_GUARD_RAILS_DRIFT_OK",
     "CLI_RELEASE_INSTALL_START",
     "CLI_RELEASE_INSTALL_COMPLETE",
     "CLI_RELEASE_INSTALL_ARCHIVE_REMOVED",
@@ -215,6 +217,21 @@ CLI_GUARD_RAILS_FAILED = _register(
         "Guard-rails pipeline failed.",
         required_fields=("step", "returncode"),
         optional_fields=("level",),
+    )
+)
+
+CLI_GUARD_RAILS_DRIFT = _register(
+    TelemetryEvent(
+        "cli.guard-rails.drift",
+        "Tool version drift detected.",
+        required_fields=("drifted_tools",),
+    )
+)
+
+CLI_GUARD_RAILS_DRIFT_OK = _register(
+    TelemetryEvent(
+        "cli.guard-rails.drift.ok",
+        "No tool version drift detected.",
     )
 )
 

@@ -14,6 +14,7 @@ from rich.table import Table
 
 from hephaestus import __version__
 from hephaestus import cleanup as cleanup_module
+from hephaestus import drift as drift_module
 from hephaestus import logging as logging_utils
 from hephaestus import planning as planning_module
 from hephaestus import release as release_module
@@ -789,6 +790,10 @@ def guard_rails(
         bool,
         typer.Option("--no-format", help="Skip the formatting step.", show_default=False),
     ] = False,
+    drift: Annotated[
+        bool,
+        typer.Option("--drift", help="Check for tool version drift and show remediation.", show_default=False),
+    ] = False,
 ) -> None:
     """Run the full guard-rail pipeline: cleanup, lint, format, typecheck, test, and audit."""
 
@@ -798,7 +803,71 @@ def guard_rails(
         operation_id=operation_id,
         command="guard-rails",
         skip_format=no_format,
+        check_drift=drift,
     ):
+        # Drift detection mode
+        if drift:
+            console.print("[cyan]Checking for tool version drift...[/cyan]")
+            try:
+                tool_versions = drift_module.detect_drift()
+                
+                drift_table = Table(title="Tool Version Drift")
+                drift_table.add_column("Tool", style="cyan")
+                drift_table.add_column("Expected", style="yellow")
+                drift_table.add_column("Actual", style="green")
+                drift_table.add_column("Status", style="white")
+                
+                drifted = []
+                for tool in tool_versions:
+                    if tool.is_missing:
+                        status = "[red]Missing[/red]"
+                        drifted.append(tool)
+                    elif tool.has_drift:
+                        status = "[yellow]Drift[/yellow]"
+                        drifted.append(tool)
+                    else:
+                        status = "[green]OK[/green]"
+                    
+                    drift_table.add_row(
+                        tool.name,
+                        tool.expected or "N/A",
+                        tool.actual or "Not installed",
+                        status,
+                    )
+                
+                console.print(drift_table)
+                
+                if drifted:
+                    console.print("\n[yellow]Tool version drift detected![/yellow]")
+                    commands = drift_module.generate_remediation_commands(drifted)
+                    
+                    console.print("\n[cyan]Remediation commands:[/cyan]")
+                    for cmd in commands:
+                        if cmd.startswith("#"):
+                            console.print(f"[dim]{cmd}[/dim]")
+                        else:
+                            console.print(f"  {cmd}")
+                    
+                    telemetry.emit_event(
+                        logger,
+                        telemetry.CLI_GUARD_RAILS_DRIFT,
+                        message="Tool version drift detected",
+                        drifted_tools=[t.name for t in drifted],
+                    )
+                    raise typer.Exit(code=1)
+                else:
+                    console.print("\n[green]✓ All tools are up to date.[/green]")
+                    telemetry.emit_event(
+                        logger,
+                        telemetry.CLI_GUARD_RAILS_DRIFT_OK,
+                        message="No tool version drift detected",
+                    )
+                return
+            except drift_module.DriftDetectionError as exc:
+                console.print(f"[red]✗ Drift detection failed: {exc}[/red]")
+                raise typer.Exit(code=1) from exc
+        
+        # Standard guard-rails pipeline
         console.print("[cyan]Running guard rails...[/cyan]")
         telemetry.emit_event(
             logger,

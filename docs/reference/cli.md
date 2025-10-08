@@ -48,6 +48,29 @@ Scrub development cruft (macOS metadata, caches, build artefacts). Key options:
 
 Render the refactoring execution plan as a Rich table to share rollout status.
 
+### `guard-rails`
+
+Run the full guard-rail pipeline: cleanup, lint, format, typecheck, test, and audit.
+
+| Option | Description |
+| ------ | ----------- |
+| `--no-format` | Skip the formatting step (useful during code review). |
+| `--drift` | Check for tool version drift and show remediation commands. |
+
+**Standard pipeline**:
+1. Deep clean workspace
+2. Lint with ruff
+3. Format with ruff (unless `--no-format`)
+4. Type check with mypy
+5. Run tests with pytest
+6. Security audit with pip-audit
+
+**Drift detection mode** (`--drift`):
+- Compares installed tool versions against `pyproject.toml`
+- Reports missing or outdated tools
+- Generates remediation commands (manual or via `uv sync`)
+- Exits with code 1 if drift is detected
+
 ### `tools refactor hotspots`
 
 List the highest churn modules. Options include:
