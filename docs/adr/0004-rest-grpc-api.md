@@ -17,6 +17,7 @@ Hephaestus is currently a command-line tool that runs locally. However, several 
 - **Webhook Triggers**: External systems want to trigger quality checks on events
 
 Current limitations:
+
 - CLI-only interface requires subprocess execution
 - No structured request/response beyond exit codes
 - No real-time progress updates
@@ -125,7 +126,7 @@ paths:
                   gates: array
                   duration: number
                   task_id: string
-  
+
   /cleanup:
     post:
       summary: Clean workspace artifacts
@@ -148,7 +149,7 @@ paths:
                   files_deleted: integer
                   size_freed: integer
                   manifest: object
-  
+
   /analytics/rankings:
     get:
       summary: Get refactoring rankings
@@ -171,7 +172,7 @@ paths:
                 properties:
                   rankings: array
                   strategy: string
-  
+
   /tasks/{task_id}:
     get:
       summary: Get async task status
@@ -286,24 +287,24 @@ async def run_guard_rails_async(request: GuardRailsRequest) -> str:
     task_id = str(uuid4())
     task = Task(id=task_id, status=TaskStatus.PENDING, progress=0.0)
     task_registry[task_id] = task
-    
+
     # Start background task
     asyncio.create_task(_execute_guard_rails(task_id, request))
-    
+
     return task_id
 
 async def _execute_guard_rails(task_id: str, request: GuardRailsRequest):
     """Execute guard-rails and update task status."""
     task = task_registry[task_id]
     task.status = TaskStatus.RUNNING
-    
+
     try:
         # Run quality gates
         result = await run_quality_pipeline(
             no_format=request.no_format,
             progress_callback=lambda p: update_task_progress(task_id, p)
         )
-        
+
         task.status = TaskStatus.COMPLETED
         task.progress = 1.0
         task.result = result
@@ -324,18 +325,18 @@ async def stream_task_progress(task_id: str):
             if not task:
                 yield f"data: {json.dumps({'error': 'Task not found'})}\n\n"
                 break
-            
+
             yield f"data: {json.dumps({
                 'status': task.status.value,
                 'progress': task.progress,
                 'result': task.result if task.status == TaskStatus.COMPLETED else None
             })}\n\n"
-            
+
             if task.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
                 break
-            
+
             await asyncio.sleep(1)
-    
+
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 ```
 
@@ -382,11 +383,13 @@ async def stream_task_progress(task_id: str):
 **Description**: Provide language-specific wrappers around CLI.
 
 **Pros:**
+
 - Simpler implementation
 - No server needed
 - Backward compatible
 
 **Cons:**
+
 - Subprocess overhead
 - No progress streaming
 - Limited to local execution
@@ -398,11 +401,13 @@ async def stream_task_progress(task_id: str):
 **Description**: Implement REST API without gRPC.
 
 **Pros:**
+
 - Simpler implementation
 - Universal HTTP support
 - Good web integration
 
 **Cons:**
+
 - Less efficient than gRPC
 - No streaming (without SSE)
 - Less type safety
@@ -414,11 +419,13 @@ async def stream_task_progress(task_id: str):
 **Description**: Implement gRPC without REST.
 
 **Pros:**
+
 - Best performance
 - Strong typing
 - Built-in streaming
 
 **Cons:**
+
 - Harder HTTP integration
 - Less accessible for web clients
 - More complex debugging
@@ -430,11 +437,13 @@ async def stream_task_progress(task_id: str):
 **Description**: Use message broker (RabbitMQ, Redis) for async execution.
 
 **Pros:**
+
 - Proven architecture
 - Scalable
 - Decoupled
 
 **Cons:**
+
 - Heavy infrastructure
 - Operational complexity
 - Overkill for use case
@@ -512,10 +521,10 @@ while True:
         f"http://localhost:8000/api/v1/tasks/{task_id}",
         headers={"Authorization": "Bearer YOUR_API_KEY"}
     ).json()
-    
+
     if status["status"] in ["completed", "failed"]:
         break
-    
+
     print(f"Progress: {status['progress']*100}%")
     time.sleep(2)
 

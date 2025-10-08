@@ -17,6 +17,7 @@ python3 scripts/validate_quality_gates.py
 ```
 
 This runs:
+
 - Pytest with coverage ≥85%
 - Ruff linting
 - Ruff formatting checks
@@ -34,6 +35,7 @@ uv run hephaestus guard-rails
 ```
 
 This performs:
+
 1. Deep cleanup of build artifacts
 2. Ruff linting with auto-fix
 3. Ruff formatting
@@ -52,6 +54,7 @@ uv run pytest
 ```
 
 Requirements:
+
 - All tests must pass
 - Coverage must be ≥85%
 - No warnings allowed (treated as errors)
@@ -93,6 +96,7 @@ uv run mypy src tests
 ```
 
 Requirements:
+
 - Strict mode enabled
 - All functions must have type annotations
 - No `Any` types unless explicitly justified
@@ -134,10 +138,12 @@ python3 -m build
 ## CI Integration
 
 All quality gates run automatically in CI on:
+
 - Pull requests
 - Pushes to main
 
 The CI pipeline matrix tests against:
+
 - Python 3.12
 - Python 3.13
 
@@ -150,6 +156,7 @@ uv run pre-commit install
 ```
 
 This runs on every commit:
+
 - Ruff linting and formatting
 - Black formatting
 - Pyupgrade modernization

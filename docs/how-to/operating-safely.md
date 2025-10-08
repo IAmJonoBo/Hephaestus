@@ -131,6 +131,7 @@ hephaestus guard-rails --drift
 The `--drift` flag enables drift detection mode, which checks if your installed development tools match the versions specified in `pyproject.toml`.
 
 **When to check for drift:**
+
 - After setting up a new development environment
 - When CI builds start failing locally
 - Before reporting "works on my machine" issues
@@ -151,19 +152,21 @@ The `--drift` flag enables drift detection mode, which checks if your installed 
 Remediation commands:
   # Recommended: Use uv to sync dependencies
   uv sync --extra dev --extra qa
-  
+
   # Or manually update individual tools:
   pip install --upgrade black>=25.9.0
   pip install mypy>=1.18.2
 ```
 
 **Drift detection rules:**
+
 - **OK**: Installed version matches expected major.minor (patch differences ignored)
 - **Drift**: Installed version differs in major or minor version
 - **Missing**: Tool not installed in environment
 
 The command exits with code 1 if any drift or missing tools are detected.
-```
+
+````
 
 ### Guard Rails in CI
 
@@ -191,7 +194,7 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 
 # Pin to a specific tag for reproducibility
 hephaestus release install --tag v0.1.0
-```
+````
 
 ### Network Security
 

@@ -176,9 +176,7 @@ def test_rank_modules_coverage_first_strategy(tmp_path: Path) -> None:
     config = AnalyticsConfig(churn_file=churn_path, coverage_file=coverage_path)
     signals = load_module_signals(config)
 
-    ranked = rank_modules(
-        signals, strategy=RankingStrategy.COVERAGE_FIRST, coverage_threshold=0.75
-    )
+    ranked = rank_modules(signals, strategy=RankingStrategy.COVERAGE_FIRST, coverage_threshold=0.75)
 
     assert ranked[0].path == "low_coverage.py"
     assert "Coverage-first" in ranked[0].rationale
@@ -262,12 +260,7 @@ def test_rank_modules_with_limit(tmp_path: Path) -> None:
     """Test limit parameter restricts number of results."""
     churn_path = tmp_path / "churn.yaml"
     churn_path.write_text(
-        yaml.safe_dump(
-            [
-                {"path": f"module_{i}.py", "churn": 100 - i * 10}
-                for i in range(10)
-            ]
-        ),
+        yaml.safe_dump([{"path": f"module_{i}.py", "churn": 100 - i * 10} for i in range(10)]),
         encoding="utf-8",
     )
 

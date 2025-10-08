@@ -21,19 +21,19 @@ class ToolVersion:
     name: str
     expected: str | None
     actual: str | None
-    
+
     @property
     def has_drift(self) -> bool:
         """Check if actual version differs from expected."""
         if self.expected is None or self.actual is None:
             return False
         return not self._versions_match(self.expected, self.actual)
-    
+
     @property
     def is_missing(self) -> bool:
         """Check if tool is not installed."""
         return self.actual is None
-    
+
     @staticmethod
     def _versions_match(expected: str, actual: str) -> bool:
         """Check if versions match, ignoring patch differences."""
@@ -48,41 +48,41 @@ class DriftDetectionError(RuntimeError):
 
 def detect_drift(project_root: Path | None = None) -> list[ToolVersion]:
     """Detect version drift between pyproject.toml and installed tools.
-    
+
     Args:
         project_root: Project root directory containing pyproject.toml
-        
+
     Returns:
         List of tool versions with drift status
-        
+
     Raises:
         DriftDetectionError: If pyproject.toml cannot be read
     """
     if project_root is None:
         project_root = Path.cwd()
-    
+
     pyproject_path = project_root / "pyproject.toml"
     if not pyproject_path.exists():
         raise DriftDetectionError(f"pyproject.toml not found at {pyproject_path}")
-    
+
     # Load expected versions from pyproject.toml
     try:
         with open(pyproject_path, "rb") as f:
             pyproject = tomllib.load(f)
     except Exception as exc:
         raise DriftDetectionError(f"Failed to parse pyproject.toml: {exc}") from exc
-    
+
     dev_deps = pyproject.get("project", {}).get("optional-dependencies", {}).get("dev", [])
-    
+
     tools = {
         "ruff": _extract_version_spec(dev_deps, "ruff"),
         "black": _extract_version_spec(dev_deps, "black"),
         "mypy": _extract_version_spec(dev_deps, "mypy"),
         "pip-audit": _extract_version_spec(dev_deps, "pip-audit"),
     }
-    
+
     results: list[ToolVersion] = []
-    
+
     for tool_name, expected_version in tools.items():
         actual_version = _get_installed_version(tool_name)
         results.append(
@@ -92,7 +92,7 @@ def detect_drift(project_root: Path | None = None) -> list[ToolVersion]:
                 actual=actual_version,
             )
         )
-    
+
     return results
 
 
@@ -117,16 +117,16 @@ def _get_installed_version(tool_name: str) -> str | None:
             timeout=5,
             check=False,
         )
-        
+
         if result.returncode != 0:
             return None
-        
+
         # Extract version from output
         output = result.stdout + result.stderr
         version_match = re.search(r"(\d+\.\d+\.\d+)", output)
         if version_match:
             return version_match.group(1)
-        
+
         return None
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
@@ -134,15 +134,15 @@ def _get_installed_version(tool_name: str) -> str | None:
 
 def generate_remediation_commands(drifted: list[ToolVersion]) -> list[str]:
     """Generate commands to fix version drift.
-    
+
     Args:
         drifted: List of tools with version drift
-        
+
     Returns:
         List of shell commands to remediate drift
     """
     commands: list[str] = []
-    
+
     for tool in drifted:
         if tool.is_missing:
             # Tool not installed
@@ -156,7 +156,7 @@ def generate_remediation_commands(drifted: list[ToolVersion]) -> list[str]:
                 commands.append(f"pip install --upgrade {tool.name}>={tool.expected}")
             else:
                 commands.append(f"pip install --upgrade {tool.name}")
-    
+
     # If using uv, suggest uv sync instead
     if commands and Path("uv.lock").exists():
         return [
@@ -165,5 +165,5 @@ def generate_remediation_commands(drifted: list[ToolVersion]) -> list[str]:
             "",
             "# Or manually update individual tools:",
         ] + commands
-    
+
     return commands

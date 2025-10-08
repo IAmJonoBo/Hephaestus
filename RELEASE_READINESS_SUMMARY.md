@@ -15,17 +15,20 @@ Implemented three high-impact features to bring Hephaestus closer to release sta
 **Purpose:** Provide data-driven prioritization for refactoring work using multiple ranking strategies.
 
 **Implementation:**
+
 - **Module:** `src/hephaestus/analytics.py`
 - **CLI Command:** `hephaestus tools refactor rankings`
 - **Test Coverage:** `tests/test_analytics.py`
 
 **Ranking Strategies:**
+
 1. **risk_weighted** (default): Balances coverage gaps, uncovered lines, and churn
 2. **coverage_first**: Prioritizes modules with largest coverage gaps
 3. **churn_based**: Focuses on high-change-frequency modules
 4. **composite**: Balanced approach with bonus for modules with embeddings
 
 **Usage:**
+
 ```bash
 # Default risk-weighted strategy
 hephaestus tools refactor rankings
@@ -38,6 +41,7 @@ hephaestus tools refactor rankings --config /path/to/config.yaml
 ```
 
 **Output:**
+
 ```
 ┏━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓
 ┃ Rank┃ Path            ┃ Score  ┃ Churn ┃ Coverage ┃ Uncovered┃ Rationale        ┃
@@ -47,10 +51,12 @@ hephaestus tools refactor rankings --config /path/to/config.yaml
 ```
 
 **Prerequisites:**
+
 - Analytics sources configured in `pyproject.toml` or config file
 - At least one of: `churn_file`, `coverage_file`, `embeddings_file`
 
 **Benefits:**
+
 - Objective prioritization of technical debt
 - Multiple perspectives on code health
 - Embedding-aware ranking for semantic similarity
@@ -63,12 +69,14 @@ hephaestus tools refactor rankings --config /path/to/config.yaml
 **Purpose:** Enable AI agents (Copilot, Cursor, Claude) to invoke Hephaestus commands safely with predictable outputs.
 
 **Implementation:**
+
 - **Module:** `src/hephaestus/schema.py`
 - **CLI Command:** `hephaestus schema`
 - **Documentation:** `docs/how-to/ai-agent-integration.md`
 - **Test Coverage:** `tests/test_schema.py`
 
 **Schema Format:**
+
 ```json
 {
   "version": "1.0",
@@ -85,10 +93,7 @@ hephaestus tools refactor rankings --config /path/to/config.yaml
           "help": "Workspace root to clean"
         }
       ],
-      "examples": [
-        "hephaestus cleanup",
-        "hephaestus cleanup --deep-clean"
-      ],
+      "examples": ["hephaestus cleanup", "hephaestus cleanup --deep-clean"],
       "expected_output": "Table showing cleaned paths and sizes",
       "retry_hints": [
         "If cleanup fails with permission errors, check file permissions"
@@ -99,6 +104,7 @@ hephaestus tools refactor rankings --config /path/to/config.yaml
 ```
 
 **Usage:**
+
 ```bash
 # Export to stdout
 hephaestus schema
@@ -110,6 +116,7 @@ hephaestus schema --output schemas.json
 ```
 
 **Schema Contents:**
+
 - Command names and descriptions
 - Parameter specifications (types, defaults, help text)
 - Usage examples for each command
@@ -117,18 +124,21 @@ hephaestus schema --output schemas.json
 - Retry hints for common failures
 
 **AI Integration Patterns:**
+
 1. **Command Discovery:** Parse schemas to find available commands
 2. **Parameter Validation:** Validate user input before execution
 3. **Error Recovery:** Use retry hints to guide troubleshooting
 4. **Context-Aware Invocation:** Choose commands based on task context
 
 **Documentation:**
+
 - Complete integration guide with examples
 - Language-agnostic patterns (Python, JavaScript, shell)
 - Best practices for AI agents
 - Testing recommendations
 
 **Benefits:**
+
 - Predictable AI agent behavior
 - Reduced token usage (structured schemas vs. docs)
 - Built-in error recovery guidance
@@ -141,18 +151,21 @@ hephaestus schema --output schemas.json
 **Purpose:** Detect and remediate tool version drift between `pyproject.toml` and installed environment.
 
 **Implementation:**
+
 - **Module:** `src/hephaestus/drift.py`
 - **CLI Enhancement:** `hephaestus guard-rails --drift`
 - **Telemetry:** Added drift detection events
 - **Test Coverage:** `tests/test_drift.py`
 
 **Usage:**
+
 ```bash
 # Check for drift
 hephaestus guard-rails --drift
 ```
 
 **Output:**
+
 ```
 ┏━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━┓
 ┃ Tool       ┃ Expected ┃ Actual        ┃ Status ┃
@@ -168,30 +181,34 @@ Tool version drift detected!
 Remediation commands:
   # Recommended: Use uv to sync dependencies
   uv sync --extra dev --extra qa
-  
+
   # Or manually update individual tools:
   pip install --upgrade black>=25.9.0
   pip install mypy>=1.18.2
 ```
 
 **Drift Rules:**
+
 - **OK**: Installed version matches expected major.minor (patch differences ignored)
 - **Drift**: Installed version differs in major or minor version
 - **Missing**: Tool not installed in environment
 
 **When to Use:**
+
 - After setting up new dev environment
 - When CI builds fail locally
 - Before reporting "works on my machine" issues
 - After system updates or Python version changes
 
 **Automatic Remediation:**
+
 - Detects `uv.lock` and suggests `uv sync`
 - Falls back to individual `pip install` commands
 - Clear upgrade vs. fresh install distinction
 - Version specifications included
 
 **Benefits:**
+
 - Prevents "works on my machine" issues
 - Autonomous environment validation
 - Clear remediation paths
@@ -213,6 +230,7 @@ Remediation commands:
 ### Minimal Changes Philosophy
 
 All implementations follow the "surgical and precise" requirement:
+
 - Added new modules instead of modifying existing code extensively
 - Enhanced existing commands with new flags (backward compatible)
 - Reused existing patterns (Rich tables, telemetry, error handling)
@@ -252,6 +270,7 @@ All implementations follow the "surgical and precise" requirement:
 ### Quality Gates
 
 All changes pass:
+
 - ✅ Ruff lint and format
 - ✅ Mypy strict type checking
 - ✅ Pytest with coverage threshold
@@ -355,6 +374,7 @@ except subprocess.CalledProcessError:
 ## Next Steps
 
 ### Immediate (This PR)
+
 - [x] Complete feature implementation
 - [x] Add comprehensive tests
 - [x] Update documentation
@@ -363,12 +383,14 @@ except subprocess.CalledProcessError:
 - [ ] Merge to main
 
 ### Short-Term (Q1 2025)
+
 - [ ] Gather feedback on ranking strategies
 - [ ] Add streaming ingestion for analytics
 - [ ] Enhance schema with more command metadata
 - [ ] Add drift detection to CI pipeline
 
 ### Long-Term (Q2 2025)
+
 - [ ] REST/gRPC API for remote invocation
 - [ ] Plugin architecture for custom ranking strategies
 - [ ] OpenTelemetry spans for observability

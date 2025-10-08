@@ -15,12 +15,14 @@ Hephaestus uses automated release workflows with manual preparation steps. The r
 ### Automated vs Manual
 
 **Automated (via GitHub Actions):**
+
 - Tag creation and pushing
 - GitHub Release creation
 - Wheelhouse building and packaging
 - Asset attachment to releases
 
 **Manual (requires human):**
+
 - Version number decision
 - CHANGELOG updates
 - Code changes and commits
@@ -67,6 +69,7 @@ git push origin main
 ### Phase 2: Preparation
 
 1. **Create release branch (for major/minor):**
+
    ```bash
    git checkout main
    git pull origin main
@@ -74,30 +77,36 @@ git push origin main
    ```
 
 2. **Update version number:**
+
    ```bash
    # Edit pyproject.toml
    vim pyproject.toml
-   
+
    # Change version field
    [project]
    version = "X.Y.Z"
    ```
 
 3. **Update CHANGELOG.md:**
+
    ```markdown
    ## [X.Y.Z] - YYYY-MM-DD
-   
+
    ### Added
+
    - New feature descriptions
-   
+
    ### Changed
+
    - Breaking changes (if major)
    - Non-breaking changes
-   
+
    ### Fixed
+
    - Bug fixes
-   
+
    ### Security
+
    - Security improvements
    ```
 
@@ -108,21 +117,23 @@ git push origin main
    - API reference (if API changes)
 
 5. **Run quality gates:**
+
    ```bash
    # Clean workspace
    hephaestus cleanup --deep-clean
-   
+
    # Check for drift
    hephaestus guard-rails --drift
-   
+
    # Run all quality checks
    hephaestus guard-rails
-   
+
    # Validate all gates
    python3 scripts/validate_quality_gates.py
    ```
 
 6. **Commit changes:**
+
    ```bash
    git add .
    git commit -m "chore: Prepare release vX.Y.Z
@@ -137,6 +148,7 @@ git push origin main
 ### Phase 3: Review
 
 1. **Push release branch:**
+
    ```bash
    git push origin release/vX.Y.Z
    ```
@@ -187,26 +199,28 @@ Once merged to main, automation triggers:
 ### Phase 5: Post-Release
 
 1. **Verify release:**
+
    ```bash
    # Check tag exists
    git fetch --tags
    git tag | grep vX.Y.Z
-   
+
    # Check GitHub Release
    gh release view vX.Y.Z
-   
+
    # Check wheelhouse attached
    gh release view vX.Y.Z --json assets
    ```
 
 2. **Test installation:**
+
    ```bash
    # In a fresh environment
    hephaestus release install --repository IAmJonoBo/Hephaestus --tag vX.Y.Z
-   
+
    # Verify version
    hephaestus --version
-   
+
    # Smoke test
    hephaestus --help
    hephaestus guard-rails --drift
@@ -227,6 +241,7 @@ Once merged to main, automation triggers:
 For urgent bug fixes that can't wait for next planned release:
 
 1. **Create hotfix branch from tag:**
+
    ```bash
    git checkout -b hotfix/vX.Y.Z+1 vX.Y.Z
    ```
@@ -256,16 +271,17 @@ If critical issues discovered after release:
    - Performance degradation: MEDIUM
 
 2. **For CRITICAL issues:**
+
    ```bash
    # Delete release
    gh release delete vX.Y.Z --yes
-   
+
    # Delete tag locally
    git tag -d vX.Y.Z
-   
+
    # Delete tag remotely
    git push origin :refs/tags/vX.Y.Z
-   
+
    # Notify users immediately
    ```
 
@@ -306,6 +322,7 @@ git commit -m "chore: Add release checklist for vX.Y.Z"
 **Triggers:** Push to `main` branch
 
 **Actions:**
+
 1. Checkout repository
 2. Install uv
 3. Run cleanup
@@ -315,6 +332,7 @@ git commit -m "chore: Add release checklist for vX.Y.Z"
 7. Create GitHub Release with generated notes
 
 **Requirements:**
+
 - Version in `pyproject.toml` must be new
 - Workflow requires `contents: write` permission
 
@@ -325,6 +343,7 @@ git commit -m "chore: Add release checklist for vX.Y.Z"
 **Triggers:** Release published
 
 **Actions:**
+
 1. Checkout repository at release tag
 2. Set up Python 3.12
 3. Install uv and sync dependencies
@@ -335,6 +354,7 @@ git commit -m "chore: Add release checklist for vX.Y.Z"
 8. Attach to GitHub Release
 
 **Artifacts:**
+
 - `hephaestus-{version}-wheelhouse.tar.gz`
 - Retained for 30 days in workflow artifacts
 - Permanently attached to release
@@ -409,6 +429,7 @@ git push origin :refs/tags/vX.Y.Z
 ### Release Notes Empty
 
 GitHub auto-generates notes from PR titles. Ensure PRs have:
+
 - Clear, descriptive titles
 - Proper labels (enhancement, bug, documentation)
 - Milestone assigned

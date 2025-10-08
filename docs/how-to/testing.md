@@ -5,6 +5,7 @@ This guide explains the testing philosophy, structure, and best practices for He
 ## Overview
 
 Hephaestus maintains high test coverage (≥85%) with comprehensive test suites covering:
+
 - CLI commands and workflows
 - Core functionality (cleanup, release, analytics)
 - Edge cases and error conditions
@@ -89,6 +90,7 @@ pytest --random-order-seed=12345
 Test individual functions and classes in isolation.
 
 **Example:**
+
 ```python
 def test_is_dangerous_path():
     """Test dangerous path detection."""
@@ -102,6 +104,7 @@ def test_is_dangerous_path():
 Test interactions between components.
 
 **Example:**
+
 ```python
 def test_guard_rails_command_flow(runner):
     """Test guard-rails runs full pipeline."""
@@ -116,6 +119,7 @@ def test_guard_rails_command_flow(runner):
 Test command-line interface using Typer's test runner.
 
 **Example:**
+
 ```python
 from typer.testing import CliRunner
 from hephaestus.cli import app
@@ -133,10 +137,11 @@ def test_cleanup_dry_run():
 Prevent known bugs from recurring.
 
 **Example:**
+
 ```python
 def test_guard_rails_available_immediately():
     """Regression test for guard-rails availability bug.
-    
+
     Ensures guard-rails command is registered at module scope,
     not nested inside cleanup function.
     """
@@ -173,7 +178,7 @@ def test_cleanup_removes_pycache(runner, temp_workspace):
     """Test cleanup removes __pycache__ directories."""
     pycache = temp_workspace / "__pycache__"
     pycache.mkdir()
-    
+
     result = runner.invoke(app, ["cleanup", str(temp_workspace)])
     assert result.exit_code == 0
     assert not pycache.exists()
@@ -190,7 +195,7 @@ def test_release_download_retry(monkeypatch):
     """Test release download retries on failure."""
     mock_response = Mock()
     mock_response.status_code = 500
-    
+
     with patch("requests.get", return_value=mock_response):
         with pytest.raises(ReleaseError):
             download_asset("http://example.com/asset.tar.gz")
@@ -221,14 +226,14 @@ Use pytest's tmp_path fixture:
 def test_cleanup_manifest_generation(tmp_path):
     """Test cleanup generates audit manifest."""
     manifest_path = tmp_path / "manifest.json"
-    
+
     options = CleanupOptions(
         root=tmp_path,
         manifest_path=manifest_path,
     )
-    
+
     run_cleanup(options)
-    
+
     assert manifest_path.exists()
     manifest = json.loads(manifest_path.read_text())
     assert "deleted_paths" in manifest
@@ -259,6 +264,7 @@ pytest --cov=src/hephaestus --cov-report=term-missing | grep "MISS"
 ### Coverage Exceptions
 
 Some code may be hard to test:
+
 - Platform-specific code (use `# pragma: no cover`)
 - Error handlers for rare conditions
 - Defensive programming checks
@@ -315,10 +321,10 @@ def test_ranking_strategy_risk_weighted():
         AnalyticsModule(path="a.py", churn=100, coverage=0.5, uncovered_lines=50),
         AnalyticsModule(path="b.py", churn=50, coverage=0.8, uncovered_lines=20),
     ]
-    
+
     # Act
     ranked = rank_by_risk_weighted(modules)
-    
+
     # Assert
     assert ranked[0].path == "a.py"  # Higher risk should be first
     assert ranked[0].score > ranked[1].score
@@ -405,15 +411,16 @@ pytest --trace
 ```python
 def test_complex_logic():
     result = compute_something()
-    
+
     import pdb; pdb.set_trace()  # Pause here
-    
+
     assert result == expected
 ```
 
 ## CI Integration
 
 Tests run automatically in CI on:
+
 - Pull requests
 - Pushes to main
 - Python 3.12 and 3.13 matrices

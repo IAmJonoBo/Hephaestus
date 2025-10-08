@@ -1,56 +1,119 @@
-name: CI
+# CI references: uv+Actions (https://github.com/astral-sh/uv/tree/main/projects/setup-uv), uv lock export (https://docs.astral.sh/uv/guides/export/), pip wheel/offline installs (https://pip.pypa.io/en/stable/cli/pip_wheel/), GitHub artifact docs (https://docs.github.com/actions/using-workflows/storing-workflow-data-as-artifacts)
+name: CI (uv with offline-ready install)
 
-# Minimal test pipeline that syncs via uv.lock and runs pytest with dev/qa extras.
-# For uv + GitHub Actions docs (setup, caching, private indexes):
-# https://github.com/astral-sh/uv/tree/main/projects/setup-uv
-
-on: [push, pull_request]
+on:
+  push:
+    branches: ["**"]
+  pull_request:
 
 jobs:
-  deps-and-tests:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.12", "3.13"]
+  # Fast/normal path: GitHub-hosted runner with egress allowed to GitHub & PyPI.
+  deps-and-tests-online:
+    name: Online CI (uv sync)
     permissions:
       contents: read
+    runs-on: ubuntu-24.04
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
-      # Install uv + requested Python with built-in caching on GH-hosted runners.
+      # Install uv + requested Python (uses GitHub infra; no curl to astral.sh).
       - name: Setup uv and Python
         uses: astral-sh/setup-uv@v6
         with:
-          python-version: ${{ matrix.python-version }}
-          enable-cache: true # persist uv's cache across runs
+          python-version: "3.12"
+          enable-cache: true
 
-      # Optional: manual cache keyed to the lockfile (uncomment to take explicit control).
-      # - name: Restore uv cache (keyed to uv.lock)
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: ~/.cache/uv
-      #     key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
-      #     restore-keys: |
-      #       uv-${{ runner.os }}
-
-      # Repo ships a uv.lock and installs extras exactly via `uv sync --extra dev --extra qa`.
+      # Install from the lockfile, including dev & qa extras.
       - name: Sync dependencies (locked)
         run: uv sync --locked --extra dev --extra qa
 
-      # Quick smoke-check of the environment after sync.
-      - name: Environment report
-        run: |
-          uv --version
-          python -V
-          uv run python -c "import sys, pkgutil; print('site:', sys.executable); print('packages:', len(list(pkgutil.iter_modules())))"
-
-      # Run the pytest suite (available via dev extras).
       - name: Run tests
         run: uv run pytest -q
 
-    # Private index example (commented; configure [tool.uv.index] + secrets when needed).
-    # env:
-    #   UV_INDEX_URL: https://pypi.org/simple  # example override
-    #   UV_INDEX_INTERNAL_PROXY_USERNAME: ${{ secrets.PRIVATE_INDEX_USER }}
-    #   UV_INDEX_INTERNAL_PROXY_PASSWORD: ${{ secrets.PRIVATE_INDEX_PASS }}
+  # Offline-capable path for restricted networks:
+  # 1) Build a wheelhouse on an internet-enabled runner (must match OS/arch of the offline runner).
+  build-wheelhouse:
+    name: Build wheelhouse artifact (internet required)
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup uv and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      # Export the uv.lock to requirements.txt for pip-only installs.
+      - name: Export locked requirements (dev + qa)
+        run: |
+          uv export --format requirements-txt \
+            --group dev --group qa \
+            --all-extras \
+            -o requirements.txt
+
+      # Build wheels for *all* deps + build a wheel for this project itself.
+      - name: Build wheelhouse
+        run: |
+          python -m pip install --upgrade pip
+          pip wheel -r requirements.txt -w wheelhouse
+          uv build --wheel
+          cp dist/*.whl wheelhouse/
+
+      - name: Upload wheelhouse artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheelhouse
+          path: |
+            wheelhouse
+            requirements.txt
+
+  # 2) Fully offline install from the wheelhouse on a restricted runner.
+  ci-offline:
+    name: Offline CI (install from wheelhouse)
+    needs: build-wheelhouse
+    permissions:
+      contents: read
+    runs-on:
+      - self-hosted
+      - macOS # adjust to match your restricted runner's labels (case sensitive)
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download wheelhouse artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wheelhouse
+          path: wheelhouse
+
+      # No internet: install only from local wheels.
+      - name: Install from wheelhouse (no network)
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install --no-index --find-links=wheelhouse -r wheelhouse/requirements.txt
+          # Install our package from the local wheel by name (resolves to wheel in find-links).
+          pip install --no-index --find-links=wheelhouse hephaestus
+
+      - name: Run tests (offline env)
+        run: . .venv/bin/activate && pytest -q
+
+      - name: Run offline QA checks
+        run: |
+          . .venv/bin/activate
+          python -m ruff check .
+          python -m ruff format --check .
+          python -m mypy src tests
+
+# Notes:
+# - If your restricted runner is a different OS/arch, you must build the wheelhouse on a matching runner.
+# - Prefer the online job when egress is available; use the offline pair (build + offline) otherwise.
+# - The online job uses uv's built-in caching via setup-uv.

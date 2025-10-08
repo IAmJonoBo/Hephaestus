@@ -401,13 +401,6 @@ Hephaestus enforces frontier-level quality through automated gates:
 - **Pre-commit Hooks**: Local validation before commits
 - **Guard Rails**: One-command validation via `hephaestus guard-rails`
 
-### Documentation
-
-- **Diátaxis Structure**: How-to guides, explanations, tutorials, reference
-- **Security Policy**: Published disclosure process and SLAs
-- **Threat Model**: STRIDE analysis documented in ADR
-- **Operating Safely**: Comprehensive operational runbooks
-
 ### Validate All Standards
 
 ```bash
@@ -424,7 +417,7 @@ python3 scripts/validate_quality_gates.py
 - Upload churn and hotspot artefacts to keep stakeholders informed.
 - Run the codemod and verification scripts in advisory mode before enabling blocking gates.
 
-## Documentation
+## Project Documentation
 
 The documentation site follows the [Diátaxis](https://diataxis.fr/) framework:
 
@@ -447,7 +440,7 @@ Hephaestus embraces incremental, evidence-based change. Use the provided tools t
 
 For security concerns, please review our [Security Policy](SECURITY.md).
 
-## Security
+## Security Disclosure
 
 We take security seriously. If you discover a security vulnerability, please follow our [Security Policy](SECURITY.md) for responsible disclosure. See also:
 

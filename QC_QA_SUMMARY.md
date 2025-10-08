@@ -16,17 +16,20 @@ This session successfully implemented all outstanding actionable items from `Nex
 **What:** Implemented automated linting to prevent Typer commands from being defined inside other functions, which causes registration bugs.
 
 **Implementation:**
+
 - Created `scripts/lint_nested_decorators.py`: AST-based Python linter (210 lines)
 - Created `tests/test_lint_nested_decorators.py`: Comprehensive test suite (156 lines)
 - Updated `.github/workflows/ci.yml`: Added nested decorator check step
 - Updated `.pre-commit-config.yaml`: Added pre-commit hook for local validation
 
 **Impact:**
+
 - Prevents regression of the guard-rails availability bug
 - Catches issues at both pre-commit and CI stages
 - Zero-tolerance enforcement: violations block merges
 
 **Testing:**
+
 - Verified linter detects nested decorators in test cases
 - Confirmed linter passes on current codebase (no violations)
 - Added comprehensive test coverage for edge cases
@@ -36,11 +39,13 @@ This session successfully implemented all outstanding actionable items from `Nex
 **What:** Created unified script to run all quality checks with detailed reporting.
 
 **Implementation:**
+
 - Created `scripts/validate_quality_gates.py`: Orchestrates all quality checks (200 lines)
 - Covers: pytest, ruff check/format, mypy, nested decorators, build, pip-audit
 - Provides clear pass/fail reporting with categorization
 
 **Features:**
+
 - Required vs optional gate distinction
 - Detailed error reporting
 - Category-based organization (testing, linting, typing, security, build, custom)
@@ -51,12 +56,14 @@ This session successfully implemented all outstanding actionable items from `Nex
 **What:** Comprehensive documentation of quality standards and validation processes.
 
 **Implementation:**
+
 - Created `docs/how-to/quality-gates.md`: Complete guide (200+ lines)
 - Updated `Next_Steps.md`: Added "Frontier Quality Standards" section
 - Updated `README.md`: Referenced quality gate scripts in workflow table
 - Updated `mkdocs.yml`: Added new documentation to nav
 
 **Content Covered:**
+
 - Individual quality gate usage
 - Comprehensive validation workflows
 - CI integration details
@@ -85,15 +92,15 @@ These are properly tracked and will be addressed in subsequent work.
 
 All automated quality gates are now enforced:
 
-| Gate                    | Status | Enforced By                |
-|-------------------------|--------|----------------------------|
-| Pytest (coverage ≥85%)  | ✅     | CI, pre-commit             |
-| Ruff check              | ✅     | CI, pre-commit             |
-| Ruff format             | ✅     | CI, pre-commit             |
-| Mypy strict             | ✅     | CI, pre-commit             |
-| Nested decorator lint   | ✅     | CI, pre-commit (NEW)       |
-| Build artifacts         | ✅     | CI                         |
-| pip-audit               | ⚠️     | CI (known env limitation)  |
+| Gate                   | Status | Enforced By               |
+| ---------------------- | ------ | ------------------------- |
+| Pytest (coverage ≥85%) | ✅     | CI, pre-commit            |
+| Ruff check             | ✅     | CI, pre-commit            |
+| Ruff format            | ✅     | CI, pre-commit            |
+| Mypy strict            | ✅     | CI, pre-commit            |
+| Nested decorator lint  | ✅     | CI, pre-commit (NEW)      |
+| Build artifacts        | ✅     | CI                        |
+| pip-audit              | ⚠️     | CI (known env limitation) |
 
 ### Frontier Standards Achieved
 
@@ -107,12 +114,14 @@ All automated quality gates are now enforced:
 ## Files Changed
 
 ### Created (4 files, 861 lines)
+
 - `scripts/lint_nested_decorators.py` (210 lines)
 - `scripts/validate_quality_gates.py` (200 lines)
 - `tests/test_lint_nested_decorators.py` (156 lines)
 - `docs/how-to/quality-gates.md` (200 lines)
 
 ### Modified (5 files)
+
 - `.github/workflows/ci.yml` (added nested decorator check)
 - `.pre-commit-config.yaml` (added nested decorator hook)
 - `Next_Steps.md` (updated status, added quality standards section)
@@ -124,18 +133,21 @@ All automated quality gates are now enforced:
 ## Validation Performed
 
 ### Linter Validation
+
 - ✅ Verified nested decorator detection with test cases
 - ✅ Confirmed current codebase has no violations
 - ✅ Tested multiple Typer app types (app, tools_app, refactor_app, qa_app, release_app)
 - ✅ Verified edge cases (deeply nested, multiple decorators, async functions)
 
 ### Documentation Validation
+
 - ✅ All new documentation follows Diátaxis structure
 - ✅ Cross-references updated in README, Next_Steps.md, mkdocs.yml
 - ✅ Examples provided for all new features
 - ✅ Troubleshooting guidance included
 
 ### Integration Validation
+
 - ✅ CI workflow syntax validated
 - ✅ Pre-commit hook configuration syntax validated
 - ✅ Script executable permissions set
@@ -144,12 +156,14 @@ All automated quality gates are now enforced:
 ## Risk Assessment
 
 ### Low Risk
+
 - All changes are additive (no existing functionality modified)
 - Scripts are isolated in dedicated directory
 - Documentation changes are non-breaking
 - CI changes only add checks, don't modify existing ones
 
 ### Mitigations
+
 - Comprehensive test coverage for new linter
 - Clear documentation for troubleshooting
 - Optional pip-audit marked as non-blocking
@@ -158,16 +172,19 @@ All automated quality gates are now enforced:
 ## Next Steps
 
 ### Immediate (This PR)
+
 - [x] All implementation complete
 - [ ] Code review and approval
 - [ ] Merge to main
 
 ### Near-term (Next Sprint)
+
 - Monitor CI performance with new check
 - Gather feedback on quality gate validation workflow
 - Consider adding quality gate metrics dashboard
 
 ### Long-term (Tracked in Next_Steps.md)
+
 - Backfill Sigstore bundles once release infrastructure ready
 - Implement OpenTelemetry spans (Q2 2025)
 - Design REST/gRPC API surface (Platform AI initiative)

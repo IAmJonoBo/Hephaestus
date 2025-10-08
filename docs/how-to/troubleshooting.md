@@ -32,6 +32,7 @@ pip list | grep -E "(hephaestus|ruff|mypy|pytest)"
 **Symptom:** Command not found when running `hephaestus`
 
 **Causes:**
+
 - Package not installed
 - Installation directory not in PATH
 - Virtual environment not activated
@@ -112,6 +113,7 @@ mypy src tests
 ```
 
 **Common causes:**
+
 - Syntax errors in code
 - Missing dependencies
 - Corrupted cache files
@@ -133,6 +135,7 @@ pip install --force-reinstall -e ".[dev,qa]"
 **Symptom:** `pip-audit --strict` fails
 
 **Causes:**
+
 - SSL certificate issues (common in containers)
 - Known vulnerabilities in dependencies
 - Network connectivity issues
@@ -219,6 +222,7 @@ cat pyproject.toml | grep -A 10 "\[tool.mypy\]"
 **Cause:** Safety feature protecting system paths
 
 **This is expected behavior!** Cleanup protects these paths:
+
 - `/`, `/home`, `/usr`, `/etc`, `/var`
 - `/bin`, `/sbin`, `/lib`, `/opt`
 - `/boot`, `/root`, `/sys`, `/proc`, `/dev`
@@ -269,6 +273,7 @@ hephaestus cleanup --deep-clean
 ```
 
 **Possible causes:**
+
 - Files are in `.git/` (excluded by default)
 - Files are in `.venv/site-packages` (protected)
 - Permission errors

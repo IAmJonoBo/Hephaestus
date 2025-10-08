@@ -16,11 +16,13 @@ Hephaestus currently has structured logging with JSON output and run IDs for cor
 - Identifying slow or failing quality gates
 
 Current logging approach provides:
+
 - Structured JSON logs with context
 - Run IDs for operation correlation
 - Event definitions in telemetry module
 
 But lacks:
+
 - Distributed tracing across operations
 - Metrics collection and aggregation
 - Service health monitoring
@@ -104,13 +106,13 @@ def guard_rails(no_format: bool = False) -> int:
     with tracer.start_as_current_span("cleanup"):
         cleanup_result = run_cleanup()
         record_metric("cleanup.files_deleted", cleanup_result.count)
-    
+
     with tracer.start_as_current_span("lint"):
         lint_result = run_lint()
         record_metric("lint.violations", lint_result.violations)
-    
+
     # ... more operations ...
-    
+
     return 0 if all_passed else 1
 ```
 
@@ -142,16 +144,19 @@ Trace: guard-rails-execution
 ### Metrics to Collect
 
 **Counters:**
+
 - `hephaestus.commands.executed` - Total commands run
 - `hephaestus.commands.failed` - Failed commands
 - `hephaestus.quality_gates.passed` - Quality gates passed
 - `hephaestus.quality_gates.failed` - Quality gates failed
 
 **Gauges:**
+
 - `hephaestus.test_coverage` - Current test coverage percentage
 - `hephaestus.files_cleaned` - Files removed by cleanup
 
 **Histograms:**
+
 - `hephaestus.command.duration` - Command execution time
 - `hephaestus.quality_gate.duration` - Individual gate duration
 - `hephaestus.cleanup.size_freed` - Disk space freed
@@ -229,11 +234,13 @@ def sanitize_attributes(attrs: dict) -> dict:
 **Description**: Build our own telemetry system tailored to Hephaestus.
 
 **Pros:**
+
 - Full control over data format
 - No external dependencies
 - Simpler implementation
 
 **Cons:**
+
 - Reinventing the wheel
 - No standard format
 - Limited tool ecosystem
@@ -246,11 +253,13 @@ def sanitize_attributes(attrs: dict) -> dict:
 **Description**: Just collect basic metrics without tracing.
 
 **Pros:**
+
 - Simpler to implement
 - Lower overhead
 - Easier to understand
 
 **Cons:**
+
 - No distributed tracing
 - Limited debugging capability
 - Can't see operation flow
@@ -262,11 +271,13 @@ def sanitize_attributes(attrs: dict) -> dict:
 **Description**: Continue with structured logging only.
 
 **Pros:**
+
 - Already implemented
 - No new dependencies
 - Simple to understand
 
 **Cons:**
+
 - Hard to aggregate
 - No metrics
 - Manual correlation
@@ -279,11 +290,13 @@ def sanitize_attributes(attrs: dict) -> dict:
 **Description**: Integrate directly with Datadog, New Relic, etc.
 
 **Pros:**
+
 - Turnkey solution
 - Rich features
 - Managed service
 
 **Cons:**
+
 - Vendor lock-in
 - Cost implications
 - Not flexible
@@ -346,27 +359,27 @@ def sanitize_attributes(attrs: dict) -> dict:
 # .hephaestus/telemetry.yaml
 telemetry:
   enabled: true
-  
+
   # Tracing configuration
   tracing:
     enabled: true
     sampler:
       type: parentbased_traceidratio
-      rate: 0.1  # 10% sampling
+      rate: 0.1 # 10% sampling
     exporter:
       type: otlp
       endpoint: http://localhost:4318
-  
+
   # Metrics configuration
   metrics:
     enabled: true
     exporter:
       type: prometheus
       port: 9090
-  
+
   # Privacy controls
   privacy:
-    mode: strict  # strict, balanced, minimal
+    mode: strict # strict, balanced, minimal
     anonymize_paths: true
     anonymize_usernames: true
     redact_env_vars: true

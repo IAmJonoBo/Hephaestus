@@ -52,7 +52,7 @@ def test_detect_drift_invalid_pyproject(tmp_path: Path) -> None:
     """Test that invalid pyproject.toml raises error."""
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_text("invalid toml [[", encoding="utf-8")
-    
+
     with pytest.raises(DriftDetectionError, match="Failed to parse"):
         detect_drift(tmp_path)
 
@@ -75,7 +75,7 @@ dev = [
 """,
         encoding="utf-8",
     )
-    
+
     with mock.patch("hephaestus.drift._get_installed_version") as mock_version:
         # Simulate all tools installed with correct versions
         mock_version.side_effect = lambda tool: {
@@ -84,9 +84,9 @@ dev = [
             "mypy": "1.18.2",
             "pip-audit": "2.9.0",
         }.get(tool)
-        
+
         results = detect_drift(tmp_path)
-        
+
         assert len(results) == 4
         assert all(not tool.has_drift for tool in results)
         assert all(not tool.is_missing for tool in results)
@@ -105,12 +105,12 @@ dev = ["ruff>=0.14.0"]
 """,
         encoding="utf-8",
     )
-    
+
     with mock.patch("hephaestus.drift._get_installed_version") as mock_version:
         mock_version.return_value = None  # Tool not installed
-        
+
         results = detect_drift(tmp_path)
-        
+
         ruff = next((t for t in results if t.name == "ruff"), None)
         assert ruff is not None
         assert ruff.is_missing
@@ -129,12 +129,12 @@ dev = ["ruff>=0.14.0"]
 """,
         encoding="utf-8",
     )
-    
+
     with mock.patch("hephaestus.drift._get_installed_version") as mock_version:
         mock_version.return_value = "0.13.0"  # Old version
-        
+
         results = detect_drift(tmp_path)
-        
+
         ruff = next((t for t in results if t.name == "ruff"), None)
         assert ruff is not None
         assert ruff.has_drift
@@ -145,9 +145,9 @@ def test_generate_remediation_commands_for_missing() -> None:
     tools = [
         ToolVersion(name="ruff", expected="0.14.0", actual=None),
     ]
-    
+
     commands = generate_remediation_commands(tools)
-    
+
     assert any("pip install ruff>=0.14.0" in cmd for cmd in commands)
 
 
@@ -156,9 +156,9 @@ def test_generate_remediation_commands_for_drift() -> None:
     tools = [
         ToolVersion(name="ruff", expected="0.14.0", actual="0.13.0"),
     ]
-    
+
     commands = generate_remediation_commands(tools)
-    
+
     assert any("pip install --upgrade ruff>=0.14.0" in cmd for cmd in commands)
 
 
@@ -167,16 +167,16 @@ def test_generate_remediation_commands_with_uv_lock(tmp_path: Path) -> None:
     # Create a mock uv.lock
     uv_lock = tmp_path / "uv.lock"
     uv_lock.write_text("", encoding="utf-8")
-    
+
     tools = [
         ToolVersion(name="ruff", expected="0.14.0", actual=None),
     ]
-    
+
     with mock.patch("hephaestus.drift.Path") as mock_path:
         mock_path.return_value.exists.return_value = True
-        
+
         commands = generate_remediation_commands(tools)
-        
+
         assert any("uv sync" in cmd for cmd in commands)
 
 
@@ -185,8 +185,8 @@ def test_generate_remediation_commands_empty() -> None:
     tools = [
         ToolVersion(name="ruff", expected="0.14.0", actual="0.14.5"),
     ]
-    
+
     commands = generate_remediation_commands(tools)
-    
+
     # Only no-drift tools, so no pip commands
     assert not any("pip install" in cmd for cmd in commands)

@@ -42,10 +42,11 @@ If a release is found to be broken or contains security vulnerabilities, follow 
    - [ ] Notify stakeholders immediately if severity is High or Critical
 
 2. **Identify Last Known Good Version**
+
    ```bash
    # List recent releases
    gh release list --repo IAmJonoBo/Hephaestus --limit 10
-   
+
    # Review specific release
    gh release view v0.1.0 --repo IAmJonoBo/Hephaestus
    ```
@@ -54,7 +55,7 @@ If a release is found to be broken or contains security vulnerabilities, follow 
    - Create a pinned GitHub issue announcing the problem
    - Update README.md with warning banner
    - Send notification through established channels
-   
+
    ```bash
    # Users should pin to last known good version
    hephaestus release install --tag v0.0.9
@@ -63,10 +64,11 @@ If a release is found to be broken or contains security vulnerabilities, follow 
 ### Release Revocation
 
 4. **Delete Bad Release** (if necessary)
+
    ```bash
    # Delete the problematic release
    gh release delete v0.1.0 --repo IAmJonoBo/Hephaestus --yes
-   
+
    # Delete the tag
    git tag -d v0.1.0
    git push origin :refs/tags/v0.1.0
@@ -119,12 +121,12 @@ If a release is found to be broken or contains security vulnerabilities, follow 
 
 ### Rollback Decision Matrix
 
-| Severity | Issue Type | Action | Timeline |
-|----------|-----------|--------|----------|
-| **Critical** | Remote code execution, data loss, security breach | Immediate revocation + security advisory | < 1 hour |
-| **High** | Broken core functionality, dependency CVE | Fast-track hotfix + pin advisory | < 4 hours |
-| **Medium** | Non-critical bugs, performance degradation | Scheduled hotfix in next release | < 48 hours |
-| **Low** | Cosmetic issues, documentation errors | Fix in next regular release | Next sprint |
+| Severity     | Issue Type                                        | Action                                   | Timeline    |
+| ------------ | ------------------------------------------------- | ---------------------------------------- | ----------- |
+| **Critical** | Remote code execution, data loss, security breach | Immediate revocation + security advisory | < 1 hour    |
+| **High**     | Broken core functionality, dependency CVE         | Fast-track hotfix + pin advisory         | < 4 hours   |
+| **Medium**   | Non-critical bugs, performance degradation        | Scheduled hotfix in next release         | < 48 hours  |
+| **Low**      | Cosmetic issues, documentation errors             | Fix in next regular release              | Next sprint |
 
 ### Automation Opportunities
 

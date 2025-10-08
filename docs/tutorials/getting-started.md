@@ -6,6 +6,7 @@ ship your first refactoring workflow using the bundled wheelhouse distribution.
 ## What You'll Learn
 
 By the end of this tutorial, you'll know how to:
+
 - Install and verify Hephaestus
 - Run comprehensive quality checks with a single command
 - Clean build artifacts safely
@@ -18,9 +19,11 @@ By the end of this tutorial, you'll know how to:
 ### Install Prerequisites
 
 1. **Install uv** (recommended package manager):
+
    ```bash
    curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
+
    Or use pip: `pip install uv`
 
 2. **Python 3.12+** is required:
@@ -33,6 +36,7 @@ By the end of this tutorial, you'll know how to:
 Choose one of these installation methods:
 
 **Method A: Clone from Source (for development)**
+
 ```bash
 git clone https://github.com/IAmJonoBo/Hephaestus.git
 cd Hephaestus
@@ -40,6 +44,7 @@ uv sync --extra dev --extra qa
 ```
 
 **Method B: Install Wheelhouse (for usage)**
+
 ```bash
 # Install latest stable release
 hephaestus release install --repository IAmJonoBo/Hephaestus
@@ -49,6 +54,7 @@ hephaestus release install --repository IAmJonoBo/Hephaestus --tag v0.2.0
 ```
 
 **Method C: Direct pip install (from source)**
+
 ```bash
 pip install -e ".[dev,qa]"
 ```
@@ -69,6 +75,7 @@ hephaestus guard-rails --drift
 ```
 
 If drift is detected, run the suggested remediation command:
+
 ```bash
 uv sync --extra dev --extra qa
 ```
@@ -84,6 +91,7 @@ hephaestus --help
 ```
 
 You'll see these main command groups:
+
 - **cleanup**: Scrub development cruft (build artifacts, caches)
 - **guard-rails**: Run comprehensive quality pipeline
 - **plan**: Generate refactoring plans
@@ -94,11 +102,13 @@ You'll see these main command groups:
 ### Try Key Commands
 
 **Check code quality** (most important command):
+
 ```bash
 hephaestus guard-rails
 ```
 
 This runs the full quality pipeline:
+
 1. Deep cleanup of build artifacts
 2. Lint code with ruff
 3. Auto-format code
@@ -107,6 +117,7 @@ This runs the full quality pipeline:
 6. Audit dependencies for security issues
 
 **Get refactoring recommendations**:
+
 ```bash
 # View hotspots (frequently changed, low coverage areas)
 hephaestus tools refactor hotspots --limit 5
@@ -119,11 +130,13 @@ hephaestus tools qa profile quick
 ```
 
 **Generate a refactoring plan**:
+
 ```bash
 hephaestus plan
 ```
 
 **Export command schemas for AI agents**:
+
 ```bash
 hephaestus schema --output schemas.json
 ```
@@ -140,6 +153,7 @@ hephaestus cleanup
 ```
 
 This removes:
+
 - Build artifacts (`dist/`, `build/`, `*.egg-info`)
 - Python caches (`__pycache__`, `.pyc` files)
 - Test caches (`.pytest_cache`)
@@ -200,6 +214,7 @@ python hephaestus-toolkit/refactoring/scripts/scan_hotspots.py --limit 10
 ```
 
 This analyzes your codebase and identifies:
+
 - High-churn files (changed frequently)
 - Low-coverage modules
 - Complex functions needing refactoring
@@ -254,6 +269,7 @@ hephaestus guard-rails
 ```
 
 This runs all quality gates in order:
+
 1. **Cleanup**: Removes build artifacts
 2. **Lint**: Checks code style and errors (ruff)
 3. **Format**: Auto-formats code (ruff format)
@@ -323,7 +339,7 @@ When you're ready to share the toolkit with another repository:
    ```bash
    # Using uv (recommended)
    uv build
-   
+
    # Or using standard tools
    python3 -m build
    ```
@@ -343,6 +359,7 @@ When you're ready to share the toolkit with another repository:
 ### Share with Others
 
 **Option A: GitHub Release**
+
 1. Upload the archive as a GitHub Release asset
 2. Include the SHA256SUMS file
 3. Users can install with:
@@ -351,6 +368,7 @@ When you're ready to share the toolkit with another repository:
    ```
 
 **Option B: Direct Distribution**
+
 1. Pass the archive directly to collaborators
 2. They can extract and install:
    ```bash
@@ -380,6 +398,7 @@ When you're ready to share the toolkit with another repository:
 ### Common Workflows
 
 **Daily Development**:
+
 ```bash
 # Check environment
 hephaestus guard-rails --drift
@@ -393,6 +412,7 @@ git commit -am "Your changes"
 ```
 
 **Preparing a Pull Request**:
+
 ```bash
 hephaestus cleanup --deep-clean
 hephaestus guard-rails
@@ -400,6 +420,7 @@ git push
 ```
 
 **Responding to CI Failures**:
+
 ```bash
 # Check for drift
 hephaestus guard-rails --drift

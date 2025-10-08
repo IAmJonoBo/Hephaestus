@@ -90,27 +90,27 @@ class PluginResult:
 
 class QualityGatePlugin(ABC):
     """Base class for quality gate plugins."""
-    
+
     @property
     @abstractmethod
     def metadata(self) -> PluginMetadata:
         """Return plugin metadata."""
         pass
-    
+
     @abstractmethod
     def validate_config(self, config: dict) -> bool:
         """Validate plugin configuration."""
         pass
-    
+
     @abstractmethod
     def run(self, config: dict) -> PluginResult:
         """Execute the quality gate check."""
         pass
-    
+
     def setup(self) -> None:
         """Optional: Setup before running."""
         pass
-    
+
     def teardown(self) -> None:
         """Optional: Cleanup after running."""
         pass
@@ -127,17 +127,17 @@ plugins:
       enabled: true
       config:
         args: ["check", "."]
-    
+
     - name: mypy
       enabled: true
       config:
         args: ["src", "tests"]
-    
+
     - name: pytest
       enabled: true
       config:
         args: ["--cov=src", "--cov-report=xml"]
-  
+
   # External plugins
   external:
     - name: bandit
@@ -146,7 +146,7 @@ plugins:
       config:
         severity: medium
         confidence: high
-    
+
     - name: docs-check
       package: hephaestus-docs-plugin
       enabled: true
@@ -168,29 +168,29 @@ plugins:
 def run_quality_gates(config_path: str) -> bool:
     # Load configuration
     config = load_plugin_config(config_path)
-    
+
     # Discover and load plugins
     plugins = discover_plugins(config)
-    
+
     # Validate plugins
     for plugin in plugins:
         if not plugin.validate_config(config.get(plugin.name, {})):
             raise ValueError(f"Invalid config for {plugin.name}")
-    
+
     # Sort by execution order
     plugins.sort(key=lambda p: p.metadata.order)
-    
+
     # Execute plugins
     results = []
     for plugin in plugins:
         if not config.is_enabled(plugin.name):
             continue
-        
+
         plugin.setup()
         result = plugin.run(config.get(plugin.name, {}))
         plugin.teardown()
         results.append(result)
-    
+
     # Aggregate results
     return all(r.success for r in results)
 ```
@@ -238,11 +238,13 @@ def run_quality_gates(config_path: str) -> bool:
 **Description**: Allow custom commands via YAML configuration without Python plugins.
 
 **Pros:**
+
 - Simpler to implement
 - No security concerns with arbitrary code execution
 - Easier to configure
 
 **Cons:**
+
 - Limited to shell commands
 - No access to Hephaestus internals
 - Difficult to implement complex logic
@@ -254,10 +256,12 @@ def run_quality_gates(config_path: str) -> bool:
 **Description**: Let teams use git hooks for custom quality gates.
 
 **Pros:**
+
 - No changes needed to Hephaestus
 - Standard mechanism
 
 **Cons:**
+
 - Not integrated with guard-rails workflow
 - No unified reporting
 - Harder to share across projects
@@ -269,10 +273,12 @@ def run_quality_gates(config_path: str) -> bool:
 **Description**: Let teams fork Hephaestus and add custom gates.
 
 **Pros:**
+
 - Full control
 - No plugin complexity
 
 **Cons:**
+
 - Maintenance burden
 - Difficult to merge upstream changes
 - Not reusable
@@ -284,10 +290,12 @@ def run_quality_gates(config_path: str) -> bool:
 **Description**: Call out to HTTP endpoints for custom checks.
 
 **Pros:**
+
 - Language agnostic
 - Network-based isolation
 
 **Cons:**
+
 - Requires running services
 - Network overhead
 - Complex setup
@@ -353,7 +361,7 @@ import subprocess
 
 class BanditPlugin(QualityGatePlugin):
     """Security linting with Bandit."""
-    
+
     @property
     def metadata(self) -> PluginMetadata:
         return PluginMetadata(
@@ -365,19 +373,19 @@ class BanditPlugin(QualityGatePlugin):
             requires=["bandit>=1.7.0"],
             order=150,  # Run after linting
         )
-    
+
     def validate_config(self, config: dict) -> bool:
         # Validate configuration
         severity = config.get("severity", "low")
         return severity in ["low", "medium", "high"]
-    
+
     def run(self, config: dict) -> PluginResult:
         # Run bandit
         cmd = ["bandit", "-r", "src"]
-        
+
         if "severity" in config:
             cmd.extend(["-ll", config["severity"]])
-        
+
         try:
             result = subprocess.run(
                 cmd,
@@ -385,7 +393,7 @@ class BanditPlugin(QualityGatePlugin):
                 text=True,
                 check=False,
             )
-            
+
             return PluginResult(
                 success=result.returncode == 0,
                 message=f"Bandit: {result.returncode == 0 and 'passed' or 'failed'}",

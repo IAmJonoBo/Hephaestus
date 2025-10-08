@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
+
 - REST/gRPC API for remote invocation (Q2 2025)
 - Plugin architecture for custom ranking strategies (Q2 2025)
 - OpenTelemetry spans for observability (Q2 2025)
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2025-01-11
 
 ### Added - AI & Intelligence Features
+
 - **Analytics Ranking API**: Four ranking strategies for prioritizing refactoring work
   - `risk_weighted`: Balances coverage gaps, uncovered lines, and churn (default)
   - `coverage_first`: Prioritizes modules with largest coverage gaps
@@ -39,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Operation and run identifier correlation across CLI flows
 
 ### Added - Security & Safety
+
 - **SECURITY.md**: Published security policy with disclosure process
   - Contact channels and expected SLAs
   - Security best practices for users
@@ -51,11 +54,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Home directory protection
   - Virtual environment site-packages preservation
   - Clear error messages for dangerous operations
-- **Cleanup UX Enhancements**: 
+- **Cleanup UX Enhancements**:
   - Mandatory dry-run previews before deletion
   - Typed confirmation for out-of-root targets
   - JSON audit manifests for cleanup operations
-- **Release Verification**: 
+- **Release Verification**:
   - SHA-256 checksum verification for wheelhouse downloads
   - Sigstore attestation support with identity pinning
   - Fail-closed controls for unsigned artifacts
@@ -64,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Logs when sanitization occurs
 
 ### Added - Quality & Tooling
+
 - **Guard-Rails Command**: Comprehensive quality pipeline at module scope
   - Single command runs: cleanup → lint → format → typecheck → test → audit
   - `--no-format` flag for skipping auto-format step
@@ -83,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Context binding with log_context
 
 ### Added - Documentation
+
 - **Operating Safely Guide**: Comprehensive operational runbooks
   - Cleanup safety features and best practices
   - Guard-rails workflow documentation
@@ -104,6 +109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Post-incident review process
 
 ### Changed
+
 - **Dependency Updates**: Refreshed to latest stable versions
   - ruff: 0.6.8 → 0.8.6
   - black: 24.8.0 → 25.1.0
@@ -114,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Error Reporting**: Improved guard-rails error messages with clear failure context
 
 ### Fixed
+
 - **Guard-Rails Availability**: Command now properly registered at module scope
   - Prevents silent unavailability in fresh shells
   - Regression test ensures command registration pre-execution
@@ -121,6 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Preserves .venv/site-packages unless explicitly cleaning virtual environment
 
 ### Security
+
 - **Dangerous Path Validation**: Cleanup refuses to operate on system paths
 - **Checksum Enforcement**: Wheelhouse downloads require SHA-256 manifests
 - **Sigstore Support**: Attestation verification with optional identity policies
@@ -128,19 +136,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Extra Paths Validation**: Dangerous path checks for --extra-path arguments
 
 ### Developer Experience
+
 - **CLI Reference**: Complete documentation of all commands and options
 - **Scripts Documentation**: README for quality automation tools
 - **MkDocs Navigation**: All guides properly organized in documentation site
 - **Pre-commit Integration**: All quality gates available as pre-commit hooks
 
 ### Testing
+
 - **Test Coverage**: Maintained at 87.29% (exceeds 85% threshold)
-- **New Test Suites**: 
+- **New Test Suites**:
   - `tests/test_analytics.py`: Ranking strategies and edge cases
   - `tests/test_schema.py`: Schema extraction and JSON export
   - `tests/test_drift.py`: Version comparison and remediation
   - `tests/test_logging.py`: Structured logging regression tests
-- **Enhanced Coverage**: 
+- **Enhanced Coverage**:
   - Release retry propagation and sanitization edge cases
   - Checksum manifest validation (happy-path, mismatch, bypass, missing)
   - Sigstore verification with multi-pattern identity matching
@@ -148,6 +158,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tool version drift detection and remediation
 
 ### Infrastructure
+
 - **Frontier Quality Standards**: Established and enforced
   - Zero-tolerance linting (Ruff with strict rules)
   - Type safety (Mypy strict mode, full coverage)
@@ -160,10 +171,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - Initial Release
 
 ### Added
+
 - **Core CLI Framework**: Typer-based command-line interface
 - **Cleanup Command**: Development artifact removal
   - Build artifacts (dist/, build/, .pyc files)
-  - Python caches (__pycache__, .pytest_cache)
+  - Python caches (**pycache**, .pytest_cache)
   - macOS metadata (.DS_Store)
   - Coverage reports
 - **Release Command**: Wheelhouse installation from GitHub releases
@@ -184,7 +196,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Architecture explanation
   - CLI reference
   - Refactoring toolkit guide
-- **Testing Infrastructure**: 
+- **Testing Infrastructure**:
   - pytest with coverage reporting
   - Type checking with mypy
   - Linting with ruff

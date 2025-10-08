@@ -9,11 +9,13 @@ This directory contains automation scripts for quality validation and enforcemen
 Comprehensive quality gate validation script that runs all project quality checks.
 
 **Usage:**
+
 ```bash
 python3 scripts/validate_quality_gates.py
 ```
 
 **What it checks:**
+
 - Pytest with coverage ≥85%
 - Ruff linting
 - Ruff formatting
@@ -23,10 +25,12 @@ python3 scripts/validate_quality_gates.py
 - Security auditing (pip-audit)
 
 **Exit codes:**
+
 - 0: All required gates passed
 - 1: One or more required gates failed
 
 **Features:**
+
 - Clear pass/fail reporting
 - Category-based organization
 - Required vs optional gate distinction
@@ -37,6 +41,7 @@ python3 scripts/validate_quality_gates.py
 AST-based linter to detect Typer command decorators defined inside functions, which causes registration bugs.
 
 **Usage:**
+
 ```bash
 # Check specific files
 python3 scripts/lint_nested_decorators.py src/hephaestus/cli.py
@@ -49,12 +54,14 @@ python3 scripts/lint_nested_decorators.py src/hephaestus tests
 ```
 
 **What it detects:**
+
 - `@app.command()` decorators inside function bodies
 - `@tools_app.command()`, `@refactor_app.command()`, etc.
 - Nested at any depth (detects deeply nested cases)
 - Both sync and async function definitions
 
 **Exit codes:**
+
 - 0: No violations found
 - 1: Violations detected or error occurred
 
@@ -67,6 +74,7 @@ This linter prevents regression of the "guard-rails availability bug" where the 
 Interactive version bumping script that updates version numbers across the project.
 
 **Usage:**
+
 ```bash
 # Bump to a new version
 ./scripts/bump_version.sh 0.3.0
@@ -76,6 +84,7 @@ bash scripts/bump_version.sh 0.3.0
 ```
 
 **What it does:**
+
 1. Validates version format (semantic versioning)
 2. Checks version is actually increasing
 3. Determines release type (MAJOR, MINOR, PATCH)
@@ -85,6 +94,7 @@ bash scripts/bump_version.sh 0.3.0
 7. Provides next steps guidance
 
 **Features:**
+
 - Semantic versioning validation
 - Prevents version downgrades
 - Interactive confirmation
@@ -93,10 +103,12 @@ bash scripts/bump_version.sh 0.3.0
 - CHANGELOG template generation
 
 **Exit codes:**
+
 - 0: Success
 - 1: Validation error or user cancellation
 
 **Example output:**
+
 ```bash
 $ ./scripts/bump_version.sh 0.3.0
 Current version: 0.2.0
@@ -115,6 +127,7 @@ CHANGELOG template for version 0.3.0:
 ```
 
 **See also:**
+
 - [Release Process Guide](../docs/how-to/release-process.md)
 
 ## Integration
@@ -149,6 +162,7 @@ uv run hephaestus guard-rails
 ```
 
 This runs:
+
 1. Deep cleanup
 2. Ruff check
 3. Ruff format

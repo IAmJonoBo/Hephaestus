@@ -4,18 +4,20 @@ Last updated: 2025-01-XX (Documentation alignment and status consolidation)
 
 ## Current Status Summary
 
-**All Critical Infrastructure: ✅ COMPLETE**
+### All Critical Infrastructure: ✅ COMPLETE
 
 The Hephaestus project has successfully delivered all high-priority features and infrastructure:
+
 - ✅ Security hardening (checksums, Sigstore, dangerous path protection, SECURITY.md, STRIDE threat model)
 - ✅ Quality gates (guard-rails, drift detection, CodeQL, comprehensive test coverage)
 - ✅ AI integration (schema export, agent guide, ranking API, structured logging)
 - ✅ Documentation (MkDocs site, Diátaxis structure, comprehensive how-tos)
 - ✅ Developer experience (cleanup safety, dry-run previews, audit manifests)
 
-**Future Work: Planned & Scheduled**
+### Future Work: Planned & Scheduled
 
 Remaining work is focused on advanced features with clear ADRs and timelines:
+
 - 🔄 OpenTelemetry spans (Q2 2025, ADR-0003)
 - ⏳ Plugin architecture (Q2-Q3 2025, ADR-0002)
 - ⏳ REST/gRPC API (Q2-Q3 2025, ADR-0004)
@@ -365,6 +367,7 @@ Current recommendation: Focus on completing Q1 2025 commitments (Sigstore backfi
 ## ✅ Summary: Project Health & Readiness
 
 **Production-Ready Status**: The Hephaestus toolkit is **production-ready** with:
+
 - Comprehensive quality gates and automation
 - Security hardening and supply-chain verification
 - Complete documentation and AI integration
@@ -372,11 +375,13 @@ Current recommendation: Focus on completing Q1 2025 commitments (Sigstore backfi
 - Operational excellence (cleanup safety, drift detection, structured logging)
 
 **Deferred Work is Optional Enhancement**: All remaining work items are **future enhancements** with:
+
 - Clear Architecture Decision Records (ADRs 0002, 0003, 0004)
 - Defined implementation phases and timelines
 - No blocking issues for current users
 
 **Recommendation**: The project can confidently serve as a reference implementation for:
+
 - CLI tooling best practices
 - AI agent integration patterns
 - Security-first development workflows
@@ -385,5 +390,5 @@ Current recommendation: Focus on completing Q1 2025 commitments (Sigstore backfi
 
 ---
 
-*For detailed implementation status, see [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)*  
-*For frontier-level quality standards, see [docs/explanation/frontier-red-team-gap-analysis.md](docs/explanation/frontier-red-team-gap-analysis.md)*
+_For detailed implementation status, see [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)_
+_For frontier-level quality standards, see [docs/explanation/frontier-red-team-gap-analysis.md](docs/explanation/frontier-red-team-gap-analysis.md)_

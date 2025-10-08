@@ -145,6 +145,7 @@ Items identified but deferred to future releases:
 ## Validation
 
 All changes have been:
+
 - ✅ Implemented with minimal code changes (surgical approach)
 - ✅ Tested with new and existing test coverage
 - ✅ Documented in relevant guides
@@ -154,20 +155,26 @@ All changes have been:
 ## Integration Points
 
 ### Pre-commit Hooks
+
 The guard-rails command integrates with existing pre-commit infrastructure:
+
 ```bash
 uv run hephaestus guard-rails
 ```
 
 ### CI/CD Pipeline
+
 Ready for CI integration:
+
 ```yaml
 - name: Run guard rails
   run: uv run hephaestus guard-rails
 ```
 
 ### Release Process
+
 Enhanced with:
+
 - Security checklist in pre-release-checklist.md
 - Rollback procedures for incidents
 - Security advisory templates
@@ -177,6 +184,7 @@ Enhanced with:
 ### New Commands
 
 **Guard-rails (replaces manual quality checks):**
+
 ```bash
 # Old way (multiple commands)
 uv run hephaestus cleanup --deep-clean
@@ -196,6 +204,7 @@ uv run hephaestus guard-rails --no-format
 ### Safety Features
 
 **Cleanup now refuses dangerous paths:**
+
 ```bash
 # This now fails with clear error message
 hephaestus cleanup /
@@ -208,6 +217,7 @@ hephaestus cleanup ./my-project
 ### Security Reporting
 
 **New disclosure process:**
+
 - Email: opensource@hephaestus.dev
 - Response: 48 hours
 - Updates: Every 5-7 business days
@@ -224,18 +234,21 @@ hephaestus cleanup ./my-project
 ## Next Steps
 
 ### Immediate (This Release)
+
 - [x] Merge PR to main
 - [x] Tag release with security improvements
 - [ ] Announce guard-rails command
 - [ ] Update team documentation
 
 ### Short-term (Q1 2025)
+
 - [ ] Implement SHA-256 verification
 - [ ] Add circuit breaker for network calls
 - [ ] CI lint for nested decorators
 - [ ] Enable pytest-randomly in CI
 
 ### Long-term (Q2 2025)
+
 - [ ] Structured JSON logging
 - [ ] OpenTelemetry integration
 - [ ] Privacy-preserving telemetry
@@ -275,11 +288,13 @@ Following the initial Next_Steps implementation, the comprehensive quality contr
 **Problem:** Commands defined inside functions (nested decorators) don't register properly, causing the guard-rails availability bug.
 
 **Solution:**
+
 - Created AST-based linter to detect nested Typer command decorators
 - Integrated into CI pipeline and pre-commit hooks
 - Added comprehensive test coverage
 
 **Files:**
+
 - `scripts/lint_nested_decorators.py` (210 lines)
 - `tests/test_lint_nested_decorators.py` (156 lines)
 - Updated `.github/workflows/ci.yml`
@@ -292,6 +307,7 @@ Following the initial Next_Steps implementation, the comprehensive quality contr
 **Feature:** Single-command validation of all quality standards.
 
 **Implementation:**
+
 - Created `scripts/validate_quality_gates.py` (200 lines)
 - Runs all checks: pytest, ruff, mypy, nested decorators, build, security
 - Provides categorized reporting (testing, linting, typing, security, build, custom)
@@ -304,6 +320,7 @@ Following the initial Next_Steps implementation, the comprehensive quality contr
 **Content:** Comprehensive guide to quality validation processes.
 
 **Files:**
+
 - `docs/how-to/quality-gates.md` (200 lines) - Complete validation guide
 - `scripts/README.md` (150 lines) - Scripts documentation
 - Updated `Next_Steps.md` - Added "Frontier Quality Standards" section
@@ -311,6 +328,7 @@ Following the initial Next_Steps implementation, the comprehensive quality contr
 - Updated `mkdocs.yml` - Added documentation to navigation
 
 **Coverage:**
+
 - Individual quality gate usage
 - Comprehensive validation workflows
 - CI/CD integration
@@ -320,11 +338,13 @@ Following the initial Next_Steps implementation, the comprehensive quality contr
 #### 4. Summary Documentation ✅
 
 **Files:**
+
 - `QC_QA_SUMMARY.md` (250 lines) - Executive summary of QC/CQ process
 
 ### Updated Statistics
 
 **Total Implementation:**
+
 - **Files Changed:** 21 (original 12 + new 9)
 - **Lines Added:** ~2,700 lines (original 1,068 + new ~1,632)
 - **New Documentation:** 6 comprehensive guides
@@ -390,6 +410,7 @@ Following the completion of all actionable Next_Steps items, comprehensive docum
 ### Current Project State
 
 **Infrastructure: Production-Ready**
+
 - All critical features delivered and tested
 - Security hardening complete (checksums, Sigstore verification, dangerous path protection)
 - Quality automation comprehensive (guard-rails, drift detection, CodeQL, 87%+ coverage)
@@ -397,11 +418,13 @@ Following the completion of all actionable Next_Steps items, comprehensive docum
 - Documentation complete and aligned (MkDocs site, Diátaxis structure)
 
 **Future Work: Well-Defined**
+
 - Clear Architecture Decision Records for planned features (ADRs 0002, 0003, 0004)
 - Phased implementation plans with timeline estimates
 - No blocking dependencies for current production use
 
 **Documentation: Accurate & Current**
+
 - All docs reflect actual implementation status
 - Completed work clearly marked with ✅
 - Future work clearly marked with timelines and ADR references
@@ -410,6 +433,7 @@ Following the completion of all actionable Next_Steps items, comprehensive docum
 ### Validation
 
 All documentation changes maintain:
+
 - ✅ Accuracy: Reflects current implementation state
 - ✅ Clarity: Clear distinction between complete and planned work
 - ✅ Consistency: Cross-references between docs aligned
@@ -426,6 +450,7 @@ All documentation changes maintain:
 **Status:** ✅ Documentation fully aligned with implementation
 
 The Hephaestus project documentation accurately reflects:
+
 - Complete, production-ready core infrastructure
 - Well-planned future enhancements with clear ADRs
 - No confusion between delivered and planned features

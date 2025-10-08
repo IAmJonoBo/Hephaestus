@@ -6,26 +6,17 @@
     ":semanticCommits"
   ],
   "pip_requirements": {
-    "managerFilePatterns": [
-      "/(^|/)uv\\.lock$/"
-    ]
+    "managerFilePatterns": ["/(^|/)uv\\.lock$/"]
   },
   "packageRules": [
     {
-      "matchManagers": [
-        "pip_requirements",
-        "pip_setup"
-      ],
+      "matchManagers": ["pip_requirements", "pip_setup"],
       "groupName": "python-runtime",
       "separateMinorPatch": true
     },
     {
-      "matchManagers": [
-        "github-actions"
-      ],
-      "schedule": [
-        "every weekend"
-      ],
+      "matchManagers": ["github-actions"],
+      "schedule": ["every weekend"],
       "groupName": "github-actions"
     }
   ]

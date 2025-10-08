@@ -4,10 +4,10 @@
 
 We currently support the latest release of Hephaestus. Security updates are applied to the most recent version.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| latest  | :white_check_mark: |
-| < latest| :x:                |
+| Version  | Supported          |
+| -------- | ------------------ |
+| latest   | :white_check_mark: |
+| < latest | :x:                |
 
 ## Reporting a Vulnerability
 
@@ -67,6 +67,7 @@ For detailed threat modeling information, see the architecture decision records 
 ## Security Updates
 
 Security patches will be:
+
 - Released as soon as fixes are available
 - Announced in release notes with [SECURITY] prefix
 - Backported to supported versions when necessary

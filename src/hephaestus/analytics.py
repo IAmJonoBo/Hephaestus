@@ -332,9 +332,7 @@ def _calculate_composite_score(
     normalized_uncovered = min(uncovered / 200.0, 1.0)
     normalized_churn = min(churn / 200.0, 1.0)
 
-    base_score = (
-        (coverage_gap * 0.35) + (normalized_uncovered * 0.25) + (normalized_churn * 0.25)
-    )
+    base_score = (coverage_gap * 0.35) + (normalized_uncovered * 0.25) + (normalized_churn * 0.25)
 
     if has_embedding:
         base_score += 0.15

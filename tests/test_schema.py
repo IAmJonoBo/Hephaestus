@@ -46,11 +46,11 @@ def test_extract_command_schemas_with_options() -> None:
 
     assert len(schemas) == 1
     assert len(schemas[0].parameters) == 2
-    
+
     name_param = schemas[0].parameters[0]
     assert name_param.name == "name"
     assert name_param.help == "Name to greet"
-    
+
     formal_param = schemas[0].parameters[1]
     assert formal_param.name == "formal"
     assert formal_param.help == "Use formal greeting"
@@ -61,12 +61,12 @@ def test_extract_command_schemas_nested_groups() -> None:
     """Test extracting schemas from nested command groups."""
     app = typer.Typer()
     tools_app = typer.Typer()
-    
+
     @tools_app.command()
     def analyze() -> None:
         """Analyze the code."""
         pass
-    
+
     app.add_typer(tools_app, name="tools")
 
     schemas = extract_command_schemas(app)
@@ -134,7 +134,7 @@ def test_command_registry_to_json() -> None:
     assert "commands" in json_dict
     assert len(json_dict["commands"]) == 1
     assert json_dict["commands"][0]["name"] == "test"
-    
+
     # Should be JSON-serializable
     json_str = json.dumps(json_dict)
     assert "test" in json_str

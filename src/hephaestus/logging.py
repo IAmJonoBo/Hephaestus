@@ -22,7 +22,8 @@ LogFormat = Literal["text", "json"]
 
 
 _context: contextvars.ContextVar[dict[str, Any] | None] = contextvars.ContextVar(
-    "hephaestus_log_context", default=None,
+    "hephaestus_log_context",
+    default=None,
 )
 
 

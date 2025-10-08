@@ -11,6 +11,7 @@ hephaestus schema --output schemas.json
 ```
 
 This generates a JSON file with:
+
 - Command names and descriptions
 - Parameter specifications (types, defaults, help text)
 - Usage examples
@@ -34,10 +35,7 @@ This generates a JSON file with:
           "help": "Workspace root to clean"
         }
       ],
-      "examples": [
-        "hephaestus cleanup",
-        "hephaestus cleanup --deep-clean"
-      ],
+      "examples": ["hephaestus cleanup", "hephaestus cleanup --deep-clean"],
       "expected_output": "Table showing cleaned paths and sizes",
       "retry_hints": [
         "If cleanup fails with permission errors, check file permissions"
@@ -70,7 +68,7 @@ Validate parameters before invoking commands:
 ```python
 def validate_params(command_name, user_params):
     cmd = next(c for c in schemas["commands"] if c["name"] == command_name)
-    
+
     for param in cmd["parameters"]:
         if param["required"] and param["name"] not in user_params:
             raise ValueError(f"Missing required parameter: {param['name']}")
@@ -86,7 +84,7 @@ def execute_with_retry(command, max_attempts=3):
         result = subprocess.run(command, capture_output=True)
         if result.returncode == 0:
             return result
-        
+
         # Check retry hints from schema
         cmd_schema = get_schema(command[0])
         print(f"Retry hint: {cmd_schema['retry_hints'][0]}")
@@ -99,6 +97,7 @@ def execute_with_retry(command, max_attempts=3):
 **When to use**: Before running quality checks, during CI cleanup stages, or when disk space is low.
 
 **Safe patterns**:
+
 ```bash
 # Always run with default safety checks
 hephaestus cleanup
@@ -111,6 +110,7 @@ hephaestus cleanup --deep-clean
 ```
 
 **Avoid**:
+
 - Running cleanup on system directories (/, /home, /usr)
 - Using `--extra-path` without verification
 - Running outside git repositories without `--allow-outside-root`
@@ -120,6 +120,7 @@ hephaestus cleanup --deep-clean
 **When to use**: Before committing, as part of CI/CD, or after making code changes.
 
 **Recommended workflow**:
+
 ```bash
 # Full check with auto-format
 hephaestus guard-rails
@@ -129,6 +130,7 @@ hephaestus guard-rails --no-format
 ```
 
 **Expected failures**:
+
 - Lint errors: Fix reported issues in code
 - Type errors: Address mypy complaints
 - Test failures: Fix failing tests
@@ -139,6 +141,7 @@ hephaestus guard-rails --no-format
 **When to use**: Planning refactoring work, prioritizing technical debt, understanding codebase health.
 
 **Strategies**:
+
 ```bash
 # Risk-weighted (recommended for general use)
 hephaestus tools refactor rankings
@@ -154,6 +157,7 @@ hephaestus tools refactor rankings --strategy composite
 ```
 
 **Prerequisites**:
+
 - Analytics sources configured in settings
 - churn_file, coverage_file, or embeddings_file paths set
 - Data files exist and are readable
@@ -163,6 +167,7 @@ hephaestus tools refactor rankings --strategy composite
 **When to use**: Installing pre-built wheelhouse distributions, setting up environments.
 
 **Safe patterns**:
+
 ```bash
 # Standard install (with signature verification)
 hephaestus release install
@@ -175,6 +180,7 @@ GITHUB_TOKEN=xxx hephaestus release install --repository owner/private-repo
 ```
 
 **Network considerations**:
+
 - Set `--timeout` higher for slow networks
 - Use `--max-retries` for flaky connections
 - Cache downloads with `--destination` to avoid re-downloading
@@ -197,6 +203,7 @@ Commands like `rankings`, `hotspots`, and `guard-rails` emit Rich tables with co
 ```
 
 Parse these by:
+
 1. Capturing stdout
 2. Extracting table rows
 3. Parsing columns by position or header
@@ -210,8 +217,14 @@ hephaestus --log-format json guard-rails
 ```
 
 Produces:
+
 ```json
-{"timestamp": "2025-01-01T12:00:00Z", "level": "INFO", "message": "Starting cleanup", "run_id": "abc123"}
+{
+  "timestamp": "2025-01-01T12:00:00Z",
+  "level": "INFO",
+  "message": "Starting cleanup",
+  "run_id": "abc123"
+}
 ```
 
 ### Exit Codes
@@ -225,6 +238,7 @@ Produces:
 ### 1. Always Use Schemas
 
 Regenerate schemas when Hephaestus is updated:
+
 ```bash
 hephaestus schema --output /path/to/agent/schemas.json
 ```
@@ -236,6 +250,7 @@ Check parameters against schema before invoking commands to avoid unnecessary fa
 ### 3. Handle Errors Gracefully
 
 Use retry hints from schemas to guide recovery:
+
 - Network timeouts → increase `--timeout`
 - Permission errors → check file ownership
 - Missing data → verify configuration paths
@@ -243,6 +258,7 @@ Use retry hints from schemas to guide recovery:
 ### 4. Use Structured Logging
 
 Request JSON logs for easier parsing:
+
 ```bash
 hephaestus --log-format json <command>
 ```
@@ -250,6 +266,7 @@ hephaestus --log-format json <command>
 ### 5. Respect Safety Guardrails
 
 Never bypass safety features like:
+
 - Dangerous path validation in cleanup
 - Checksum verification in release install
 - Required parameters in commands
@@ -257,6 +274,7 @@ Never bypass safety features like:
 ### 6. Context-Aware Invocation
 
 Choose commands based on context:
+
 - **During development**: `guard-rails`, `cleanup`
 - **Planning refactors**: `rankings`, `opportunities`, `hotspots`
 - **CI/CD**: `guard-rails`, `release install`
@@ -285,6 +303,7 @@ hephaestus --log-format json version | jq .message
 ## Support
 
 For issues with AI integration:
+
 1. Check command schemas for updated parameters
 2. Review retry hints in schema output
 3. Enable debug logging: `hephaestus --log-level DEBUG <command>`

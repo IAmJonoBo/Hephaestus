@@ -74,11 +74,11 @@ uv run hephaestus version
 
 ## Troubleshooting
 
-| Symptom                                    | Fix                                                                 |
-| ------------------------------------------ | ------------------------------------------------------------------- |
-| `ReleaseError: asset not found`            | Check the `--asset-pattern` or confirm the release tag exists.      |
+| Symptom                                    | Fix                                                                                    |
+| ------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `ReleaseError: asset not found`            | Check the `--asset-pattern` or confirm the release tag exists.                         |
 | `Checksum manifest could not be found`     | Upload the `*.sha256` manifest next to the wheelhouse asset or use `--allow-unsigned`. |
-| `Checksum verification failed`             | Re-upload the wheelhouse and manifest pair; ensure digests match exactly. |
-| `pip` times out or fails due to networking | Pre-download the archive and use the manual install path.           |
-| `wheel directory ... does not exist`       | Ensure the tarball extracted correctly and includes `*.whl` files.  |
-| Import errors after install                | Activate the environment you installed into before running commands |
+| `Checksum verification failed`             | Re-upload the wheelhouse and manifest pair; ensure digests match exactly.              |
+| `pip` times out or fails due to networking | Pre-download the archive and use the manual install path.                              |
+| `wheel directory ... does not exist`       | Ensure the tarball extracted correctly and includes `*.whl` files.                     |
+| Import errors after install                | Activate the environment you installed into before running commands                    |

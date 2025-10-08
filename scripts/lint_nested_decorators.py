@@ -111,9 +111,7 @@ class NestedDecoratorChecker(ast.NodeVisitor):
 
     def _is_command_decorator(self, decorator_name: str) -> bool:
         """Check if a decorator name matches a Typer command decorator."""
-        return any(
-            decorator_name.startswith(cmd_dec) for cmd_dec in self.COMMAND_DECORATORS
-        )
+        return any(decorator_name.startswith(cmd_dec) for cmd_dec in self.COMMAND_DECORATORS)
 
 
 def check_file(filepath: Path) -> list[NestedDecoratorViolation]:
