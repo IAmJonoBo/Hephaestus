@@ -78,10 +78,7 @@ def test_release_install_forwards_sigstore_options(
         extract: bool,
         allow_unsigned: bool,
         require_sigstore: bool,
-        sigstore_identities: list[str] | None = None,
-        extract_dir: Path | None = None,
-        timeout: float = 0,
-        max_retries: int = 0,
+        **kwargs: Any,
     ) -> Any:
         download_kwargs.update(
             {
@@ -93,13 +90,13 @@ def test_release_install_forwards_sigstore_options(
                 "sigstore_bundle_pattern": sigstore_bundle_pattern,
                 "allow_unsigned": allow_unsigned,
                 "require_sigstore": require_sigstore,
-                "sigstore_identities": sigstore_identities,
                 "extract": extract,
-                "extract_dir": extract_dir,
-                "timeout": timeout,
-                "max_retries": max_retries,
+                "token": token,
+                "overwrite": overwrite,
             }
         )
+        # Add any extra keyword arguments to download_kwargs for assertion
+        download_kwargs.update(kwargs)
 
         asset = cli.release_module.ReleaseAsset(
             name=archive_path.name,
