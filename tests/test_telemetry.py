@@ -7,8 +7,8 @@ from collections.abc import Iterator
 
 import pytest
 
+from hephaestus import events
 from hephaestus import logging as heph_logging
-from hephaestus import telemetry
 
 
 def _reset_logging() -> None:
@@ -34,9 +34,9 @@ def test_emit_event_rejects_missing_fields() -> None:
     logger = logging.getLogger("hephaestus.tests.telemetry")
 
     with pytest.raises(ValueError, match="missing required fields"):
-        telemetry.emit_event(
+        events.emit_event(
             logger,
-            telemetry.CLI_RELEASE_INSTALL_START,
+            events.CLI_RELEASE_INSTALL_START,
             repository="owner/project",
             tag="latest",
             destination="/tmp",
@@ -54,9 +54,9 @@ def test_emit_event_rejects_unexpected_fields() -> None:
     logger = logging.getLogger("hephaestus.tests.telemetry")
 
     with pytest.raises(ValueError, match="unexpected fields"):
-        telemetry.emit_event(
+        events.emit_event(
             logger,
-            telemetry.CLI_CLEANUP_COMPLETE,
+            events.CLI_CLEANUP_COMPLETE,
             removed=0,
             skipped=0,
             errors=0,
@@ -70,10 +70,10 @@ def test_operation_context_merges_into_payload() -> None:
     heph_logging.configure_logging(log_format="json", stream=stream)
     logger = logging.getLogger("hephaestus.tests.telemetry")
 
-    with telemetry.operation_context("cli.cleanup", operation_id="op-123", command="cleanup"):
-        telemetry.emit_event(
+    with events.operation_context("cli.cleanup", operation_id="op-123", command="cleanup"):
+        events.emit_event(
             logger,
-            telemetry.CLI_CLEANUP_COMPLETE,
+            events.CLI_CLEANUP_COMPLETE,
             message="Cleanup finished",
             removed=4,
             skipped=1,
@@ -81,7 +81,7 @@ def test_operation_context_merges_into_payload() -> None:
         )
 
     payload = json.loads(stream.getvalue())
-    assert payload["event"] == telemetry.CLI_CLEANUP_COMPLETE.name
+    assert payload["event"] == events.CLI_CLEANUP_COMPLETE.name
     assert payload["payload"]["operation"] == "cli.cleanup"
     assert payload["payload"]["operation_id"] == "op-123"
     assert payload["payload"]["command"] == "cleanup"
