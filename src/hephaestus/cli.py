@@ -174,6 +174,7 @@ def release_install(
         float,
         typer.Option(
             "--timeout",
+            min=0.1,
             help="Network timeout in seconds for release API calls and downloads.",
             show_default=True,
         ),
