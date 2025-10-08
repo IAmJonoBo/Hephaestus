@@ -48,6 +48,23 @@ List the highest churn modules. Options include:
 
 Summarise advisory refactor opportunities with estimated effort.
 
+### `tools refactor rankings`
+
+Rank modules by refactoring priority using analytics data. Requires analytics sources to be configured.
+
+| Option | Description |
+| ------ | ----------- |
+| `--strategy [risk_weighted|coverage_first|churn_based|composite]` | Ranking algorithm to apply (default: `risk_weighted`). |
+| `--limit INTEGER` | Maximum number of ranked modules to display (default: 20). |
+| `--config PATH` | Load alternate configuration. |
+
+**Strategies:**
+
+- `risk_weighted`: Balances coverage gaps, uncovered lines, and churn (recommended).
+- `coverage_first`: Prioritizes modules with the largest coverage gaps.
+- `churn_based`: Focuses on high-change-frequency modules.
+- `composite`: Balanced approach with bonus for modules with embeddings.
+
 ### `tools qa profile NAME`
 
 Display thresholds and switches for a specific QA profile (e.g., `quick`, `full`).

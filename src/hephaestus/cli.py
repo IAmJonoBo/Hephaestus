@@ -18,6 +18,7 @@ from hephaestus import logging as logging_utils
 from hephaestus import planning as planning_module
 from hephaestus import release as release_module
 from hephaestus import telemetry, toolbox
+from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
 tools_app = typer.Typer(name="tools", help="Toolkit command groups.", no_args_is_help=True)
@@ -366,6 +367,82 @@ def refactor_opportunities(
         table.add_row(opportunity.identifier, opportunity.summary, opportunity.estimated_effort)
 
     console.print(table)
+
+
+@refactor_app.command("rankings")
+def refactor_rankings(
+    strategy: Annotated[
+        RankingStrategy,
+        typer.Option(
+            help="Ranking strategy to apply.",
+            show_default=True,
+            case_sensitive=False,
+        ),
+    ] = RankingStrategy.RISK_WEIGHTED,
+    limit: Annotated[
+        int | None,
+        typer.Option(help="Maximum number of ranked modules to display."),
+    ] = 20,
+    config: Annotated[Path | None, typer.Option(help="Path to override configuration.")] = None,
+) -> None:
+    """Rank modules by refactoring priority using analytics data."""
+
+    settings = toolbox.load_settings(config)
+
+    if settings.analytics is None or not settings.analytics.is_configured:
+        console.print(
+            "[yellow]No analytics sources configured. "
+            "Configure churn_file, coverage_file, or embeddings_file in your settings.[/yellow]"
+        )
+        raise typer.Exit(code=1)
+
+    signals = load_module_signals(settings.analytics)
+
+    if not signals:
+        console.print(
+            "[yellow]No module signals loaded from analytics sources. "
+            "Check your analytics configuration.[/yellow]"
+        )
+        raise typer.Exit(code=1)
+
+    ranked = rank_modules(
+        signals,
+        strategy=strategy,
+        coverage_threshold=settings.coverage_threshold,
+        limit=limit,
+    )
+
+    table = Table(title=f"Module Rankings ({strategy.value})")
+    table.add_column("Rank", justify="right", style="bold")
+    table.add_column("Path", style="cyan")
+    table.add_column("Score", justify="right", style="magenta")
+    table.add_column("Churn", justify="right", style="yellow")
+    table.add_column("Coverage", justify="right", style="green")
+    table.add_column("Uncovered", justify="right", style="red")
+    table.add_column("Rationale", style="white")
+
+    for module in ranked:
+        coverage_display = (
+            f"{module.coverage:.0%}" if module.coverage is not None else "N/A"
+        )
+        uncovered_display = str(module.uncovered_lines) if module.uncovered_lines else "0"
+
+        table.add_row(
+            str(module.rank),
+            module.path,
+            f"{module.score:.4f}",
+            str(module.churn),
+            coverage_display,
+            uncovered_display,
+            module.rationale,
+        )
+
+    console.print(table)
+    console.print(
+        f"\n[dim]Ranked {len(ranked)} modules using {strategy.value} strategy "
+        f"with coverage threshold {settings.coverage_threshold:.0%}[/dim]"
+    )
+
 
 
 @qa_app.command("coverage")
