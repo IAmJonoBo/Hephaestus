@@ -15,11 +15,13 @@ from rich.table import Table
 from hephaestus import __version__
 from hephaestus import cleanup as cleanup_module
 from hephaestus import drift as drift_module
+from hephaestus import events as telemetry
 from hephaestus import logging as logging_utils
 from hephaestus import planning as planning_module
 from hephaestus import release as release_module
+from hephaestus import resource_forks
 from hephaestus import schema as schema_module
-from hephaestus import events as telemetry, toolbox
+from hephaestus import toolbox
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
@@ -29,11 +31,15 @@ refactor_app = typer.Typer(
 )
 qa_app = typer.Typer(name="qa", help="Quality assurance commands.", no_args_is_help=True)
 release_app = typer.Typer(name="release", help="Release management commands.", no_args_is_help=True)
+wheelhouse_app = typer.Typer(
+    name="wheelhouse", help="Wheelhouse maintenance commands.", no_args_is_help=True
+)
 
 tools_app.add_typer(refactor_app)
 tools_app.add_typer(qa_app)
 app.add_typer(tools_app)
 app.add_typer(release_app)
+app.add_typer(wheelhouse_app)
 
 console = Console()
 
@@ -367,9 +373,114 @@ def refactor_opportunities(
     table.add_column("Effort", style="magenta")
 
     for opportunity in opportunities:
-        table.add_row(opportunity.identifier, opportunity.summary, opportunity.estimated_effort)
+        table.add_row(
+            opportunity.identifier,
+            opportunity.summary,
+            opportunity.estimated_effort,
+        )
 
     console.print(table)
+
+
+@wheelhouse_app.command("sanitize")
+def wheelhouse_sanitize(
+    wheelhouse: Annotated[
+        Path,
+        typer.Argument(
+            help="Directory containing extracted wheels or archives to sanitise.",
+            exists=False,
+            file_okay=False,
+            dir_okay=True,
+            writable=True,
+            readable=True,
+        ),
+    ],
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Preview resource fork artefacts without removing them.",
+            show_default=False,
+        ),
+    ] = False,
+) -> None:
+    """Remove macOS resource fork artefacts from a wheelhouse directory."""
+
+    operation_id = telemetry.generate_operation_id()
+    with telemetry.operation_context(
+        "cli.wheelhouse.sanitize",
+        operation_id=operation_id,
+        command="wheelhouse.sanitize",
+        root=str(wheelhouse),
+        dry_run=dry_run,
+    ):
+        report = resource_forks.sanitize_path(wheelhouse, dry_run=dry_run)
+
+        if report.errors:
+            console.print("[red]Failed to remove resource fork artefacts:[/red]")
+            for candidate, reason in report.errors:
+                console.print(f"[red]- {candidate}: {reason}[/red]")
+            raise typer.Exit(code=1)
+
+        if dry_run:
+            console.print("[cyan]Resource fork artefacts (dry run):[/cyan]")
+            if report.preview_paths:
+                for candidate in report.preview_paths:
+                    console.print(f" - {candidate}")
+            else:
+                console.print("[green]No resource fork artefacts detected.[/green]")
+            return
+
+        if report.removed_paths:
+            for candidate in report.removed_paths:
+                console.print(f"[green]Removed resource fork artefact[/green] {candidate}")
+        else:
+            console.print("[green]No resource fork artefacts detected.[/green]")
+
+
+@wheelhouse_app.command("verify")
+def wheelhouse_verify(
+    wheelhouse: Annotated[
+        Path,
+        typer.Argument(
+            help="Directory containing extracted wheels or archives to inspect.",
+            exists=False,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+        ),
+    ],
+    strict: Annotated[
+        bool,
+        typer.Option(
+            "--strict/--no-strict",
+            help="Exit with an error if artefacts are detected.",
+            show_default=True,
+        ),
+    ] = True,
+) -> None:
+    """Report macOS resource fork artefacts within a wheelhouse directory."""
+
+    operation_id = telemetry.generate_operation_id()
+    with telemetry.operation_context(
+        "cli.wheelhouse.verify",
+        operation_id=operation_id,
+        command="wheelhouse.verify",
+        root=str(wheelhouse),
+        strict=strict,
+    ):
+        findings = resource_forks.verify_clean(wheelhouse)
+
+        if not findings:
+            console.print("[green]No resource fork artefacts detected.[/green]")
+            return
+
+        console.print("[red]Resource fork artefacts detected:[/red]")
+        for candidate in findings:
+            console.print(f" - {candidate}")
+
+        if strict:
+            raise typer.Exit(code=1)
 
 
 @refactor_app.command("rankings")
