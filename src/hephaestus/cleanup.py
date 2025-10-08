@@ -131,6 +131,13 @@ class CleanupResult:
         *,
         dry_run: bool,
     ) -> None:
+        """Record a path removal or preview and emit telemetry.
+        
+        Args:
+            path: Path that was removed or would be removed
+            callback: Optional callback to invoke after recording
+            dry_run: Whether this is a preview or actual removal
+        """
         if dry_run:
             self.preview_paths.append(path)
             message = f"Would remove {path}"
@@ -149,6 +156,13 @@ class CleanupResult:
         )
 
     def record_skip(self, path: Path, reason: str, callback: SkipCallback | None) -> None:
+        """Record a skipped path and emit telemetry.
+        
+        Args:
+            path: Path that was skipped
+            reason: Human-readable reason for skipping
+            callback: Optional callback to invoke after recording
+        """
         self.skipped_roots.append((path, reason))
         if callback:
             callback(path, reason)
@@ -161,6 +175,12 @@ class CleanupResult:
         )
 
     def record_error(self, path: Path, message: str) -> None:
+        """Record a cleanup error and emit telemetry.
+        
+        Args:
+            path: Path where the error occurred
+            message: Error message describing what went wrong
+        """
         self.errors.append((path, message))
         telemetry.emit_event(
             logger,
@@ -282,11 +302,12 @@ def resolve_root(root: Path | None) -> Path:
             check=True,
             capture_output=True,
             text=True,
+            timeout=10,
         )
         output = completed.stdout.strip()
         if output:
             return Path(output)
-    except (subprocess.SubprocessError, FileNotFoundError):
+    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired):
         pass
 
     return Path.cwd().resolve()
@@ -386,13 +407,14 @@ def _discover_poetry_environment() -> Path | None:
             check=True,
             capture_output=True,
             text=True,
+            timeout=10,
         )
         candidate = completed.stdout.strip()
         if candidate:
             path = Path(candidate)
             if path.exists():
                 return path.resolve()
-    except (subprocess.SubprocessError, FileNotFoundError):
+    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired):
         return None
     return None
 
@@ -650,9 +672,12 @@ def _unlock_path(path: Path) -> bool:
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            timeout=30,
         )
         unlocked = unlocked or completed.returncode == 0
     except FileNotFoundError:  # pragma: no cover - chflags missing on non-macOS platforms
+        return False
+    except subprocess.TimeoutExpired:  # pragma: no cover - defensive timeout
         return False
 
     try:
@@ -661,8 +686,11 @@ def _unlock_path(path: Path) -> bool:
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            timeout=30,
         )
     except FileNotFoundError:  # pragma: no cover - xattr missing on some macOS installs
+        pass
+    except subprocess.TimeoutExpired:  # pragma: no cover - defensive timeout
         pass
 
     return unlocked

@@ -262,12 +262,22 @@ pip-audit --strict
 
 ### Token Management
 
+**GitHub Token Permissions:**
+
+For `hephaestus release install`, use a fine-grained personal access token with these **read-only** permissions:
+
+- **Contents**: Read access to download release assets
+- **Metadata**: Read access (automatically included)
+
+For classic tokens, use the minimal `public_repo` scope (or `repo` for private repositories).
+
 **Best practices:**
 
 - Store tokens in environment variables or password managers
 - Use fine-grained GitHub tokens with minimal permissions
-- Rotate tokens regularly
+- Rotate tokens regularly (recommended: every 90 days)
 - Never commit tokens to version control
+- Set token expiration dates to limit exposure window
 
 ### CI/CD Security
 

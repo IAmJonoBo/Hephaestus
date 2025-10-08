@@ -174,6 +174,7 @@ def release_install(
         float,
         typer.Option(
             "--timeout",
+            min=0.1,
             help="Network timeout in seconds for release API calls and downloads.",
             show_default=True,
         ),
@@ -880,12 +881,12 @@ def guard_rails(
 
             # Step 2: Lint with ruff
             console.print("\n[cyan]→ Running ruff check...[/cyan]")
-            subprocess.run(["ruff", "check", "."], check=True)
+            subprocess.run(["ruff", "check", "."], check=True, timeout=300)
 
             # Step 3: Format with ruff (unless skipped)
             if not no_format:
                 console.print("[cyan]→ Running ruff format...[/cyan]")
-                subprocess.run(["ruff", "format", "."], check=True)
+                subprocess.run(["ruff", "format", "."], check=True, timeout=300)
 
             # Step 4: Lint YAML files with yamllint
             console.print("[cyan]→ Running yamllint...[/cyan]")
@@ -900,20 +901,23 @@ def guard_rails(
                     "hephaestus-toolkit/",
                 ],
                 check=True,
+                timeout=60,
             )
 
             # Step 5: Type check with mypy
             console.print("[cyan]→ Running mypy...[/cyan]")
-            subprocess.run(["mypy", "src", "tests"], check=True)
+            subprocess.run(["mypy", "src", "tests"], check=True, timeout=300)
 
             # Step 6: Run tests with pytest
             console.print("[cyan]→ Running pytest...[/cyan]")
-            subprocess.run(["pytest"], check=True)
+            subprocess.run(["pytest"], check=True, timeout=600)
 
             # Step 7: Security audit with pip-audit
             console.print("[cyan]→ Running pip-audit...[/cyan]")
             subprocess.run(
-                ["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"], check=True
+                ["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"],
+                check=True,
+                timeout=300,
             )
 
             console.print("\n[green]✓ Guard rails completed successfully.[/green]")
@@ -923,6 +927,19 @@ def guard_rails(
                 message="Guard rails completed successfully",
                 skip_format=no_format,
             )
+
+        except subprocess.TimeoutExpired as exc:
+            console.print(f"\n[red]✗ Guard rails timed out: {exc.cmd[0]}[/red]")
+            console.print(f"[yellow]Timeout: {exc.timeout}s[/yellow]")
+            telemetry.emit_event(
+                logger,
+                telemetry.CLI_GUARD_RAILS_FAILED,
+                level=logging.ERROR,
+                message="Guard rails timed out",
+                step=exc.cmd[0],
+                returncode=124,  # Standard timeout exit code
+            )
+            raise typer.Exit(code=124) from exc
 
         except subprocess.CalledProcessError as exc:
             console.print(f"\n[red]✗ Guard rails failed at: {exc.cmd[0]}[/red]")

@@ -93,18 +93,45 @@ class TelemetryRegistry:
         self._events: dict[str, TelemetryEvent] = {}
 
     def register(self, event: TelemetryEvent) -> TelemetryEvent:
+        """Register a new telemetry event definition.
+        
+        Args:
+            event: Event to register
+            
+        Returns:
+            The registered event
+            
+        Raises:
+            ValueError: If event name is already registered
+        """
         if event.name in self._events:
             raise ValueError(f"Event {event.name!r} already registered")
         self._events[event.name] = event
         return event
 
     def get(self, name: str) -> TelemetryEvent:
+        """Retrieve a registered event by name.
+        
+        Args:
+            name: Event name to look up
+            
+        Returns:
+            The registered event
+            
+        Raises:
+            KeyError: If event name is not registered
+        """
         try:
             return self._events[name]
         except KeyError as exc:  # pragma: no cover - defensive fallback
             raise KeyError(f"Telemetry event {name!r} not defined") from exc
 
     def all_events(self) -> Iterable[TelemetryEvent]:
+        """Return all registered telemetry events.
+        
+        Returns:
+            Iterable of all registered events
+        """
         return self._events.values()
 
 

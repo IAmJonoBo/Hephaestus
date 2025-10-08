@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import subprocess
 from dataclasses import dataclass
@@ -11,6 +12,9 @@ try:
     import tomllib  # Python 3.11+
 except ImportError:
     import tomli as tomllib  # type: ignore[import-not-found,no-redef]
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -62,13 +66,19 @@ def detect_drift(project_root: Path | None = None) -> list[ToolVersion]:
 
     pyproject_path = project_root / "pyproject.toml"
     if not pyproject_path.exists():
+        logger.error("pyproject.toml not found", extra={"path": str(pyproject_path)})
         raise DriftDetectionError(f"pyproject.toml not found at {pyproject_path}")
+
+    logger.debug("Loading pyproject.toml", extra={"path": str(pyproject_path)})
 
     # Load expected versions from pyproject.toml
     try:
         with open(pyproject_path, "rb") as f:
             pyproject = tomllib.load(f)
     except Exception as exc:
+        logger.error(
+            "Failed to parse pyproject.toml", extra={"path": str(pyproject_path), "error": str(exc)}
+        )
         raise DriftDetectionError(f"Failed to parse pyproject.toml: {exc}") from exc
 
     dev_deps = pyproject.get("project", {}).get("optional-dependencies", {}).get("dev", [])
@@ -80,17 +90,39 @@ def detect_drift(project_root: Path | None = None) -> list[ToolVersion]:
         "pip-audit": _extract_version_spec(dev_deps, "pip-audit"),
     }
 
+    logger.info("Checking tool versions", extra={"tools": list(tools.keys())})
+
     results: list[ToolVersion] = []
 
     for tool_name, expected_version in tools.items():
         actual_version = _get_installed_version(tool_name)
-        results.append(
-            ToolVersion(
-                name=tool_name,
-                expected=expected_version,
-                actual=actual_version,
-            )
+        tool_version = ToolVersion(
+            name=tool_name,
+            expected=expected_version,
+            actual=actual_version,
         )
+        results.append(tool_version)
+        
+        if tool_version.is_missing:
+            logger.warning("Tool not installed", extra={"tool": tool_name})
+        elif tool_version.has_drift:
+            logger.warning(
+                "Tool version drift detected",
+                extra={
+                    "tool": tool_name,
+                    "expected": expected_version,
+                    "actual": actual_version,
+                },
+            )
+        else:
+            logger.debug(
+                "Tool version OK",
+                extra={
+                    "tool": tool_name,
+                    "expected": expected_version,
+                    "actual": actual_version,
+                },
+            )
 
     return results
 
@@ -108,6 +140,7 @@ def _extract_version_spec(deps: list[str], package_name: str) -> str | None:
 def _get_installed_version(tool_name: str) -> str | None:
     """Get installed version of a tool."""
     try:
+        logger.debug("Checking installed version", extra={"tool": tool_name})
         # Try to get version via --version flag
         result = subprocess.run(
             [tool_name, "--version"],
@@ -118,16 +151,27 @@ def _get_installed_version(tool_name: str) -> str | None:
         )
 
         if result.returncode != 0:
+            logger.debug(
+                "Tool version check failed",
+                extra={"tool": tool_name, "returncode": result.returncode},
+            )
             return None
 
         # Extract version from output
         output = result.stdout + result.stderr
         version_match = re.search(r"(\d+\.\d+\.\d+)", output)
         if version_match:
-            return version_match.group(1)
+            version = version_match.group(1)
+            logger.debug("Found tool version", extra={"tool": tool_name, "version": version})
+            return version
 
+        logger.debug("Could not extract version", extra={"tool": tool_name, "output": output[:100]})
         return None
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    except FileNotFoundError:
+        logger.debug("Tool not found", extra={"tool": tool_name})
+        return None
+    except subprocess.TimeoutExpired:
+        logger.warning("Tool version check timed out", extra={"tool": tool_name})
         return None
 
 
