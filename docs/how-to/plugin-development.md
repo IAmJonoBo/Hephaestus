@@ -37,7 +37,7 @@ class MyCustomPlugin(QualityGatePlugin):
         """Execute the quality check."""
         # Perform your custom check
         success = True  # Replace with actual logic
-        
+
         return PluginResult(
             success=success,
             message="Custom check passed",
@@ -130,6 +130,7 @@ all_plugins = registry.all_plugins()
 ## Phase 1 Limitations
 
 Current Phase 1 implementation provides:
+
 - ✅ Plugin API specification
 - ✅ Base classes and interfaces
 - ✅ Plugin registry

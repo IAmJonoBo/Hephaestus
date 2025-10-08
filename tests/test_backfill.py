@@ -13,7 +13,7 @@ def test_backfill_metadata_creation():
     """Backfill metadata should be created with correct fields."""
     original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=timezone.utc)
     backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=timezone.utc)
-    
+
     metadata = BackfillMetadata(
         version="v0.2.3",
         original_release_date=original_date,
@@ -23,7 +23,7 @@ def test_backfill_metadata_creation():
         checksum_verified=True,
         notes="Sigstore bundle backfilled for historical release.",
     )
-    
+
     assert metadata.version == "v0.2.3"
     assert metadata.original_release_date == original_date
     assert metadata.backfill_date == backfill_date
@@ -37,7 +37,7 @@ def test_backfill_metadata_to_dict():
     """Backfill metadata should serialize to dictionary."""
     original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=timezone.utc)
     backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=timezone.utc)
-    
+
     metadata = BackfillMetadata(
         version="v0.2.3",
         original_release_date=original_date,
@@ -47,9 +47,9 @@ def test_backfill_metadata_to_dict():
         checksum_verified=True,
         notes="Test notes",
     )
-    
+
     data = metadata.to_dict()
-    
+
     assert isinstance(data, dict)
     assert data["version"] == "v0.2.3"
     assert data["original_release_date"] == original_date.isoformat()
@@ -64,7 +64,7 @@ def test_backfill_metadata_from_dict():
     """Backfill metadata should deserialize from dictionary."""
     original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=timezone.utc)
     backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=timezone.utc)
-    
+
     data = {
         "version": "v0.2.3",
         "original_release_date": original_date.isoformat(),
@@ -74,9 +74,9 @@ def test_backfill_metadata_from_dict():
         "checksum_verified": True,
         "notes": "Test notes",
     }
-    
+
     metadata = BackfillMetadata.from_dict(data)
-    
+
     assert metadata.version == "v0.2.3"
     assert metadata.original_release_date == original_date
     assert metadata.backfill_date == backfill_date
@@ -90,7 +90,7 @@ def test_backfill_metadata_roundtrip():
     """Backfill metadata should roundtrip through dict serialization."""
     original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=timezone.utc)
     backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=timezone.utc)
-    
+
     metadata1 = BackfillMetadata(
         version="v0.2.3",
         original_release_date=original_date,
@@ -100,11 +100,11 @@ def test_backfill_metadata_roundtrip():
         checksum_verified=True,
         notes="Test notes",
     )
-    
+
     # Serialize and deserialize
     data = metadata1.to_dict()
     metadata2 = BackfillMetadata.from_dict(data)
-    
+
     # Should be equivalent
     assert metadata1.version == metadata2.version
     assert metadata1.original_release_date == metadata2.original_release_date

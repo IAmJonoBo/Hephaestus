@@ -18,6 +18,6 @@ def test_api_module_imports():
     # Should not raise ImportError
     from hephaestus import api
     from hephaestus.api import rest
-    
+
     assert api is not None
     assert rest is not None

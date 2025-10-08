@@ -15,6 +15,7 @@ This document summarizes the Phase 1 (Foundation) implementations for ADRs 0002,
 **Status**: Phase 1 Implemented ✅
 
 **Deliverables**:
+
 - ✅ `PluginMetadata` dataclass for plugin descriptions
 - ✅ `PluginResult` dataclass for execution results
 - ✅ `QualityGatePlugin` abstract base class with full interface
@@ -24,6 +25,7 @@ This document summarizes the Phase 1 (Foundation) implementations for ADRs 0002,
 - ✅ Documentation: `docs/how-to/plugin-development.md`
 
 **What's Ready**:
+
 - Plugin API specification is complete and tested
 - Teams can start developing custom plugins
 - Foundation for Phase 2 plugin discovery
@@ -37,6 +39,7 @@ This document summarizes the Phase 1 (Foundation) implementations for ADRs 0002,
 **Status**: Phase 1 Implemented ✅
 
 **Deliverables**:
+
 - ✅ Optional `telemetry` extra dependency in `pyproject.toml`
 - ✅ `telemetry/__init__.py` with tracing utilities
 - ✅ Environment-based configuration (`HEPHAESTUS_TELEMETRY_ENABLED`)
@@ -47,6 +50,7 @@ This document summarizes the Phase 1 (Foundation) implementations for ADRs 0002,
 - ✅ Documentation: `docs/how-to/observability.md`
 
 **What's Ready**:
+
 - Users can enable telemetry via environment variables
 - No-op mode ensures zero impact when disabled
 - Foundation for Phase 2 command instrumentation
@@ -60,6 +64,7 @@ This document summarizes the Phase 1 (Foundation) implementations for ADRs 0002,
 **Status**: Phase 1 Implemented ✅
 
 **Deliverables**:
+
 - ✅ Complete OpenAPI 3.0 specification in `docs/api/openapi.yaml`
 - ✅ API module structure: `src/hephaestus/api/` with `rest/` subdirectory
 - ✅ Optional `api` extra dependency in `pyproject.toml`
@@ -68,6 +73,7 @@ This document summarizes the Phase 1 (Foundation) implementations for ADRs 0002,
 - ✅ Documentation: `docs/reference/api.md`
 
 **What's Ready**:
+
 - OpenAPI spec defines all endpoints and schemas
 - Module structure ready for FastAPI implementation
 - Foundation for AI agent integration
@@ -81,6 +87,7 @@ This document summarizes the Phase 1 (Foundation) implementations for ADRs 0002,
 **Status**: Phase 1 Implemented ✅
 
 **Deliverables**:
+
 - ✅ `BackfillMetadata` dataclass with JSON serialization
 - ✅ `BackfillVerificationStatus` constants (ORIGINAL, BACKFILLED, UNKNOWN)
 - ✅ `to_dict()` and `from_dict()` methods for persistence
@@ -88,6 +95,7 @@ This document summarizes the Phase 1 (Foundation) implementations for ADRs 0002,
 - ✅ Comprehensive tests in `tests/test_backfill.py`
 
 **What's Ready**:
+
 - Metadata schema defined and tested
 - Foundation for Phase 2 backfill automation
 - Ready for backfill script implementation
@@ -102,12 +110,12 @@ This document summarizes the Phase 1 (Foundation) implementations for ADRs 0002,
 
 All new modules have comprehensive test coverage:
 
-| Module | Test File | Tests |
-|--------|-----------|-------|
-| `telemetry/` | `test_telemetry_otel.py` | 10 tests |
-| `plugins/` | `test_plugins.py` | 10 tests |
-| `backfill.py` | `test_backfill.py` | 6 tests |
-| `api/` | `test_api.py` | 2 tests |
+| Module        | Test File                | Tests    |
+| ------------- | ------------------------ | -------- |
+| `telemetry/`  | `test_telemetry_otel.py` | 10 tests |
+| `plugins/`    | `test_plugins.py`        | 10 tests |
+| `backfill.py` | `test_backfill.py`       | 6 tests  |
+| `api/`        | `test_api.py`            | 2 tests  |
 
 **Total**: 28 new tests added
 
@@ -117,7 +125,7 @@ All new modules have comprehensive test coverage:
 ✅ No-op telemetry working  
 ✅ Plugin registry working  
 ✅ Backfill serialization working  
-✅ API module structure working  
+✅ API module structure working
 
 ## Documentation
 
@@ -141,6 +149,7 @@ All new modules have comprehensive test coverage:
 ### ADR Status Updates
 
 All four ADRs updated with:
+
 - Status changed to "Phase 1 Implemented"
 - Phase 1 checklists marked complete
 - Implementation dates added
@@ -170,7 +179,7 @@ src/hephaestus/
 
 ✅ All existing imports updated (`telemetry` → `events as telemetry`)  
 ✅ No breaking changes to public API  
-✅ New features are opt-in via dependencies and configuration  
+✅ New features are opt-in via dependencies and configuration
 
 ## Dependencies
 
@@ -203,6 +212,7 @@ api = [
 ### Quality Gates
 
 Before merging to main:
+
 - [ ] Run `ruff check .` and `ruff format .`
 - [ ] Run `mypy src tests`
 - [ ] Run `pytest --cov=src/hephaestus`
@@ -216,7 +226,7 @@ Before merging to main:
 ✅ **28 new tests** added  
 ✅ **7 documentation files** created/updated  
 ✅ **0 breaking changes** to existing code  
-✅ **100% backward compatible**  
+✅ **100% backward compatible**
 
 All Phase 1 implementations are complete, tested, and documented. The foundation is in place for Phase 2 work across all four ADRs.
 

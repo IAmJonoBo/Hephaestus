@@ -19,10 +19,10 @@ __all__ = [
 @dataclass
 class BackfillMetadata:
     """Metadata for a backfilled Sigstore bundle.
-    
+
     This metadata distinguishes backfilled attestations (signed retroactively)
     from original attestations (signed at release time).
-    
+
     Attributes:
         version: Release version tag
         original_release_date: When the release was originally published
@@ -32,7 +32,7 @@ class BackfillMetadata:
         checksum_verified: Whether original archive checksum was verified
         notes: Additional context about the backfill
     """
-    
+
     version: str
     original_release_date: datetime
     backfill_date: datetime
@@ -43,7 +43,7 @@ class BackfillMetadata:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert metadata to dictionary representation.
-        
+
         Returns:
             Dictionary suitable for JSON serialization
         """
@@ -60,13 +60,13 @@ class BackfillMetadata:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> BackfillMetadata:
         """Create metadata from dictionary representation.
-        
+
         Args:
             data: Dictionary containing metadata fields
-            
+
         Returns:
             BackfillMetadata instance
-            
+
         Raises:
             ValueError: If required fields are missing
         """
@@ -83,7 +83,7 @@ class BackfillMetadata:
 
 class BackfillVerificationStatus:
     """Verification status constants for Sigstore bundles."""
-    
+
     ORIGINAL = "original"  # Bundle created at release time
     BACKFILLED = "backfilled"  # Bundle created retroactively
     UNKNOWN = "unknown"  # Status cannot be determined

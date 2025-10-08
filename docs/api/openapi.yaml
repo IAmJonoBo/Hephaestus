@@ -3,13 +3,13 @@ info:
   title: Hephaestus API
   description: |
     REST API for Hephaestus quality gate automation toolkit.
-    
+
     This API provides remote access to Hephaestus functionality including:
     - Quality gate execution (guard-rails)
     - Workspace cleanup
     - Analytics and rankings
     - Schema introspection
-    
+
     **Note**: This is Phase 1 (Foundation) specification. Implementation in progress.
   version: 0.3.0
   contact:
@@ -53,16 +53,16 @@ paths:
                   description: Check for tool version drift
                   default: false
       responses:
-        '200':
+        "200":
           description: Quality pipeline completed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GuardRailsResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalError'
+                $ref: "#/components/schemas/GuardRailsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
 
   /cleanup:
     post:
@@ -90,14 +90,14 @@ paths:
                   description: Preview changes without executing
                   default: false
       responses:
-        '200':
+        "200":
           description: Cleanup completed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CleanupResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/CleanupResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /analytics/rankings:
     get:
@@ -121,14 +121,14 @@ paths:
             maximum: 100
             default: 20
       responses:
-        '200':
+        "200":
           description: Rankings retrieved
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RankingsResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/RankingsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /tasks/{task_id}:
     get:
@@ -144,16 +144,16 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Task status retrieved
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TaskStatus'
-        '404':
+                $ref: "#/components/schemas/TaskStatus"
+        "404":
           description: Task not found
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
 components:
   securitySchemes:
@@ -176,7 +176,7 @@ components:
         gates:
           type: array
           items:
-            $ref: '#/components/schemas/QualityGateResult'
+            $ref: "#/components/schemas/QualityGateResult"
         duration:
           type: number
           format: float
@@ -236,7 +236,7 @@ components:
         rankings:
           type: array
           items:
-            $ref: '#/components/schemas/FileRanking'
+            $ref: "#/components/schemas/FileRanking"
         strategy:
           type: string
           description: Ranking strategy used

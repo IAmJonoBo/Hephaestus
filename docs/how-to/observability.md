@@ -40,12 +40,12 @@ Telemetry data will be exported to your configured OTLP endpoint.
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `HEPHAESTUS_TELEMETRY_ENABLED` | Enable/disable telemetry | `false` |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint | None |
-| `OTEL_SERVICE_NAME` | Service name for traces | `hephaestus` |
-| `HEPHAESTUS_TELEMETRY_PRIVACY` | Privacy mode (strict/balanced/minimal) | `strict` |
+| Variable                       | Description                            | Default      |
+| ------------------------------ | -------------------------------------- | ------------ |
+| `HEPHAESTUS_TELEMETRY_ENABLED` | Enable/disable telemetry               | `false`      |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`  | OTLP collector endpoint                | None         |
+| `OTEL_SERVICE_NAME`            | Service name for traces                | `hephaestus` |
+| `HEPHAESTUS_TELEMETRY_PRIVACY` | Privacy mode (strict/balanced/minimal) | `strict`     |
 
 ### Privacy Modes
 
@@ -65,6 +65,7 @@ The telemetry module provides:
 ## Phase 1 Limitations
 
 Current Phase 1 implementation provides:
+
 - ✅ Module structure and API
 - ✅ No-op tracer fallback
 - ✅ Basic configuration

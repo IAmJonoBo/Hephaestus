@@ -24,7 +24,7 @@ __all__ = [
 @dataclass
 class PluginMetadata:
     """Metadata about a quality gate plugin."""
-    
+
     name: str
     version: str
     description: str
@@ -37,7 +37,7 @@ class PluginMetadata:
 @dataclass
 class PluginResult:
     """Result of running a plugin."""
-    
+
     success: bool
     message: str
     details: dict[str, Any] | None = None
@@ -46,7 +46,7 @@ class PluginResult:
 
 class QualityGatePlugin(ABC):
     """Base class for quality gate plugins.
-    
+
     Example:
         class MyPlugin(QualityGatePlugin):
             @property
@@ -60,10 +60,10 @@ class QualityGatePlugin(ABC):
                     requires=[],
                     order=100,
                 )
-            
+
             def validate_config(self, config: dict) -> bool:
                 return True
-            
+
             def run(self, config: dict) -> PluginResult:
                 return PluginResult(success=True, message="Check passed")
     """
@@ -77,13 +77,13 @@ class QualityGatePlugin(ABC):
     @abstractmethod
     def validate_config(self, config: dict[str, Any]) -> bool:
         """Validate plugin configuration.
-        
+
         Args:
             config: Configuration dictionary for this plugin
-            
+
         Returns:
             True if configuration is valid
-            
+
         Raises:
             ValueError: If configuration is invalid
         """
@@ -92,10 +92,10 @@ class QualityGatePlugin(ABC):
     @abstractmethod
     def run(self, config: dict[str, Any]) -> PluginResult:
         """Execute the quality gate check.
-        
+
         Args:
             config: Configuration dictionary for this plugin
-            
+
         Returns:
             Result of the quality gate execution
         """
@@ -103,7 +103,7 @@ class QualityGatePlugin(ABC):
 
     def setup(self) -> None:
         """Optional: Setup before running.
-        
+
         Override this method if your plugin needs to perform setup
         operations before executing the quality check.
         """
@@ -111,7 +111,7 @@ class QualityGatePlugin(ABC):
 
     def teardown(self) -> None:
         """Optional: Cleanup after running.
-        
+
         Override this method if your plugin needs to perform cleanup
         operations after executing the quality check.
         """
@@ -120,7 +120,7 @@ class QualityGatePlugin(ABC):
 
 class PluginRegistry:
     """Registry for quality gate plugins.
-    
+
     Note: Phase 1 implementation - discovery and loading not yet implemented.
     This provides the registry structure for future phases.
     """
@@ -130,10 +130,10 @@ class PluginRegistry:
 
     def register(self, plugin: QualityGatePlugin) -> None:
         """Register a quality gate plugin.
-        
+
         Args:
             plugin: Plugin instance to register
-            
+
         Raises:
             ValueError: If plugin name is already registered
         """
@@ -144,13 +144,13 @@ class PluginRegistry:
 
     def get(self, name: str) -> QualityGatePlugin:
         """Retrieve a registered plugin by name.
-        
+
         Args:
             name: Plugin name to look up
-            
+
         Returns:
             The registered plugin
-            
+
         Raises:
             KeyError: If plugin name is not registered
         """
@@ -161,7 +161,7 @@ class PluginRegistry:
 
     def all_plugins(self) -> list[QualityGatePlugin]:
         """Return all registered plugins.
-        
+
         Returns:
             List of all registered plugins, sorted by execution order
         """
@@ -169,10 +169,10 @@ class PluginRegistry:
 
     def is_registered(self, name: str) -> bool:
         """Check if a plugin is registered.
-        
+
         Args:
             name: Plugin name to check
-            
+
         Returns:
             True if plugin is registered
         """
