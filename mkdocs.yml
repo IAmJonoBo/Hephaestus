@@ -25,6 +25,7 @@ nav:
           explanation/frontier-red-team-gap-analysis.md
   - Reference:
       - CLI Reference: reference/cli.md
+      - Telemetry Events: reference/telemetry-events.md
       - CLI Autocompletion: cli-completions.md
       - Pre-Release Checklist: pre-release-checklist.md
       - Refactoring Toolkit Map: refactoring-toolkit.md
