@@ -122,7 +122,7 @@ on:
     types: [published]
 
 permissions:
-  id-token: write  # Required for PyPI Trusted Publishers
+  id-token: write # Required for PyPI Trusted Publishers
   contents: write
 
 jobs:
@@ -132,41 +132,41 @@ jobs:
     environment:
       name: pypi
       url: https://pypi.org/p/hephaestus-toolkit
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      
+
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
           pip install build twine sigstore
-      
+
       - name: Build distribution
         run: python -m build
-      
+
       - name: Sign with Sigstore
         run: |
           python -m sigstore sign dist/*
-      
+
       - name: Verify distribution
         run: |
           twine check dist/*
-      
+
       - name: Publish to Test PyPI (pre-releases)
         if: github.event.release.prerelease
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
-      
+
       - name: Publish to PyPI (stable)
         if: "!github.event.release.prerelease"
         uses: pypa/gh-action-pypi-publish@release/v1
-      
+
       - name: Attach Sigstore bundles to release
         uses: actions/upload-release-asset@v1
         env:
@@ -254,11 +254,13 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 **Description**: Continue current approach with wheelhouses only.
 
 **Pros:**
+
 - No additional maintenance
 - Full control over distribution
 - Already working well
 
 **Cons:**
+
 - Limited discoverability
 - Non-standard installation
 - No ecosystem integration
@@ -270,11 +272,13 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 **Description**: Publish to conda-forge instead of PyPI.
 
 **Pros:**
+
 - Better for scientific computing
 - Handles non-Python dependencies
 - conda-forge provides infrastructure
 
 **Cons:**
+
 - Limited to Conda ecosystem
 - Additional packaging complexity
 - Most Python developers use pip
@@ -286,11 +290,13 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 **Description**: Distribute as Docker containers.
 
 **Pros:**
+
 - Includes all dependencies
 - Consistent environment
 - Easy CI/CD integration
 
 **Cons:**
+
 - Heavy distribution mechanism
 - Not suitable for library use
 - Limits integration options
@@ -302,11 +308,13 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 **Description**: Manually upload packages to PyPI on release.
 
 **Pros:**
+
 - Simple to start
 - Full control over process
 - No CI/CD complexity
 
 **Cons:**
+
 - Error-prone
 - Slow
 - Not scalable

@@ -91,24 +91,24 @@ def verify_wheelhouse_with_backfill(
     require_original: bool = False
 ) -> VerificationResult:
     """Verify wheelhouse with support for backfilled bundles."""
-    
+
     # Load bundle and check for backfill metadata
     bundle = load_sigstore_bundle(sigstore_bundle)
     metadata = bundle.get("backfill_metadata", {})
-    
+
     if metadata and require_original:
         raise VerificationError(
             "Release uses backfilled Sigstore bundle. "
             "Use --allow-backfill to accept retroactive attestations."
         )
-    
+
     # Verify checksum first
     if not verify_checksum(archive_path, bundle["checksum"]):
         raise VerificationError("Checksum mismatch")
-    
+
     # Verify Sigstore signature
     verify_sigstore(archive_path, sigstore_bundle)
-    
+
     # Log backfill status
     if metadata:
         logger.info(
@@ -116,7 +116,7 @@ def verify_wheelhouse_with_backfill(
             f"Original release {metadata['original_release_date']}, "
             f"Backfilled {metadata['backfill_date']}"
         )
-    
+
     return VerificationResult(
         verified=True,
         backfilled=bool(metadata),
@@ -157,27 +157,27 @@ HISTORICAL_VERSIONS = [
 def backfill_release(version: str, token: str):
     """Backfill Sigstore bundle for a historical release."""
     print(f"Processing {version}...")
-    
+
     # Get release metadata
     release = get_release_by_tag(REPO, version, token)
-    
+
     # Find wheelhouse asset
     wheelhouse = next(
         asset for asset in release["assets"]
         if asset["name"].endswith(".tar.gz")
     )
-    
+
     # Download archive
     archive_path = download_asset(wheelhouse["url"], token)
-    
+
     # Verify checksum against published manifest
     checksum = get_published_checksum(release, wheelhouse["name"])
     if not verify_checksum(archive_path, checksum):
         raise ValueError(f"Checksum mismatch for {version}")
-    
+
     # Generate Sigstore bundle
     bundle_path = sign_with_sigstore(archive_path)
-    
+
     # Add backfill metadata
     add_backfill_metadata(
         bundle_path,
@@ -185,7 +185,7 @@ def backfill_release(version: str, token: str):
         original_date=release["published_at"],
         backfill_date=datetime.utcnow().isoformat()
     )
-    
+
     # Upload bundle as release asset
     upload_release_asset(
         release["upload_url"],
@@ -193,10 +193,10 @@ def backfill_release(version: str, token: str):
         f"{wheelhouse['name']}.sigstore",
         token
     )
-    
+
     # Update release notes
     add_backfill_notice(release["id"], version, token)
-    
+
     print(f"✓ Backfilled {version}")
 
 def main():
@@ -256,11 +256,13 @@ if __name__ == "__main__":
 **Description**: Accept that historical releases lack Sigstore attestation.
 
 **Pros:**
+
 - No effort required
 - No retroactive trust concerns
 - Clear distinction between old and new
 
 **Cons:**
+
 - Security gap remains
 - Can't enforce verification on all versions
 - Audit compliance issues
@@ -273,11 +275,13 @@ if __name__ == "__main__":
 **Description**: Create new releases with same code but new attestations.
 
 **Pros:**
+
 - Attestations use correct timestamps
 - Clear provenance chain
 - No retroactive trust issues
 
 **Cons:**
+
 - Version confusion (v0.2.3 vs v0.2.3-resigned)
 - Breaks semantic versioning
 - Confuses users and tools
@@ -290,11 +294,13 @@ if __name__ == "__main__":
 **Description**: Maintain separate repository with Sigstore bundles.
 
 **Pros:**
+
 - Doesn't modify original releases
 - Clear separation of concerns
 - Easier to update signatures
 
 **Cons:**
+
 - Complex discovery mechanism
 - Additional infrastructure
 - Synchronization challenges
@@ -307,11 +313,13 @@ if __name__ == "__main__":
 **Description**: Modify existing release assets to include Sigstore bundles.
 
 **Pros:**
+
 - Single source of truth
 - No separate assets
 - Simpler verification
 
 **Cons:**
+
 - Violates archive immutability
 - Changes release checksums
 - Breaks existing installations

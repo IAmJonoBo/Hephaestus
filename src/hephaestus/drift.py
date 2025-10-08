@@ -102,7 +102,7 @@ def detect_drift(project_root: Path | None = None) -> list[ToolVersion]:
             actual=actual_version,
         )
         results.append(tool_version)
-        
+
         if tool_version.is_missing:
             logger.warning("Tool not installed", extra={"tool": tool_name})
         elif tool_version.has_drift:

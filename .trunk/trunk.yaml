@@ -19,16 +19,16 @@ runtimes:
 lint:
   enabled:
     - mypy@1.18.2
-    - renovate@41.138.4
+    - renovate@41.142.0
     - actionlint@1.7.7
     - bandit@1.8.6
     - black@25.9.0
-    - checkov@3.2.474
+    - checkov@3.2.475
     - git-diff-check
     - isort@6.1.0
     - markdownlint@0.45.0
     - prettier@3.6.2
-    - ruff@0.13.3
+    - ruff@0.14.0
     - shellcheck@0.11.0
     - shfmt@3.6.0
     - taplo@0.10.0

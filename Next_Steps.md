@@ -328,6 +328,7 @@ _Note: Drift reconciliation completed. Use `hephaestus guard-rails --drift` to c
 - Agent SDK: Package Typer command schemas plus expected outputs so external agents (Copilot, Cursor, Claude) can invoke Hephaestus safely with predictable prompts and retry hints.
 
 _Note: Agent SDK and command schema export completed. Use `hephaestus schema` command and see `docs/how-to/ai-agent-integration.md` guide._
+
 - Code-mod rehearsal: Couple existing scripts with AI prompts to auto-generate candidate codemods, run dry-runs, and publish synthetic “before/after” diff bundles.
 
 ### 4. Release intelligence & supply-chain hardening
@@ -353,7 +354,7 @@ _Note: Plugin architecture planned for Q2-Q3 2025 (see ADR-0002). OpenTelemetry 
 
 With all core infrastructure complete, the project is now in maintenance mode with planned future enhancements:
 
-1. **Q1 2025 (Current)**: 
+1. **Q1 2025 (Current)**:
    - Backfill Sigstore bundles for historical releases (ADR-0006)
    - PyPI publication automation (ADR-0005)
 2. **Q2 2025**: Implement OpenTelemetry spans (ADR-0003 Phase 2-3)
