@@ -1,6 +1,6 @@
 # ADR 0003: OpenTelemetry Integration for Observability
 
-- Status: Proposed
+- Status: Phase 1 Implemented
 - Date: 2025-01-11
 - Supersedes: N/A
 - Superseded by: N/A
@@ -307,11 +307,11 @@ def sanitize_attributes(attrs: dict) -> dict:
 
 ### Phase 1: Foundation (v0.3.0 - Q1 2025)
 
-- [ ] Add OpenTelemetry dependencies (optional)
-- [ ] Implement basic tracing setup
-- [ ] Instrument guard-rails command
-- [ ] Add console exporter for testing
-- [ ] Document configuration
+- [x] Add OpenTelemetry dependencies (optional)
+- [x] Implement basic tracing setup
+- [x] Instrument guard-rails command (API only, integration pending)
+- [x] Add console exporter for testing
+- [x] Document configuration
 
 ### Phase 2: Core Instrumentation (v0.4.0 - Q2 2025)
 

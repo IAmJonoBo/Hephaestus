@@ -5,17 +5,19 @@ import json
 import logging
 from collections.abc import Iterator
 
-import pytest
+import pytest  # type: ignore[import-not-found]
 
-from hephaestus import events
+from hephaestus import events, telemetry
 from hephaestus import logging as heph_logging
 
 
 def _reset_logging() -> None:
     root = logging.getLogger()
-    for handler in list(root.handlers):
+    handlers = list(root.handlers)
+    for handler in handlers:
         root.removeHandler(handler)
-    for log_filter in list(root.filters):
+    filters = list(root.filters)
+    for log_filter in filters:
         root.removeFilter(log_filter)
     root.setLevel(logging.WARNING)
 
@@ -29,40 +31,26 @@ def logging_guard() -> Iterator[None]:
         _reset_logging()
 
 
-def test_emit_event_rejects_missing_fields() -> None:
-    heph_logging.configure_logging(stream=io.StringIO())
-    logger = logging.getLogger("hephaestus.tests.telemetry")
+def test_event_validate_rejects_missing_fields() -> None:
+    event = events.TelemetryEvent(
+        "tests.event",
+        "Test event",
+        required_fields=("foo", "bar"),
+    )
 
     with pytest.raises(ValueError, match="missing required fields"):
-        events.emit_event(
-            logger,
-            events.CLI_RELEASE_INSTALL_START,
-            repository="owner/project",
-            tag="latest",
-            destination="/tmp",
-            allow_unsigned=False,
-            asset_pattern="*",
-            manifest_pattern="*",
-            sigstore_pattern="*.sigstore",
-            require_sigstore=False,
-            timeout=30,
-        )
+        event.validate({"foo": "value"})
 
 
-def test_emit_event_rejects_unexpected_fields() -> None:
-    heph_logging.configure_logging(stream=io.StringIO())
-    logger = logging.getLogger("hephaestus.tests.telemetry")
+def test_event_validate_rejects_unexpected_fields() -> None:
+    event = events.TelemetryEvent(
+        "tests.event",
+        "Test event",
+        required_fields=("foo",),
+    )
 
     with pytest.raises(ValueError, match="unexpected fields"):
-        events.emit_event(
-            logger,
-            events.CLI_CLEANUP_COMPLETE,
-            removed=0,
-            skipped=0,
-            errors=0,
-            audit_manifest=None,
-            extraneous=True,
-        )
+        event.validate({"foo": "value", "bar": "extra"})
 
 
 def test_operation_context_merges_into_payload() -> None:
@@ -85,3 +73,8 @@ def test_operation_context_merges_into_payload() -> None:
     assert payload["payload"]["operation"] == "cli.cleanup"
     assert payload["payload"]["operation_id"] == "op-123"
     assert payload["payload"]["command"] == "cleanup"
+
+
+def test_module_reexports_event_helpers() -> None:
+    assert telemetry.emit_event is events.emit_event
+    assert telemetry.CLI_CLEANUP_COMPLETE is events.CLI_CLEANUP_COMPLETE

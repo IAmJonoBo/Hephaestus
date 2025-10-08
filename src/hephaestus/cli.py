@@ -404,21 +404,7 @@ def wheelhouse_sanitize(
         ),
     ] = False,
 ) -> None:
-    """
-    Remove macOS resource fork artefacts from a wheelhouse directory.
-
-    This command scans the specified wheelhouse directory for macOS resource fork files
-    (such as ._DS_Store and ._filename artefacts) that can cause issues with Python packaging
-    and distribution. By default, detected artefacts are removed from the directory.
-    Use the --dry-run option to preview which files would be removed without making changes.
-
-    Args:
-        wheelhouse (Path): Directory containing extracted wheels or archives to sanitize.
-        dry_run (bool): If True, only preview artefacts without removing them.
-
-    Example:
-        hephaestus wheelhouse sanitize dist/wheelhouse --dry-run
-    """
+    """Remove macOS resource fork artefacts from a wheelhouse directory."""
 
     operation_id = telemetry.generate_operation_id()
     with telemetry.operation_context(
@@ -473,21 +459,7 @@ def wheelhouse_verify(
         ),
     ] = True,
 ) -> None:
-    """
-    Report macOS resource fork artefacts within a wheelhouse directory.
-
-    This command inspects the specified wheelhouse directory for macOS resource fork files
-    that may interfere with packaging and deployment. If any artefacts are found, their paths
-    are listed. By default, the command exits with an error if artefacts are detected; use
-    --no-strict to only report findings without failing.
-
-    Args:
-        wheelhouse (Path): Directory containing extracted wheels or archives to inspect.
-        strict (bool): If True, exit with error if artefacts are detected.
-
-    Example:
-        hephaestus wheelhouse verify dist/wheelhouse --no-strict
-    """
+    """Report macOS resource fork artefacts within a wheelhouse directory."""
 
     operation_id = telemetry.generate_operation_id()
     with telemetry.operation_context(

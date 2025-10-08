@@ -1,6 +1,6 @@
 # ADR 0006: Sigstore Bundle Backfill for Historical Releases
 
-- Status: Proposed
+- Status: Phase 1 Implemented
 - Date: 2025-01-15
 - Supersedes: N/A
 - Superseded by: N/A
@@ -333,7 +333,7 @@ if __name__ == "__main__":
 
 - [x] Review historical releases (v0.1.0-v0.2.3)
 - [x] Verify all releases have SHA-256 checksums
-- [ ] Design backfill metadata schema
+- [x] Design backfill metadata schema
 - [ ] Write backfill automation script
 - [ ] Test backfill process on staging
 

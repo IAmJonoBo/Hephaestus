@@ -143,12 +143,16 @@ def sanitize_path(
     return report
 
 
-def sanitize_many(paths: Iterable[Path], *, dry_run: bool = False) -> SanitizationReport:
+def sanitize_many(
+    paths: Iterable[Path], *, dry_run: bool = False, set_copyfile_disable: bool = True
+) -> SanitizationReport:
     """Sanitise multiple roots and combine the results."""
 
     final_report = SanitizationReport()
     for root in paths:
-        final_report.merge(sanitize_path(root, dry_run=dry_run))
+        final_report.merge(
+            sanitize_path(root, dry_run=dry_run, set_copyfile_disable=set_copyfile_disable)
+        )
     return final_report
 
 
