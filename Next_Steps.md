@@ -18,10 +18,11 @@ The Hephaestus project has successfully delivered all high-priority features and
 
 Remaining work is focused on advanced features with clear ADRs and timelines:
 
+- 🔄 Sigstore bundle backfill (Q1 2025, ADR-0006)
 - 🔄 OpenTelemetry spans (Q2 2025, ADR-0003)
 - ⏳ Plugin architecture (Q2-Q3 2025, ADR-0002)
 - ⏳ REST/gRPC API (Q2-Q3 2025, ADR-0004)
-- ⏳ Sigstore bundle backfill (Q1 2025)
+- ⏳ PyPI publication automation (Q1 2025, ADR-0005)
 
 ## Recent Improvements (Latest Session)
 
@@ -198,12 +199,14 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 
 ### Future / Deferred ⏳
 
+- [ ] (Tooling, target Q1 2025) Backfill Sigstore bundles for historical releases
+  - Status: 🔄 In Progress - Design complete in ADR-0006, execution scheduled for 2025-01-31
+- [ ] (Release, target Q1 2025) Publish to PyPI with automated release notes
+  - Status: 🔄 In Progress - Design complete in ADR-0005, implementation scheduled for v0.3.0
 - [ ] (Platform AI, target Q2-Q3 2025) Expose secured REST/gRPC endpoints for AI/automation clients with policy guard rails
   - Status: ⏳ Planned - Design complete in ADR-0004, implementation scheduled for v0.4.0+
 - [ ] (Extensibility, target Q2-Q3 2025) Plugin architecture for custom quality gates
   - Status: ⏳ Planned - Design complete in ADR-0002, implementation phased across v0.3.0-v0.6.0
-- [ ] (Release, target TBD) Publish to PyPI with automated release notes
-  - Status: ⏳ Future - Build infrastructure exists, PyPI publication workflow pending
 
 ## Steps
 
@@ -319,24 +322,27 @@ This project enforces frontier-level quality standards through automated gates:
 
 - Self-healing cleanup agents: Extend `cleanup.run_cleanup` to run in watch mode, auto-reverting risky files and emitting structured reports to CI/CD logs.
 - Policy-as-code bundles: Layer YAML policies on top of guard-rail runs (e.g., forbid certain dependency versions, enforce test naming) with evaluators that gate `guard-rails`.
-- Drift reconciliation: Add a `hephaestus guard-rails --drift` mode comparing current toolchain versions (Ruff, Mypy, MkDocs) with the “golden” versions locked in repo metadata, offering remediation commands.
+
+_Note: Drift reconciliation completed. Use `hephaestus guard-rails --drift` to compare current toolchain versions with golden versions and get remediation commands._
 
 ### 3. AI-native workflows
 
 - Agent SDK: Package Typer command schemas plus expected outputs so external agents (Copilot, Cursor, Claude) can invoke Hephaestus safely with predictable prompts and retry hints.
-- Semantic diff summariser: Integrate LibCST-based explainers that turn PR diffs into risk summaries and recommend characterisation tests or refactors.
+
+_Note: Agent SDK and command schema export completed. Use `hephaestus schema` command and see `docs/how-to/ai-agent-integration.md` guide._
 - Code-mod rehearsal: Couple existing scripts with AI prompts to auto-generate candidate codemods, run dry-runs, and publish synthetic “before/after” diff bundles.
 
 ### 4. Release intelligence & supply-chain hardening
 
-- Wheelhouse provenance: Extend `release.py` to record SBOM + signature verification, gating installs on attestation success and surfacing via `release install --verify`.
 - Automated upgrade concierge: Use the existing TurboRepo monitor pattern for Python dependencies—detect vulnerable/outdated packages, open issues with reproduction scripts, and suggest minimal bump PR templates.
+
+_Note: Sigstore attestation verification completed (see ADR-0006 for backfill strategy)._
 
 ### 5. Extensibility & ecosystem hooks
 
-- Plugin architecture: Allow declarative registration of new tooling steps (e.g., SAST scans) that plug into `guard-rails` tables, with manifest-driven ordering.
 - Multi-repo orchestration: Offer `hephaestus plan --workspace <dir>` to cascade analytics and guard rails across fleets, syncing results to a central datastore.
-- Telemetry & observability: Emit OpenTelemetry traces from CLI runs so operators can observe latency, failure points, and step-level performance across environments.
+
+_Note: Plugin architecture planned for Q2-Q3 2025 (see ADR-0002). OpenTelemetry spans planned for Q2 2025 (see ADR-0003)._
 
 ### 6. Documentation & knowledge loop
 
@@ -349,10 +355,11 @@ This project enforces frontier-level quality standards through automated gates:
 
 With all core infrastructure complete, the project is now in maintenance mode with planned future enhancements:
 
-1. **Q1 2025 (Current)**: Backfill Sigstore bundles for historical releases
+1. **Q1 2025 (Current)**: 
+   - Backfill Sigstore bundles for historical releases (ADR-0006)
+   - PyPI publication automation (ADR-0005)
 2. **Q2 2025**: Implement OpenTelemetry spans (ADR-0003 Phase 2-3)
 3. **Q2-Q3 2025**: Deliver plugin architecture (ADR-0002) and REST/gRPC API (ADR-0004)
-4. **Future**: PyPI publication automation
 
 ### Decision Framework
 

@@ -35,6 +35,8 @@ nav:
       - ADR 0002 - Plugin Architecture: adr/0002-plugin-architecture.md
       - ADR 0003 - OpenTelemetry Integration: adr/0003-opentelemetry-integration.md
       - ADR 0004 - REST/gRPC API: adr/0004-rest-grpc-api.md
+      - ADR 0005 - PyPI Publication: adr/0005-pypi-publication.md
+      - ADR 0006 - Sigstore Backfill: adr/0006-sigstore-backfill.md
 theme:
   name: material
   features:
