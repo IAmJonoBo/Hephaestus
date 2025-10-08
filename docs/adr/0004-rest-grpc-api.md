@@ -1,6 +1,6 @@
 # ADR 0004: REST/gRPC API for Remote Invocation
 
-- Status: Proposed
+- Status: Phase 1 Implemented
 - Date: 2025-01-11
 - Supersedes: N/A
 - Superseded by: N/A
@@ -454,7 +454,7 @@ async def stream_task_progress(task_id: str):
 
 ### Phase 1: REST API Core (v0.4.0 - Q2 2025)
 
-- [ ] Design OpenAPI specification
+- [x] Design OpenAPI specification
 - [ ] Implement FastAPI application
 - [ ] Add core endpoints (guard-rails, cleanup)
 - [ ] Implement authentication

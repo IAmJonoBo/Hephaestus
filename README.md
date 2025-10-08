@@ -17,6 +17,37 @@ Hephaestus is a standalone developer toolkit that helps engineering teams priori
 - **🔍 Drift Detection**: Automatic environment validation and remediation
 - **📦 Secure Release**: SHA-256 verification and Sigstore attestation support
 - **📚 Comprehensive Docs**: Diátaxis-structured guides for every use case
+- **🔌 Plugin Architecture**: Extensible quality gates via plugin API (Phase 1)
+- **📈 Observability**: Optional OpenTelemetry integration for tracing (Phase 1)
+- **🌐 REST API**: Remote invocation support via OpenAPI spec (Phase 1)
+
+## 🎯 What's New in 0.3.0 (Unreleased)
+
+### Architectural Foundations (Phase 1 Implementations)
+
+- **Plugin Architecture (ADR-0002)**: Extensible plugin system for custom quality gates
+  - `QualityGatePlugin` base class and registry
+  - Plugin metadata and result schemas
+  - Foundation for future plugin discovery and built-in plugins
+- **OpenTelemetry Integration (ADR-0003)**: Optional distributed tracing support
+  - Environment-based configuration (`HEPHAESTUS_TELEMETRY_ENABLED`)
+  - No-op tracer fallback for graceful degradation
+  - Ready for Phase 2 command instrumentation
+- **REST API (ADR-0004)**: Remote invocation via OpenAPI specification
+  - Complete OpenAPI 3.0 spec for quality gates, cleanup, analytics
+  - Module structure for future FastAPI implementation
+  - Foundation for AI agent integration and dashboards
+- **Sigstore Backfill (ADR-0006)**: Metadata schema for historical releases
+  - `BackfillMetadata` dataclass with JSON serialization
+  - Verification status constants for transparency
+  - Ready for Phase 2 backfill execution
+
+### Module Reorganization
+
+- Renamed `telemetry.py` to `events.py` for clarity
+- New `telemetry/` package for OpenTelemetry integration
+- New `plugins/` package for quality gate plugins
+- New `api/` package for REST/gRPC endpoints
 
 ## 🎯 What's New in 0.2.0
 
