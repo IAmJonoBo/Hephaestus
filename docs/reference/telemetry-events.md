@@ -23,6 +23,7 @@ Events emitted by CLI command handlers.
 **Description:** Cleanup CLI invocation started.
 
 **Required Fields:**
+
 - `include_git` (bool): Whether to clean .git directories
 - `include_poetry_env` (bool): Whether to clean Poetry environments
 - `python_cache` (bool): Whether to clean Python cache
@@ -33,10 +34,12 @@ Events emitted by CLI command handlers.
 - `dry_run` (bool): Whether this is a dry run
 
 **Optional Fields:**
+
 - `root` (Path): Project root directory
 - `audit_manifest` (Path): Path to audit manifest
 
 **Example:**
+
 ```json
 {
   "event": "cli.cleanup.start",
@@ -57,11 +60,13 @@ Events emitted by CLI command handlers.
 **Description:** Cleanup CLI invocation completed successfully.
 
 **Required Fields:**
+
 - `removed` (int): Number of paths removed
 - `skipped` (int): Number of paths skipped
 - `errors` (int): Number of errors encountered
 
 **Optional Fields:**
+
 - `audit_manifest` (Path): Path where audit manifest was written
 
 #### `cli.cleanup.failed`
@@ -69,6 +74,7 @@ Events emitted by CLI command handlers.
 **Description:** Cleanup CLI invocation aborted with errors.
 
 **Required Fields:**
+
 - `errors` (int): Number of errors that caused failure
 
 #### `cli.guard-rails.start`
@@ -76,6 +82,7 @@ Events emitted by CLI command handlers.
 **Description:** Guard-rails pipeline started.
 
 **Required Fields:**
+
 - `skip_format` (bool): Whether formatting step is skipped
 
 #### `cli.guard-rails.complete`
@@ -83,6 +90,7 @@ Events emitted by CLI command handlers.
 **Description:** Guard-rails pipeline completed successfully.
 
 **Required Fields:**
+
 - `skip_format` (bool): Whether formatting step was skipped
 
 #### `cli.guard-rails.failed`
@@ -90,10 +98,12 @@ Events emitted by CLI command handlers.
 **Description:** Guard-rails pipeline failed.
 
 **Required Fields:**
+
 - `step` (str): Which step failed (e.g., "ruff check", "mypy", "pytest")
 - `returncode` (int): Exit code from failed step
 
 **Optional Fields:**
+
 - `level` (str): Log level for the failure
 
 #### `cli.guard-rails.drift`
@@ -101,9 +111,11 @@ Events emitted by CLI command handlers.
 **Description:** Tool version drift detected.
 
 **Required Fields:**
+
 - `drifted_tools` (list[str]): Names of tools with version drift
 
 **Example:**
+
 ```json
 {
   "event": "cli.guard-rails.drift",
@@ -120,6 +132,7 @@ Events emitted by CLI command handlers.
 **Description:** Release installation command invoked.
 
 **Required Fields:**
+
 - `repository` (str): GitHub repository (owner/repo)
 - `tag` (str): Release tag to install
 - `destination` (Path): Download destination
@@ -132,6 +145,7 @@ Events emitted by CLI command handlers.
 - `max_retries` (int): Maximum retry attempts
 
 **Optional Fields:**
+
 - `sigstore_identity` (str): Expected Sigstore identity pattern
 
 #### `cli.release.install.complete`
@@ -139,6 +153,7 @@ Events emitted by CLI command handlers.
 **Description:** Release installation command completed.
 
 **Required Fields:**
+
 - `repository` (str): GitHub repository
 - `tag` (str): Release tag installed
 - `asset` (str): Asset name installed
@@ -149,6 +164,7 @@ Events emitted by CLI command handlers.
 **Description:** Temporary release archive removed after installation.
 
 **Required Fields:**
+
 - `archive` (Path): Path to removed archive
 
 ### Cleanup Engine Events
@@ -160,6 +176,7 @@ Events emitted by the cleanup engine during workspace cleaning.
 **Description:** Cleanup engine starting sweep across search roots.
 
 **Required Fields:**
+
 - `search_roots` (list[Path]): Directories to search
 - `include_git` (bool): Clean .git directories
 - `include_poetry_env` (bool): Clean Poetry environments
@@ -174,12 +191,14 @@ Events emitted by the cleanup engine during workspace cleaning.
 **Description:** Cleanup engine completed sweep.
 
 **Required Fields:**
+
 - `removed` (int): Paths removed
 - `skipped` (int): Paths skipped
 - `errors` (int): Errors encountered
 - `dry_run` (bool): Was dry run
 
 **Optional Fields:**
+
 - `audit_manifest` (Path): Audit manifest location
 
 #### `cleanup.path.skipped`
@@ -187,6 +206,7 @@ Events emitted by the cleanup engine during workspace cleaning.
 **Description:** Cleanup skipped a root path.
 
 **Required Fields:**
+
 - `path` (Path): Path that was skipped
 - `reason` (str): Why it was skipped
 
@@ -195,6 +215,7 @@ Events emitted by the cleanup engine during workspace cleaning.
 **Description:** Cleanup encountered an error while removing a path.
 
 **Required Fields:**
+
 - `path` (Path): Path that caused error
 - `reason` (str): Error description
 
@@ -203,6 +224,7 @@ Events emitted by the cleanup engine during workspace cleaning.
 **Description:** Cleanup previewed removing a path (dry run).
 
 **Required Fields:**
+
 - `path` (Path): Path to be removed
 - `dry_run` (bool): Always true for preview
 
@@ -211,6 +233,7 @@ Events emitted by the cleanup engine during workspace cleaning.
 **Description:** Cleanup removed a path.
 
 **Required Fields:**
+
 - `path` (Path): Path that was removed
 - `dry_run` (bool): Was this a dry run
 
@@ -227,6 +250,7 @@ Events emitted during release asset download and installation.
 **Description:** Release asset selected for download.
 
 **Required Fields:**
+
 - `asset` (str): Asset name
 - `size` (int): Asset size in bytes
 
@@ -235,10 +259,12 @@ Events emitted during release asset download and installation.
 **Description:** Release asset name sanitised before download.
 
 **Required Fields:**
+
 - `original_name` (str): Original asset name from GitHub
 - `sanitised_name` (str): Sanitised filename for filesystem
 
 **Example:**
+
 ```json
 {
   "event": "release.asset.sanitised",
@@ -252,6 +278,7 @@ Events emitted during release asset download and installation.
 **Description:** Locating checksum manifest for release asset.
 
 **Required Fields:**
+
 - `pattern` (str): Glob pattern used to find manifest
 
 #### `release.manifest.download`
@@ -259,6 +286,7 @@ Events emitted during release asset download and installation.
 **Description:** Downloading checksum manifest for release asset.
 
 **Required Fields:**
+
 - `manifest` (str): Manifest filename
 - `destination` (Path): Download location
 
@@ -267,6 +295,7 @@ Events emitted during release asset download and installation.
 **Description:** Checksum manifest verified against downloaded asset.
 
 **Required Fields:**
+
 - `asset` (str): Asset filename
 - `digest` (str): SHA-256 digest that was verified
 
@@ -275,6 +304,7 @@ Events emitted during release asset download and installation.
 **Description:** Checksum verification intentionally skipped.
 
 **Required Fields:**
+
 - `asset` (str): Asset for which verification was skipped
 
 #### `release.download.start`
@@ -282,10 +312,12 @@ Events emitted during release asset download and installation.
 **Description:** Starting download of release asset.
 
 **Required Fields:**
+
 - `asset` (str): Asset to download
 - `destination` (Path): Download location
 
 **Optional Fields:**
+
 - `overwrite` (bool): Whether existing file will be overwritten
 
 #### `release.download.complete`
@@ -293,6 +325,7 @@ Events emitted during release asset download and installation.
 **Description:** Release asset downloaded successfully.
 
 **Required Fields:**
+
 - `asset` (str): Downloaded asset
 - `destination` (Path): Final location
 
@@ -301,11 +334,13 @@ Events emitted during release asset download and installation.
 **Description:** Network retry triggered while fetching release metadata.
 
 **Required Fields:**
+
 - `url` (str): URL being fetched
 - `attempt` (int): Current attempt number
 - `max_retries` (int): Maximum attempts allowed
 
 **Optional Fields:**
+
 - `reason` (str): Reason for retry
 - `backoff_seconds` (float): Backoff delay
 - `description` (str): Additional context
@@ -315,11 +350,13 @@ Events emitted during release asset download and installation.
 **Description:** HTTP retry triggered during asset download.
 
 **Required Fields:**
+
 - `url` (str): URL being downloaded
 - `attempt` (int): Current attempt
 - `max_retries` (int): Maximum attempts
 
 **Optional Fields:**
+
 - `http_status` (int): HTTP status code
 - `backoff_seconds` (float): Backoff delay
 - `description` (str): Additional context
@@ -329,6 +366,7 @@ Events emitted during release asset download and installation.
 **Description:** Locating Sigstore bundle for attestation verification.
 
 **Required Fields:**
+
 - `pattern` (str): Glob pattern for bundle
 
 #### `release.sigstore.download`
@@ -336,6 +374,7 @@ Events emitted during release asset download and installation.
 **Description:** Downloading Sigstore bundle for attestation verification.
 
 **Required Fields:**
+
 - `bundle` (str): Bundle filename
 - `destination` (Path): Download location
 
@@ -344,6 +383,7 @@ Events emitted during release asset download and installation.
 **Description:** Sigstore bundle missing from release.
 
 **Required Fields:**
+
 - `pattern` (str): Pattern that didn't match any bundles
 
 #### `release.sigstore.verified`
@@ -351,11 +391,13 @@ Events emitted during release asset download and installation.
 **Description:** Sigstore attestation verified successfully.
 
 **Required Fields:**
+
 - `subject` (str): Certificate subject
 - `issuer` (str): Certificate issuer
 - `identities` (tuple[str]): Verified identities
 
 **Example:**
+
 ```json
 {
   "event": "release.sigstore.verified",
@@ -370,9 +412,11 @@ Events emitted during release asset download and installation.
 **Description:** Extracting downloaded release archive.
 
 **Required Fields:**
+
 - `destination` (Path): Extraction destination
 
 **Optional Fields:**
+
 - `overwrite` (bool): Whether to overwrite existing files
 
 #### `release.extract.complete`
@@ -380,6 +424,7 @@ Events emitted during release asset download and installation.
 **Description:** Extraction of release archive completed.
 
 **Required Fields:**
+
 - `destination` (Path): Where archive was extracted
 
 #### `release.install.start`
@@ -387,11 +432,13 @@ Events emitted during release asset download and installation.
 **Description:** Starting installation of wheels from directory.
 
 **Required Fields:**
+
 - `wheels` (int): Number of wheel files found
 - `directory` (Path): Directory containing wheels
 - `upgrade` (bool): Whether to upgrade existing packages
 
 **Optional Fields:**
+
 - `python_executable` (str): Python interpreter being used
 
 #### `release.install.invoke`
@@ -399,6 +446,7 @@ Events emitted during release asset download and installation.
 **Description:** Invoking pip install command.
 
 **Required Fields:**
+
 - `command` (list[str]): Full pip command being executed
 
 #### `release.install.complete`
@@ -406,6 +454,7 @@ Events emitted during release asset download and installation.
 **Description:** Completed installation of wheels from directory.
 
 **Required Fields:**
+
 - `wheels` (int): Number of wheels installed
 - `directory` (Path): Source directory
 
@@ -470,11 +519,13 @@ with telemetry.operation_context(
 Events can be output in text or JSON format:
 
 **Text format** (human-readable):
+
 ```
 INFO hephaestus.release: Downloading release asset | event=release.download.start asset=wheelhouse.tar.gz destination=/cache/wheelhouse.tar.gz
 ```
 
 **JSON format** (machine-parseable):
+
 ```json
 {
   "timestamp": "2025-01-11T12:34:56.789Z",

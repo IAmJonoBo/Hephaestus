@@ -52,7 +52,9 @@ workspace_root = "."
 [tool.pytest.ini_options]
 addopts = "-ra --cov=src/hephaestus --cov-report=term-missing --cov-report=xml"
 pythonpath = ["src"]
-filterwarnings = ["error"]  # Frontier standard: treat all warnings as errors to prevent quality degradation
+filterwarnings = [
+  "error",
+] # Frontier standard: treat all warnings as errors to prevent quality degradation
 
 [tool.black]
 line-length = 100
@@ -64,8 +66,15 @@ src = ["src", "tests", "hephaestus-toolkit"]
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "C4"]  # Frontier linting profile: errors, imports, upgrades, bugs, comprehensions
-ignore = ["E501"]  # Line length handled by ruff format
+select = [
+  "E",
+  "F",
+  "I",
+  "UP",
+  "B",
+  "C4",
+] # Frontier linting profile: errors, imports, upgrades, bugs, comprehensions
+ignore = ["E501"] # Line length handled by ruff format
 
 [tool.ruff.format]
 quote-style = "double"
@@ -82,9 +91,9 @@ warn_unused_configs = true
 mypy_path = ["src"]
 
 [tool.coverage.run]
-branch = true  # Enable branch coverage analysis
+branch = true               # Enable branch coverage analysis
 source = ["src/hephaestus"]
 
 [tool.coverage.report]
-fail_under = 85  # Frontier standard: minimum 85% test coverage
-show_missing = true  # Show lines not covered by tests
+fail_under = 85     # Frontier standard: minimum 85% test coverage
+show_missing = true # Show lines not covered by tests

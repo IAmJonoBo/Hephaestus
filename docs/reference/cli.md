@@ -89,11 +89,11 @@ Summarise advisory refactor opportunities with estimated effort.
 
 Rank modules by refactoring priority using analytics data. Requires analytics sources to be configured.
 
-| Option        | Values                                                   | Description                                                |
-| ------------- | -------------------------------------------------------- | ---------------------------------------------------------- |
-| `--strategy`  | `risk_weighted`, `coverage_first`, `churn_based`, `composite` | Ranking algorithm to apply (default: `risk_weighted`). |
-| `--limit`     | INTEGER                                                  | Maximum number of ranked modules to display (default: 20). |
-| `--config`    | PATH                                                     | Load alternate configuration.                              |
+| Option       | Values                                                        | Description                                                |
+| ------------ | ------------------------------------------------------------- | ---------------------------------------------------------- |
+| `--strategy` | `risk_weighted`, `coverage_first`, `churn_based`, `composite` | Ranking algorithm to apply (default: `risk_weighted`).     |
+| `--limit`    | INTEGER                                                       | Maximum number of ranked modules to display (default: 20). |
+| `--config`   | PATH                                                          | Load alternate configuration.                              |
 
 **Strategies:**
 
