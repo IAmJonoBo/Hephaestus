@@ -92,7 +92,16 @@ def extract_command_schemas(app: typer.Typer, parent: str | None = None) -> list
     if hasattr(app, "registered_groups"):
         for group_info in app.registered_groups:
             group_app = group_info.typer_instance
+            # Skip if group_app is None
+            if group_app is None:
+                continue
+
             group_name = group_info.name
+
+            # Skip if group_name is a DefaultPlaceholder
+            if isinstance(group_name, typer.models.DefaultPlaceholder):
+                group_name = "unnamed"
+
             full_group_name = f"{parent} {group_name}" if parent else group_name
 
             # Recursively extract subcommands
@@ -109,7 +118,7 @@ def _extract_parameters(command: Any, command_info: Any) -> list[ParameterSchema
     # Get function signature
     try:
         sig = inspect.signature(command)
-        type_hints = get_type_hints(command)
+        type_hints = get_type_hints(command, include_extras=True)
     except (ValueError, TypeError):
         return parameters
 
@@ -160,12 +169,12 @@ def _format_type(type_annotation: Any) -> str:
     if hasattr(type_annotation, "__origin__"):
         origin = type_annotation.__origin__
         if origin is not None:
-            origin_name = getattr(origin, "__name__", str(origin))
+            origin_name: str = getattr(origin, "__name__", str(origin))
             return origin_name.lower()
 
     # Handle basic types
     if hasattr(type_annotation, "__name__"):
-        return type_annotation.__name__.lower()
+        return str(type_annotation.__name__).lower()
 
     return str(type_annotation)
 
