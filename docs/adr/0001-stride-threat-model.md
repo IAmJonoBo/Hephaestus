@@ -289,30 +289,30 @@ This document applies the STRIDE threat modeling framework to identify security 
 ### Data Protection
 
 - [x] HTTPS for all network traffic
-- [ ] SHA-256 checksum verification for downloads
-- [ ] Sigstore attestation validation
-- [ ] Token redaction in logs
+- [x] SHA-256 checksum verification for downloads
+- [x] Sigstore attestation validation
+- [x] Token redaction in logs
 
 ### Input Validation
 
 - [x] Type validation via typer
-- [ ] Path sanitization and validation
-- [ ] URL validation (scheme, domain allowlist)
-- [ ] Asset filename sanitization
+- [x] Path sanitization and validation
+- [x] URL validation (scheme, domain allowlist)
+- [x] Asset filename sanitization
 
 ### Audit & Monitoring
 
-- [ ] Structured logging (JSON format)
-- [ ] Audit trail for destructive operations
-- [ ] Release installation history
-- [ ] Telemetry with privacy controls
+- [x] Structured logging (JSON format)
+- [x] Audit trail for destructive operations
+- [x] Release installation history
+- [ ] Telemetry with privacy controls (planned Q2 2025, ADR-0003)
 
 ### Error Handling
 
 - [x] User-friendly error messages
-- [ ] No sensitive data in errors
-- [ ] Graceful degradation on failures
-- [ ] Circuit breaker for repeated failures
+- [x] No sensitive data in errors
+- [x] Graceful degradation on failures
+- [x] Circuit breaker for repeated failures
 
 ## Secure Coding Practices
 
@@ -324,26 +324,26 @@ This document applies the STRIDE threat modeling framework to identify security 
 
 ## Implementation Roadmap
 
-### Phase 1: Critical Security (High Priority)
+### Phase 1: Critical Security (High Priority) ✅ COMPLETE
 
-- [ ] Implement checksum verification for releases
-- [ ] Add dangerous path blocklist for cleanup
-- [ ] Sanitize release asset filenames
-- [ ] Add token redaction in logs
+- [x] Implement checksum verification for releases
+- [x] Add dangerous path blocklist for cleanup
+- [x] Sanitize release asset filenames
+- [x] Add token redaction in logs
 
-### Phase 2: Hardening (Medium Priority)
+### Phase 2: Hardening (Medium Priority) ✅ COMPLETE
 
-- [ ] Implement structured JSON logging
-- [ ] Add exponential backoff and circuit breakers
-- [ ] Create dry-run mode for cleanup
-- [ ] Add confirmation prompts for risky operations
+- [x] Implement structured JSON logging
+- [x] Add exponential backoff and circuit breakers
+- [x] Create dry-run mode for cleanup
+- [x] Add confirmation prompts for risky operations
 
 ### Phase 3: Advanced Features (Low Priority)
 
-- [ ] Sigstore attestation validation
-- [ ] Certificate pinning
-- [ ] Privacy-preserving telemetry
-- [ ] Automated security testing in CI
+- [x] Sigstore attestation validation
+- [ ] Certificate pinning (deferred - not required for current threat model)
+- [ ] Privacy-preserving telemetry (planned Q2 2025, see ADR-0003)
+- [x] Automated security testing in CI (CodeQL implemented)
 
 ## Review & Updates
 
