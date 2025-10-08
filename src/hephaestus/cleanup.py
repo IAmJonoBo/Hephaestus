@@ -282,11 +282,12 @@ def resolve_root(root: Path | None) -> Path:
             check=True,
             capture_output=True,
             text=True,
+            timeout=10,
         )
         output = completed.stdout.strip()
         if output:
             return Path(output)
-    except (subprocess.SubprocessError, FileNotFoundError):
+    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired):
         pass
 
     return Path.cwd().resolve()
@@ -386,13 +387,14 @@ def _discover_poetry_environment() -> Path | None:
             check=True,
             capture_output=True,
             text=True,
+            timeout=10,
         )
         candidate = completed.stdout.strip()
         if candidate:
             path = Path(candidate)
             if path.exists():
                 return path.resolve()
-    except (subprocess.SubprocessError, FileNotFoundError):
+    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired):
         return None
     return None
 
@@ -650,9 +652,12 @@ def _unlock_path(path: Path) -> bool:
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            timeout=30,
         )
         unlocked = unlocked or completed.returncode == 0
     except FileNotFoundError:  # pragma: no cover - chflags missing on non-macOS platforms
+        return False
+    except subprocess.TimeoutExpired:  # pragma: no cover - defensive timeout
         return False
 
     try:
@@ -661,8 +666,11 @@ def _unlock_path(path: Path) -> bool:
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            timeout=30,
         )
     except FileNotFoundError:  # pragma: no cover - xattr missing on some macOS installs
+        pass
+    except subprocess.TimeoutExpired:  # pragma: no cover - defensive timeout
         pass
 
     return unlocked
