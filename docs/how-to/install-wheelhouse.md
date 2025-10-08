@@ -16,7 +16,7 @@ source tree or publishing to PyPI.
 
 ## 2. Install via the CLI (Recommended)
 
-The CLI handles download, extraction, and installation.
+The CLI handles download, extraction, checksum verification, and installation.
 
 ```bash
 uv run hephaestus release install --tag <tag> --cleanup --remove-archive
@@ -25,6 +25,12 @@ uv run hephaestus release install --tag <tag> --cleanup --remove-archive
 - `--tag <tag>`: optional; defaults to the latest release.
 - `--cleanup`: removes the extracted wheelhouse directory after successful install.
 - `--remove-archive`: deletes the downloaded archive to keep caches tidy.
+- `--manifest-pattern`: override if your release uploads checksum manifests with a different name.
+- `--allow-unsigned`: opt out of checksum verification (not recommended except for trusted mirrors).
+
+By default the CLI requires a checksum manifest (matching `*wheelhouse*.sha256`) to be present in the
+release and fails closed if verification does not succeed. Store manifests next to the wheelhouse
+archives in GitHub Releases to keep installation automated and tamper-evident.
 
 To target a specific repository or self-hosted release mirror, override the repository and asset
 pattern:
@@ -71,6 +77,8 @@ uv run hephaestus version
 | Symptom                                    | Fix                                                                 |
 | ------------------------------------------ | ------------------------------------------------------------------- |
 | `ReleaseError: asset not found`            | Check the `--asset-pattern` or confirm the release tag exists.      |
+| `Checksum manifest could not be found`     | Upload the `*.sha256` manifest next to the wheelhouse asset or use `--allow-unsigned`. |
+| `Checksum verification failed`             | Re-upload the wheelhouse and manifest pair; ensure digests match exactly. |
 | `pip` times out or fails due to networking | Pre-download the archive and use the manual install path.           |
 | `wheel directory ... does not exist`       | Ensure the tarball extracted correctly and includes `*.whl` files.  |
 | Import errors after install                | Activate the environment you installed into before running commands |

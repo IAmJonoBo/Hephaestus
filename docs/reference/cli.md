@@ -9,6 +9,9 @@ This reference documents the top-level `hephaestus` commands and their most impo
 uv run hephaestus [OPTIONS] COMMAND [ARGS]...
 ```
 
+- `--log-format [text|json]`: Emit human-readable or JSON logs for automation pipelines.
+- `--log-level [CRITICAL|ERROR|WARNING|INFO|DEBUG]`: Control verbosity for toolkit logs.
+- `--run-id TEXT`: Attach a correlation identifier to every structured log event.
 - `--install-completion`, `--show-completion`: Manage shell completions.
 - `--help`: Display help text for any command.
 
@@ -63,13 +66,17 @@ Download and install a wheelhouse archive. Important options:
 | `--tag TAG`               | Release tag to download (defaults to latest).                       |
 | `--asset-pattern GLOB`    | Glob pattern used to locate the wheelhouse asset.                   |
 | `--destination PATH`      | Directory for downloaded archives (defaults to the platform cache). |
+| `--manifest-pattern GLOB` | Glob used to locate the checksum manifest (defaults to `*wheelhouse*.sha256`). |
 | `--token TEXT`            | GitHub token for private releases (falls back to `GITHUB_TOKEN`).   |
+| `--timeout FLOAT`         | Network timeout in seconds for API and download calls.              |
+| `--max-retries INTEGER`   | Maximum retry attempts for API and download calls.                  |
 | `--python PATH`           | Python executable used to invoke `pip install`.                     |
 | `--pip-arg ARG`           | Additional arguments forwarded to pip (repeatable).                 |
 | `--no-upgrade`            | Do not pass `--upgrade` to pip.                                     |
 | `--overwrite`             | Replace existing files when downloading or extracting.              |
 | `--cleanup`               | Remove the extracted wheelhouse after installation completes.       |
 | `--remove-archive`        | Delete the downloaded archive after successful install.             |
+| `--allow-unsigned`        | Skip checksum verification (not recommended).                        |
 
 ## Environment Variables
 
@@ -77,6 +84,7 @@ Download and install a wheelhouse archive. Important options:
 | ---------------------------------- | -------------------------------------------------------------- |
 | `HEPHAESTUS_RELEASE_REPOSITORY`    | Default repository override for release downloads.             |
 | `HEPHAESTUS_RELEASE_ASSET_PATTERN` | Default asset glob for wheelhouse selection.                   |
+| `HEPHAESTUS_RELEASE_MANIFEST_PATTERN` | Default checksum manifest glob for verification.           |
 | `HEPHAESTUS_RELEASE_CACHE`         | Override the destination directory for downloaded wheelhouses. |
 | `GITHUB_TOKEN`                     | Bearer token used for authenticated release downloads.         |
 

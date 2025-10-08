@@ -1,6 +1,6 @@
 # Next Steps Tracker
 
-Last updated: 2025-01-08
+Last updated: 2025-01-08 (structured logging instrumentation and CLI observability)
 
 ## Recent Improvements (Latest Session)
 
@@ -9,16 +9,31 @@ Last updated: 2025-01-08
 - ✅ Extra paths validation: Added dangerous path checks for `--extra-path` arguments
 - ✅ Parameter validation: Added timeout and max_retries validation in release functions
 - ✅ Status updates: Marked completed red team findings as Complete in tracker
+- ✅ Sanitisation hardening: Asset name sanitiser now rejects bare `.`/`..` inputs and logs rewrites
+- ✅ Checksum enforcement: Wheelhouse downloads now require SHA-256 manifests unless explicitly opted out
 
 **Observability Improvements:**
 
 - ✅ Enhanced logging: Added info-level logging for release download/install operations
 - ✅ Error handling: Improved guard-rails error reporting with clear failure messages
+- ✅ Frontier audit doc: Authored comprehensive red team & gap analysis and published via MkDocs nav
+- ✅ Structured logging: Introduced run ID-aware JSON/text emitters with CLI switches and release/cleanup event coverage
 
 **Testing:**
 
 - ✅ Added tests for extra_paths dangerous path validation
 - ✅ Added tests for timeout and max_retries parameter validation
+- ✅ Added release retry propagation, sanitisation edge cases, and timeout coverage tests
+- ✅ Added checksum manifest happy-path, mismatch, bypass, and missing-manifest coverage
+- ✅ Added structured logging regression tests covering JSON/text output and context binding
+
+## Baseline Validation (current session)
+
+- ✅ `uv run pytest` (60 passed, coverage 86.60%)
+- ✅ `uv run ruff check .`
+- ✅ `uv run mypy src tests`
+- ⚠️ `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (fails: SSL trust chain unavailable in container)
+- ✅ `uv run uv build`
 
 ## Implementation Status Summary
 
@@ -40,7 +55,7 @@ Last updated: 2025-01-08
 - ✅ Documentation comprehensive and up-to-date
 - ✅ Asset name sanitization implemented and tested
 - ✅ Basic logging added for release operations (fetch, download, install)
-- 🔄 Structured JSON logging/telemetry (planned for Q2)
+- 🔄 Structured JSON logging shipped; telemetry spans planned for Q2
 
 **Low Priority (Operational Excellence):**
 
@@ -75,7 +90,7 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 ## Action Queue
 
 1. **Secure the release channel** – land checksum/signature verification and timeout/backoff handling, then backfill signed artefacts for historical releases.
-   - [ ] Implement SHA-256 checksum verification for wheelhouse downloads
+   - [x] Implement SHA-256 checksum verification for wheelhouse downloads
    - [ ] Add Sigstore attestation support
    - [x] Enhance timeout/backoff handling with exponential backoff (Complete)
 2. **Ship cleanup safety rails** – introduce protective defaults and update docs/tests to demonstrate safe usage.
@@ -105,3 +120,62 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 6. **Resynchronise with upstream** – fetch and merge `origin/main` to reconcile CLI and release command divergences before landing further changes.
    - [x] Working from grafted main branch
    - [ ] Final sync before merge
+7. **Operational telemetry & AI readiness** – execute follow-ups from the frontier red team gap analysis.
+   - [x] Publish frontier red team & gap analysis doc (docs/explanation/frontier-red-team-gap-analysis.md)
+   - [x] Ship structured JSON logging + run IDs across CLI, release, and cleanup
+   - [ ] Add cleanup dry-run previews, confirmations, and audit manifests
+   - [ ] Replace synthetic analytics with pluggable churn/coverage/embedding adapters
+   - [ ] Expose an API surface (REST/gRPC) for AI/automation clients with policy guard rails
+
+---
+
+## Tasks
+
+- [ ] (Tooling, due 2025-01-31) Implement SHA-256 checksum verification + fail-closed wheelhouse installs
+  - Status: ✅ Delivered this pass; verification now required unless `--allow-unsigned`
+- [ ] (DX, due 2025-01-31) Add cleanup dry-run previews, confirmations, and audit manifests
+- [ ] (Platform, due 2025-02-15) Ship structured JSON logging and OpenTelemetry spans across CLI/release/cleanup *(logging complete; spans pending)*
+- [ ] (AI Insights, due 2025-03-01) Replace synthetic analytics with churn/coverage/embedding adapters and ranking API
+- [ ] (Platform AI, due 2025-03-15) Expose secured REST/gRPC endpoints for AI/automation clients with policy guard rails
+
+## Steps
+
+- [x] Extend release tests to cover retry/backoff propagation and sanitisation edge cases
+- [ ] Design telemetry schema + correlation strategy for structured logging rollout
+- [ ] Draft UX spec for cleanup dry-run + confirmation workflow
+- [ ] Evaluate Sigstore tooling + release pipeline hooks for artifact attestation
+- [ ] Prototype analytics ingestion adapters against representative repositories
+
+## Deliverables
+
+- [x] Frontier red team & gap analysis documentation (docs/explanation/frontier-red-team-gap-analysis.md)
+- [x] Strengthened release regression suite (tests/test_release.py)
+- [x] Structured logging instrumentation across CLI/release/cleanup (src/hephaestus/logging.py, tests/test_logging.py)
+- [ ] Implementation PR for checksum verification + manifest management
+- [ ] Cleanup safety UX spec & implementation plan
+- [ ] Telemetry instrumentation plan + dashboards for guard-rail health
+
+## Quality Gates
+
+- [x] Tests: `uv run pytest`
+- [x] Lint: `uv run ruff check .`
+- [x] Types: `uv run mypy src tests`
+- [ ] Security: `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (fails: SSL trust chain unavailable in container)
+- [x] Coverage ≥ 85% (enforced by pytest-cov)
+- [x] Build artefacts: `uv run uv build`
+
+## Links
+
+- Release helpers: src/hephaestus/release.py
+- Cleanup engine: src/hephaestus/cleanup.py
+- CLI entrypoint: src/hephaestus/cli.py
+- Logging utilities: src/hephaestus/logging.py
+- Regression suites: tests/test_release.py, tests/test_cleanup.py
+- Frontier analysis doc: docs/explanation/frontier-red-team-gap-analysis.md
+
+## Risks / Notes
+
+- pip-audit currently blocked by SSL trust chain inside container; rerun in CI or with configured cert bundle
+- Supply-chain verification (checksums + Sigstore) remains the top open security risk
+- Telemetry backlog blocks observability-driven SLOs; prioritise instrumentation once logging design is ready
+- Cleanup dry-run UX needed before enabling automation in wider environments

@@ -2,19 +2,20 @@
 
 from __future__ import annotations
 
+import logging
 import subprocess
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, cast
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from hephaestus import __version__
+from hephaestus import __version__, toolbox
 from hephaestus import cleanup as cleanup_module
+from hephaestus import logging as logging_utils
 from hephaestus import planning as planning_module
 from hephaestus import release as release_module
-from hephaestus import toolbox
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
 tools_app = typer.Typer(name="tools", help="Toolkit command groups.", no_args_is_help=True)
@@ -30,6 +31,65 @@ app.add_typer(tools_app)
 app.add_typer(release_app)
 
 console = Console()
+
+
+logger = logging.getLogger(__name__)
+
+
+LOG_FORMAT_CHOICES = ("text", "json")
+LOG_LEVEL_CHOICES = ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG")
+
+
+@app.callback()
+def main(
+    log_format: Annotated[
+        str,
+        typer.Option(
+            "--log-format",
+            help="Output format for logs emitted by the toolkit.",
+            show_default=True,
+            case_sensitive=False,
+            rich_help_panel="Observability",
+        ),
+    ] = "text",
+    log_level: Annotated[
+        str,
+        typer.Option(
+            "--log-level",
+            help="Minimum severity for log output.",
+            show_default=True,
+            case_sensitive=False,
+            rich_help_panel="Observability",
+        ),
+    ] = "INFO",
+    run_id: Annotated[
+        str | None,
+        typer.Option(
+            "--run-id",
+            help="Identifier used to correlate logs across distributed runs.",
+            rich_help_panel="Observability",
+        ),
+    ] = None,
+) -> None:
+    """Initialise structured logging before executing subcommands."""
+
+    normalized_format = log_format.lower()
+    if normalized_format not in LOG_FORMAT_CHOICES:
+        raise typer.BadParameter(
+            f"Invalid log format {log_format!r}. Choose from: {', '.join(LOG_FORMAT_CHOICES)}."
+        )
+
+    normalized_level = log_level.upper()
+    if normalized_level not in LOG_LEVEL_CHOICES:
+        raise typer.BadParameter(
+            f"Invalid log level {log_level!r}. Choose from: {', '.join(LOG_LEVEL_CHOICES)}."
+        )
+
+    normalized_format_literal = cast(logging_utils.LogFormat, normalized_format)
+
+    logging_utils.configure_logging(
+        log_format=normalized_format_literal, level=normalized_level, run_id=run_id
+    )
 
 
 @release_app.command("install")
@@ -55,6 +115,14 @@ def release_install(
             show_default=True,
         ),
     ] = release_module.DEFAULT_ASSET_PATTERN,
+    manifest_pattern: Annotated[
+        str,
+        typer.Option(
+            "--manifest-pattern",
+            help="Glob used to locate the checksum manifest for verification.",
+            show_default=True,
+        ),
+    ] = release_module.DEFAULT_MANIFEST_PATTERN,
     destination: Annotated[
         Path | None,
         typer.Option(
@@ -131,20 +199,43 @@ def release_install(
             show_default=False,
         ),
     ] = False,
+    allow_unsigned: Annotated[
+        bool,
+        typer.Option(
+            "--allow-unsigned",
+            help="Skip checksum verification (not recommended).",
+            show_default=False,
+        ),
+    ] = False,
 ) -> None:
     """Download the Hephaestus wheelhouse and install it into the current environment."""
 
     destination = (
         destination.expanduser() if destination else release_module.DEFAULT_DOWNLOAD_DIRECTORY
     )
+    logging_utils.log_event(
+        logger,
+        "cli.release.install.start",
+        message="Starting release install",
+        repository=repository,
+        tag=tag or "latest",
+        destination=str(destination),
+        allow_unsigned=allow_unsigned,
+        asset_pattern=asset_pattern,
+        manifest_pattern=manifest_pattern,
+        timeout=timeout,
+        max_retries=max_retries,
+    )
     download = release_module.download_wheelhouse(
         repository=repository,
         destination_dir=destination,
         tag=tag,
         asset_pattern=asset_pattern,
+        manifest_pattern=manifest_pattern,
         token=token,
         overwrite=overwrite,
         extract=False,
+        allow_unsigned=allow_unsigned,
         timeout=timeout,
         max_retries=max_retries,
     )
@@ -159,10 +250,25 @@ def release_install(
 
     if remove_archive:
         download.archive_path.unlink(missing_ok=True)
+        logging_utils.log_event(
+            logger,
+            "cli.release.install.archive-removed",
+            message="Removed downloaded archive",
+            archive=str(download.archive_path),
+        )
 
     console.print(
         "[green]Installed wheelhouse[/green] "
         f"{download.asset.name} from [cyan]{repository}[/cyan] (tag: {tag or 'latest'})."
+    )
+    logging_utils.log_event(
+        logger,
+        "cli.release.install.complete",
+        message="Release install completed",
+        repository=repository,
+        tag=tag or "latest",
+        asset=download.asset.name,
+        allow_unsigned=allow_unsigned,
     )
 
 
@@ -326,6 +432,20 @@ def cleanup(
 
     removal_log: list[Path] = []
 
+    logging_utils.log_event(
+        logger,
+        "cli.cleanup.start",
+        message="Starting cleanup command",
+        root=str(root) if root else None,
+        include_git=include_git,
+        include_poetry_env=include_poetry_env,
+        python_cache=python_cache,
+        build_artifacts=build_artifacts,
+        node_modules=node_modules,
+        deep_clean=deep_clean,
+        extra_paths=[str(path) for path in extra_paths or []],
+    )
+
     def _on_remove(path: Path) -> None:
         removal_log.append(path)
         console.print(f"[green]- removed[/green] {path}")
@@ -336,6 +456,13 @@ def cleanup(
     result = cleanup_module.run_cleanup(options, on_remove=_on_remove, on_skip=_on_skip)
 
     if result.errors:
+        logging_utils.log_event(
+            logger,
+            "cli.cleanup.failed",
+            level=logging.ERROR,
+            message="Cleanup encountered errors",
+            errors=[{"path": str(path), "reason": message} for path, message in result.errors],
+        )
         error_table = Table(title="Cleanup Errors")
         error_table.add_column("Path", style="red")
         error_table.add_column("Reason", style="white")
@@ -356,6 +483,15 @@ def cleanup(
         console.print("[blue]No files required removal; workspace already clean.[/blue]")
     else:
         console.print("[green]Cleanup completed successfully.[/green]")
+
+    logging_utils.log_event(
+        logger,
+        "cli.cleanup.complete",
+        message="Cleanup command finished",
+        removed=len(result.removed_paths),
+        skipped=len(result.skipped_roots),
+        errors=len(result.errors),
+    )
 
 
 @app.command()
@@ -386,6 +522,12 @@ def guard_rails(
     """Run the full guard-rail pipeline: cleanup, lint, format, typecheck, test, and audit."""
 
     console.print("[cyan]Running guard rails...[/cyan]")
+    logging_utils.log_event(
+        logger,
+        "cli.guard-rails.start",
+        message="Running guard rails",
+        skip_format=no_format,
+    )
 
     try:
         # Step 1: Deep clean workspace
@@ -415,10 +557,24 @@ def guard_rails(
         )
 
         console.print("\n[green]✓ Guard rails completed successfully.[/green]")
+        logging_utils.log_event(
+            logger,
+            "cli.guard-rails.complete",
+            message="Guard rails completed successfully",
+            skip_format=no_format,
+        )
 
     except subprocess.CalledProcessError as exc:
         console.print(f"\n[red]✗ Guard rails failed at: {exc.cmd[0]}[/red]")
         console.print(f"[yellow]Exit code: {exc.returncode}[/yellow]")
+        logging_utils.log_event(
+            logger,
+            "cli.guard-rails.failed",
+            level=logging.ERROR,
+            message="Guard rails failed",
+            step=exc.cmd[0],
+            returncode=exc.returncode,
+        )
         raise typer.Exit(code=exc.returncode) from exc
 
 
