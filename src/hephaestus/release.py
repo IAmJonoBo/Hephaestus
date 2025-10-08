@@ -7,6 +7,8 @@ helpers work on Linux, macOS, and Windows runners without extra dependencies.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import json
 import logging
@@ -25,13 +27,18 @@ from fnmatch import fnmatch
 from pathlib import Path, PurePosixPath
 from typing import IO, cast
 
-from hephaestus.logging import log_context, log_event
+from cryptography import x509
+from cryptography.x509.oid import ExtensionOID
+
+from hephaestus import telemetry
+from hephaestus.logging import log_context
 
 __all__ = [
     "DEFAULT_ASSET_PATTERN",
     "DEFAULT_REPOSITORY",
     "DEFAULT_DOWNLOAD_DIRECTORY",
     "DEFAULT_MANIFEST_PATTERN",
+    "DEFAULT_SIGSTORE_BUNDLE_PATTERN",
     "DEFAULT_TIMEOUT",
     "DEFAULT_MAX_RETRIES",
     "ReleaseDownload",
@@ -47,6 +54,9 @@ DEFAULT_REPOSITORY = os.environ.get("HEPHAESTUS_RELEASE_REPOSITORY", "IAmJonoBo/
 DEFAULT_ASSET_PATTERN = os.environ.get("HEPHAESTUS_RELEASE_ASSET_PATTERN", "*wheelhouse*.tar.gz")
 DEFAULT_MANIFEST_PATTERN = os.environ.get(
     "HEPHAESTUS_RELEASE_MANIFEST_PATTERN", "*wheelhouse*.sha256"
+)
+DEFAULT_SIGSTORE_BUNDLE_PATTERN = os.environ.get(
+    "HEPHAESTUS_RELEASE_SIGSTORE_PATTERN", "*wheelhouse*.sigstore"
 )
 
 
@@ -86,6 +96,7 @@ class ReleaseDownload:
     archive_path: Path
     extracted_path: Path | None
     manifest_path: Path | None = None
+    sigstore_path: Path | None = None
 
     @property
     def wheel_directory(self) -> Path:
@@ -94,6 +105,16 @@ class ReleaseDownload:
         if self.extracted_path is not None:
             return self.extracted_path
         return self.archive_path.parent
+
+
+@dataclass(slots=True)
+class SigstoreVerification:
+    """Outcome of verifying a Sigstore bundle."""
+
+    bundle_path: Path
+    certificate_subject: str
+    certificate_issuer: str
+    identities: tuple[str, ...]
 
 
 def default_download_dir() -> Path:
@@ -130,9 +151,9 @@ def _sanitize_asset_name(name: str) -> str:
         raise ReleaseError("Asset name resolved to an empty or unsafe value after sanitisation.")
 
     if candidate != name:
-        log_event(
+        telemetry.emit_event(
             logger,
-            "release.asset.sanitised",
+            telemetry.RELEASE_ASSET_SANITISED,
             level=logging.WARNING,
             message=(
                 f"Sanitised asset name from {name!r} to {candidate!r} to prevent path traversal."
@@ -166,9 +187,9 @@ def _open_with_retries(
         except urllib.error.HTTPError as exc:
             last_error = exc
             if exc.code >= 500 and attempt < max_retries:
-                log_event(
+                telemetry.emit_event(
                     logger,
-                    "release.http.retry",
+                    telemetry.RELEASE_HTTP_RETRY,
                     level=logging.WARNING,
                     message=(
                         f"{description} failed with HTTP {exc.code} on attempt "
@@ -187,9 +208,9 @@ def _open_with_retries(
             last_error = exc
             if attempt >= max_retries:
                 break
-            log_event(
+            telemetry.emit_event(
                 logger,
-                "release.network.retry",
+                telemetry.RELEASE_NETWORK_RETRY,
                 level=logging.WARNING,
                 message=(
                     f"{description} failed on attempt {attempt}/{max_retries}: "
@@ -347,6 +368,123 @@ def _hash_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _decode_sigstore_digest(value: str) -> bytes:
+    try:
+        return base64.b64decode(value, validate=True)
+    except binascii.Error:
+        try:
+            return bytes.fromhex(value)
+        except ValueError as exc:
+            raise ReleaseError("Sigstore bundle contained an invalid digest encoding.") from exc
+
+
+def _load_certificate(raw_bytes: str) -> x509.Certificate:
+    try:
+        decoded = base64.b64decode(raw_bytes, validate=True)
+    except binascii.Error as exc:
+        raise ReleaseError("Sigstore bundle certificate was not valid base64 data.") from exc
+
+    try:
+        return x509.load_der_x509_certificate(decoded)
+    except ValueError as exc:  # pragma: no cover - defensive
+        raise ReleaseError("Unable to parse Sigstore bundle certificate bytes.") from exc
+
+
+def _verify_sigstore_bundle(
+    bundle_path: Path,
+    artifact_path: Path,
+    *,
+    identity_patterns: Sequence[str] | None = None,
+) -> SigstoreVerification:
+    try:
+        payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ReleaseError("Sigstore bundle was not valid JSON.") from exc
+
+    if not isinstance(payload, dict):
+        raise ReleaseError("Sigstore bundle did not contain the expected structure.")
+
+    media_type = str(payload.get("mediaType", ""))
+    if "application/vnd.dev.sigstore.bundle+json" not in media_type:
+        raise ReleaseError("Sigstore bundle media type was not recognised.")
+
+    message_signature = payload.get("messageSignature")
+    if not isinstance(message_signature, dict):
+        raise ReleaseError("Sigstore bundle missing messageSignature section.")
+
+    digest_info = message_signature.get("messageDigest")
+    if not isinstance(digest_info, dict):
+        raise ReleaseError("Sigstore bundle missing messageDigest information.")
+
+    algorithm = str(digest_info.get("algorithm", "")).lower()
+    if algorithm not in {"sha2_256", "sha256"}:
+        raise ReleaseError(f"Unsupported Sigstore digest algorithm: {algorithm or 'unknown'}")
+
+    digest_value = digest_info.get("digest")
+    if not isinstance(digest_value, str) or not digest_value:
+        raise ReleaseError("Sigstore bundle missing digest value.")
+
+    expected_digest = _decode_sigstore_digest(digest_value).hex()
+    actual_digest = _hash_file(artifact_path)
+    if expected_digest != actual_digest:
+        raise ReleaseError("Sigstore bundle digest did not match the downloaded archive.")
+
+    verification_material = payload.get("verificationMaterial", {})
+    if not isinstance(verification_material, dict):
+        raise ReleaseError("Sigstore bundle missing verification material.")
+
+    chain = verification_material.get("x509CertificateChain", {})
+    if not isinstance(chain, dict):
+        raise ReleaseError("Sigstore bundle missing certificate chain information.")
+
+    certificates = chain.get("certificates", [])
+    if not isinstance(certificates, list) or not certificates:
+        raise ReleaseError("Sigstore bundle did not include any certificates.")
+
+    certificate_entry = certificates[0]
+    if not isinstance(certificate_entry, dict):
+        raise ReleaseError("Sigstore certificate entry was malformed.")
+
+    raw_bytes = certificate_entry.get("rawBytes")
+    if not isinstance(raw_bytes, str) or not raw_bytes:
+        raise ReleaseError("Sigstore certificate entry missing rawBytes field.")
+
+    certificate = _load_certificate(raw_bytes)
+
+    subject = certificate.subject.rfc4514_string()
+    issuer = certificate.issuer.rfc4514_string()
+    identities: list[str] = [subject]
+
+    try:
+        san_ext = certificate.extensions.get_extension_for_oid(
+            ExtensionOID.SUBJECT_ALTERNATIVE_NAME
+        )
+    except x509.ExtensionNotFound:
+        san_ext = None
+
+    if san_ext is not None:
+        san = cast(x509.SubjectAlternativeName, san_ext.value)
+        identities.extend(san.get_values_for_type(x509.UniformResourceIdentifier))
+        identities.extend(san.get_values_for_type(x509.RFC822Name))
+
+    deduped_identities = tuple(dict.fromkeys(identities))
+
+    if identity_patterns:
+        if not any(
+            fnmatch(identity, pattern)
+            for identity in deduped_identities
+            for pattern in identity_patterns
+        ):
+            raise ReleaseError("Sigstore identity mismatch for downloaded archive.")
+
+    return SigstoreVerification(
+        bundle_path=bundle_path,
+        certificate_subject=subject,
+        certificate_issuer=issuer,
+        identities=deduped_identities,
+    )
+
+
 def _parse_checksum_manifest(manifest_text: str) -> dict[str, str]:
     checksums: dict[str, str] = {}
     for idx, raw_line in enumerate(manifest_text.splitlines(), start=1):
@@ -356,17 +494,13 @@ def _parse_checksum_manifest(manifest_text: str) -> dict[str, str]:
 
         match = _CHECKSUM_LINE.match(line)
         if not match:
-            raise ReleaseError(
-                f"Invalid checksum manifest entry on line {idx}: {raw_line!r}."
-            )
+            raise ReleaseError(f"Invalid checksum manifest entry on line {idx}: {raw_line!r}.")
 
         digest = match.group("digest").lower()
         asset_name = match.group("name").strip()
         sanitized_name = _sanitize_asset_name(asset_name)
         if sanitized_name in checksums and checksums[sanitized_name] != digest:
-            raise ReleaseError(
-                f"Conflicting checksum entries for {sanitized_name!r} in manifest."
-            )
+            raise ReleaseError(f"Conflicting checksum entries for {sanitized_name!r} in manifest.")
         checksums[sanitized_name] = digest
 
     if not checksums:
@@ -440,9 +574,9 @@ def install_from_directory(
     if not wheels:
         raise ReleaseError(f"No wheel files were found in {wheel_directory}.")
 
-    log_event(
+    telemetry.emit_event(
         logger,
-        "release.install.start",
+        telemetry.RELEASE_INSTALL_START,
         message=f"Installing {len(wheels)} wheel(s) from {wheel_directory}",
         wheels=len(wheels),
         directory=str(wheel_directory),
@@ -458,16 +592,16 @@ def install_from_directory(
         cmd.extend(pip_args)
     cmd.extend(str(wheel) for wheel in wheels)
 
-    log_event(
+    telemetry.emit_event(
         logger,
-        "release.install.invoke",
+        telemetry.RELEASE_INSTALL_INVOKE,
         message="Running pip install command",
         command=cmd,
     )
     subprocess.check_call(cmd)
-    log_event(
+    telemetry.emit_event(
         logger,
-        "release.install.complete",
+        telemetry.RELEASE_INSTALL_COMPLETE,
         message="Installation completed successfully",
         wheels=len(wheels),
         directory=str(wheel_directory),
@@ -481,20 +615,28 @@ def download_wheelhouse(
     tag: str | None = None,
     asset_pattern: str = DEFAULT_ASSET_PATTERN,
     manifest_pattern: str | None = DEFAULT_MANIFEST_PATTERN,
+    sigstore_bundle_pattern: str | None = DEFAULT_SIGSTORE_BUNDLE_PATTERN,
     token: str | None = None,
     overwrite: bool = False,
     extract: bool = True,
     allow_unsigned: bool = False,
+    require_sigstore: bool = False,
+    sigstore_identities: Sequence[str] | None = None,
     extract_dir: Path | None = None,
     timeout: float = DEFAULT_TIMEOUT,
     max_retries: int = DEFAULT_MAX_RETRIES,
 ) -> ReleaseDownload:
     """Download a wheelhouse archive from a GitHub release."""
 
+    if allow_unsigned and require_sigstore:
+        raise ReleaseError(
+            "Sigstore attestation cannot be required when allow_unsigned is enabled."
+        )
+
     with log_context(repository=repository, tag=tag or "latest"):
-        log_event(
+        telemetry.emit_event(
             logger,
-            "release.metadata.fetch",
+            telemetry.RELEASE_METADATA_FETCH,
             message=(
                 f"Fetching release metadata for repository {repository} (tag={tag or 'latest'})"
             ),
@@ -507,9 +649,9 @@ def download_wheelhouse(
             max_retries=max_retries,
         )
         asset = _pick_asset(release_data, asset_pattern)
-        log_event(
+        telemetry.emit_event(
             logger,
-            "release.asset.selected",
+            telemetry.RELEASE_ASSET_SELECTED,
             message=f"Selected asset: {asset.name} (size={asset.size} bytes)",
             asset=asset.name,
             size=asset.size,
@@ -519,9 +661,9 @@ def download_wheelhouse(
     destination_dir.mkdir(parents=True, exist_ok=True)
     archive_path = destination_dir / asset.name
 
-    log_event(
+    telemetry.emit_event(
         logger,
-        "release.download.start",
+        telemetry.RELEASE_DOWNLOAD_START,
         message=f"Downloading asset to {archive_path}",
         asset=asset.name,
         destination=str(archive_path),
@@ -535,23 +677,24 @@ def download_wheelhouse(
         timeout=timeout,
         max_retries=max_retries,
     )
-    log_event(
+    telemetry.emit_event(
         logger,
-        "release.download.complete",
+        telemetry.RELEASE_DOWNLOAD_COMPLETE,
         message="Download completed successfully",
         asset=asset.name,
         destination=str(archive_path),
     )
 
     manifest_path: Path | None = None
+    sigstore_path: Path | None = None
     if not allow_unsigned:
         if not manifest_pattern:
             raise ReleaseError(
                 "Checksum verification requires a manifest pattern when allow_unsigned is False."
             )
-        log_event(
+        telemetry.emit_event(
             logger,
-            "release.manifest.locate",
+            telemetry.RELEASE_MANIFEST_LOCATE,
             message=f"Locating checksum manifest matching {manifest_pattern}",
             pattern=manifest_pattern,
         )
@@ -564,9 +707,9 @@ def download_wheelhouse(
             ) from exc
 
         manifest_path = destination_dir / manifest_asset.name
-        log_event(
+        telemetry.emit_event(
             logger,
-            "release.manifest.download",
+            telemetry.RELEASE_MANIFEST_DOWNLOAD,
             message=f"Downloading checksum manifest to {manifest_path}",
             manifest=manifest_asset.name,
             destination=str(manifest_path),
@@ -580,15 +723,11 @@ def download_wheelhouse(
             max_retries=max_retries,
         )
 
-        manifest_checksums = _parse_checksum_manifest(
-            manifest_path.read_text(encoding="utf-8")
-        )
+        manifest_checksums = _parse_checksum_manifest(manifest_path.read_text(encoding="utf-8"))
 
         expected_digest = manifest_checksums.get(asset.name)
         if expected_digest is None:
-            raise ReleaseError(
-                f"Checksum manifest does not include an entry for {asset.name!r}."
-            )
+            raise ReleaseError(f"Checksum manifest does not include an entry for {asset.name!r}.")
 
         actual_digest = _hash_file(archive_path)
         if actual_digest != expected_digest:
@@ -597,36 +736,94 @@ def download_wheelhouse(
                 f"{asset.name!r}: expected {expected_digest}, got {actual_digest}."
             )
 
-        log_event(
+        telemetry.emit_event(
             logger,
-            "release.manifest.verified",
+            telemetry.RELEASE_MANIFEST_VERIFIED,
             message=f"Checksum verified for {asset.name}",
             asset=asset.name,
+            digest=actual_digest,
         )
+
+        if sigstore_bundle_pattern is not None:
+            telemetry.emit_event(
+                logger,
+                telemetry.RELEASE_SIGSTORE_LOCATE,
+                message=f"Locating Sigstore bundle matching {sigstore_bundle_pattern}",
+                pattern=sigstore_bundle_pattern,
+            )
+            try:
+                sigstore_asset = _pick_asset(release_data, sigstore_bundle_pattern)
+            except ReleaseError as exc:
+                if require_sigstore:
+                    raise ReleaseError(
+                        "Sigstore attestation required but not found; rerun with --allow-unsigned "
+                        "if you explicitly trust the source."
+                    ) from exc
+                telemetry.emit_event(
+                    logger,
+                    telemetry.RELEASE_SIGSTORE_MISSING,
+                    level=logging.WARNING,
+                    message=(
+                        "Sigstore bundle not published for this release; continuing after checksum "
+                        "verification."
+                    ),
+                    pattern=sigstore_bundle_pattern,
+                )
+            else:
+                sigstore_path = destination_dir / sigstore_asset.name
+                telemetry.emit_event(
+                    logger,
+                    telemetry.RELEASE_SIGSTORE_DOWNLOAD,
+                    message=f"Downloading Sigstore bundle to {sigstore_path}",
+                    bundle=sigstore_asset.name,
+                    destination=str(sigstore_path),
+                )
+                _download_asset(
+                    sigstore_asset,
+                    sigstore_path,
+                    token,
+                    overwrite=True,
+                    timeout=timeout,
+                    max_retries=max_retries,
+                )
+
+                verification = _verify_sigstore_bundle(
+                    sigstore_path,
+                    archive_path,
+                    identity_patterns=sigstore_identities,
+                )
+                telemetry.emit_event(
+                    logger,
+                    telemetry.RELEASE_SIGSTORE_VERIFIED,
+                    message="Sigstore attestation verified",
+                    subject=verification.certificate_subject,
+                    issuer=verification.certificate_issuer,
+                    identities=list(verification.identities),
+                )
+        elif require_sigstore:
+            raise ReleaseError("Sigstore attestation required but no bundle pattern was provided.")
     else:
-        log_event(
+        telemetry.emit_event(
             logger,
-            "release.manifest.skipped",
+            telemetry.RELEASE_MANIFEST_SKIPPED,
             level=logging.WARNING,
-            message=(
-                f"Checksum verification disabled for {asset.name}; accepting unsigned asset."
-            ),
+            message=(f"Checksum verification disabled for {asset.name}; accepting unsigned asset."),
             asset=asset.name,
         )
 
     extracted: Path | None = None
     if extract:
-        log_event(
+        telemetry.emit_event(
             logger,
-            "release.extract.start",
+            telemetry.RELEASE_EXTRACT_START,
             message=f"Extracting archive to {extract_dir or destination_dir}",
             destination=str(extract_dir or destination_dir),
             overwrite=overwrite,
         )
         extracted = extract_archive(archive_path, destination=extract_dir, overwrite=overwrite)
-        log_event(
+        telemetry.emit_event(
             logger,
-            "release.extract.complete",
+            telemetry.RELEASE_EXTRACT_COMPLETE,
             message=f"Extraction completed: {extracted}",
             destination=str(extracted),
         )
@@ -636,6 +833,7 @@ def download_wheelhouse(
         archive_path=archive_path,
         extracted_path=extracted,
         manifest_path=manifest_path,
+        sigstore_path=sigstore_path,
     )
 
 

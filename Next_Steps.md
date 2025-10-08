@@ -1,6 +1,6 @@
 # Next Steps Tracker
 
-Last updated: 2025-01-08 (structured logging instrumentation and CLI observability)
+Last updated: 2025-01-11 (Analytics ingestion adapters + telemetry correlation)
 
 ## Recent Improvements (Latest Session)
 
@@ -11,13 +11,17 @@ Last updated: 2025-01-08 (structured logging instrumentation and CLI observabili
 - ✅ Status updates: Marked completed red team findings as Complete in tracker
 - ✅ Sanitisation hardening: Asset name sanitiser now rejects bare `.`/`..` inputs and logs rewrites
 - ✅ Checksum enforcement: Wheelhouse downloads now require SHA-256 manifests unless explicitly opted out
+- ✅ Sigstore attestation verification: Wheelhouse installs now validate Sigstore bundles with optional identity pinning and fail-closed controls
+- ✅ Cleanup UX guard rails: Mandatory dry-run previews, typed confirmation for out-of-root targets, and JSON audit manifests shipped
 
-**Observability Improvements:**
+**Observability & Intelligence Improvements:**
 
 - ✅ Enhanced logging: Added info-level logging for release download/install operations
 - ✅ Error handling: Improved guard-rails error reporting with clear failure messages
 - ✅ Frontier audit doc: Authored comprehensive red team & gap analysis and published via MkDocs nav
 - ✅ Structured logging: Introduced run ID-aware JSON/text emitters with CLI switches and release/cleanup event coverage
+- ✅ Telemetry schema: Standardised event definitions and CLI operation correlation with operation/run identifiers
+- ✅ Analytics ingestion: Added pluggable churn/coverage/embedding adapters and data-backed hotspot/refactor planning defaults
 
 **Testing:**
 
@@ -26,14 +30,15 @@ Last updated: 2025-01-08 (structured logging instrumentation and CLI observabili
 - ✅ Added release retry propagation, sanitisation edge cases, and timeout coverage tests
 - ✅ Added checksum manifest happy-path, mismatch, bypass, and missing-manifest coverage
 - ✅ Added structured logging regression tests covering JSON/text output and context binding
+- ✅ Added CLI regression coverage for release install Sigstore flags and multi-pattern identity matching
 
 ## Baseline Validation (current session)
 
-- ✅ `uv run pytest` (60 passed, coverage 86.60%)
-- ✅ `uv run ruff check .`
-- ✅ `uv run mypy src tests`
-- ⚠️ `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (fails: SSL trust chain unavailable in container)
-- ✅ `uv run uv build`
+- ✅ `uv run --extra dev --extra qa pytest` (85 passed, coverage 87.29%)
+- ✅ `uv run --extra dev --extra qa ruff check .`
+- ✅ `uv run --extra dev --extra qa mypy src tests`
+- ⚠️ `uv run --extra dev --extra qa pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (fails: SSL trust chain unavailable in container)
+- ✅ `uv run --extra dev --extra qa uv build`
 
 ## Implementation Status Summary
 
@@ -43,11 +48,12 @@ Last updated: 2025-01-08 (structured logging instrumentation and CLI observabili
 - ✅ STRIDE threat model completed (ADR-0001)
 - ✅ Guard-rails command implemented at module scope
 - ✅ Cleanup safety rails with dangerous path protection
+- ✅ Cleanup dry-run previews, confirmations, and audit manifests implemented and documented
 - ✅ Operating Safely guide created
 - ✅ Rollback procedures documented
 - ✅ Test order independence (pytest-randomly added)
 - ✅ Release networking with timeout/backoff enhancements
-- 🔄 Release checksum verification (planned)
+- ✅ Release checksum verification complete (checksums + Sigstore verification)
 
 **Medium Priority (Quality & Observability):**
 
@@ -68,13 +74,13 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 
 ## Red Team Findings
 
-| Priority | Area                    | Observation                                                                                                                                                                                                                       | Impact                                                                  | Recommendation                                                                                                                                                                                                                                      | Owner   | Status   |
-| -------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- |
-| High     | Release supply chain    | `hephaestus release install` downloads wheelhouse archives over HTTPS but never verifies signatures or even checksums. A compromised GitHub release or CDN node could silently deliver poisoned wheels.                           | Supply-chain compromise risk for every consumer invoking the installer. | Publish a manifest with SHA-256/Sigstore attestations for each wheelhouse and verify before install; fail closed on mismatch. Pin the allowed repository/asset pattern and surface overrides behind an explicit `--allow-unsigned` escape hatch.    | Tooling | Open     |
-| Medium   | Release networking      | `download_wheelhouse` performs blocking `urllib.request.urlopen` calls with default timeouts and zero retry logic. A slow or hostile endpoint can hang the CLI indefinitely.                                                      | Denial-of-service against CI pipelines and operators.                   | Add configurable timeouts, bounded retries with exponential backoff, and telemetry for repeated failures. Work-in-progress branch introduces retry helpers—needs completion and validation.                                                         | Tooling | Complete |
-| High     | Cleanup ergonomics      | `cleanup` will happily scrub any `--extra-path` (even `/`), and when invoked outside a git repo it treats the CWD as root. A typo can wipe unrelated directories.                                                                 | Catastrophic operator error / accidental data loss.                     | Refuse to operate on paths outside the repo unless `--allow-outside-root` (with confirmation), disallow `/` and home directory targets, and emit a dry-run summary before deletion.                                                                 | DX      | Complete |
-| Medium   | Guard rail availability | The `guard_rails` command is defined inside the `cleanup` function, so it is only registered after the cleanup command runs once per process. Fresh shells cannot invoke guard rails and therefore skip automated security scans. | Guard rails silently unavailable -> reduced local/AppSec coverage.      | Hoist `_format_command` and `guard_rails` to module scope, add a regression test that `cli.app.registered_commands` includes `guard-rails` pre-execution, and document expected usage. Current local edits regressed command wiring—needs re-hoist. | DX      | Complete |
-| Low      | Asset name sanitisation | Release assets are written to disk using the server-provided filename without validating path separators. GitHub currently rejects `/`, but defensive sanitisation is advisable.                                                  | Future path traversal if upstream validation changes.                   | Strip `..`/path separators from asset names before joining paths and log when sanitisation occurs.                                                                                                                                                  | Tooling | Complete |
+| Priority                                                                           | Area                                                                                                                                                                       | Observation                                                                                                                                                                                                                       | Impact                                                             | Recommendation                                                                                                                                                                                                                                      | Owner   | Status   |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- |
+| High                                                                               | Release supply chain                                                                                                                                                       | Wheelhouse installs now fail closed without matching SHA-256 manifests and validate Sigstore bundles when they are published.                                                                                                     |
+| Supply-chain compromise risk narrows to unsigned archives and unpinned identities. | Backfill Sigstore bundles for historical releases, require identities via `--sigstore-identity`, and enable `--require-sigstore` in automation to block unsigned installs. | Tooling                                                                                                                                                                                                                           | In Progress                                                        |
+| High                                                                               | Cleanup ergonomics                                                                                                                                                         | `cleanup` will happily scrub any `--extra-path` (even `/`), and when invoked outside a git repo it treats the CWD as root. A typo can wipe unrelated directories.                                                                 | Catastrophic operator error / accidental data loss.                | Refuse to operate on paths outside the repo unless `--allow-outside-root` (with confirmation), disallow `/` and home directory targets, and emit a dry-run summary before deletion.                                                                 | DX      | Complete |
+| Medium                                                                             | Guard rail availability                                                                                                                                                    | The `guard_rails` command is defined inside the `cleanup` function, so it is only registered after the cleanup command runs once per process. Fresh shells cannot invoke guard rails and therefore skip automated security scans. | Guard rails silently unavailable -> reduced local/AppSec coverage. | Hoist `_format_command` and `guard_rails` to module scope, add a regression test that `cli.app.registered_commands` includes `guard-rails` pre-execution, and document expected usage. Current local edits regressed command wiring—needs re-hoist. | DX      | Complete |
+| Low                                                                                | Asset name sanitisation                                                                                                                                                    | Release assets are written to disk using the server-provided filename without validating path separators. GitHub currently rejects `/`, but defensive sanitisation is advisable.                                                  | Future path traversal if upstream validation changes.              | Strip `..`/path separators from asset names before joining paths and log when sanitisation occurs.                                                                                                                                                  | Tooling | Complete |
 
 ## Engineering Gaps & Opportunities
 
@@ -91,13 +97,14 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 
 1. **Secure the release channel** – land checksum/signature verification and timeout/backoff handling, then backfill signed artefacts for historical releases.
    - [x] Implement SHA-256 checksum verification for wheelhouse downloads
-   - [ ] Add Sigstore attestation support
+   - [x] Add Sigstore attestation support
    - [x] Enhance timeout/backoff handling with exponential backoff (Complete)
 2. **Ship cleanup safety rails** – introduce protective defaults and update docs/tests to demonstrate safe usage.
    - [x] Implemented dangerous path blocklist (/, /home, /usr, /etc)
    - [x] Added is_dangerous_path() validation in resolve_root()
    - [x] Created tests for dangerous path protection
    - [x] Documented safety features in Operating Safely guide
+   - [x] Added dry-run preview, typed confirmation, and audit manifest support with regression coverage
 3. **Unblock guard rails everywhere** – move the command registration to module scope, randomise pytest order, and add CI lint to prevent nested decorators.
    - [x] Guard-rails command registered at module scope with full pipeline (`src/hephaestus/cli.py`).
    - [x] Regression test validates command registration (`tests/test_cli.py`).
@@ -121,11 +128,13 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
    - [x] Working from grafted main branch
    - [ ] Final sync before merge
 7. **Operational telemetry & AI readiness** – execute follow-ups from the frontier red team gap analysis.
-   - [x] Publish frontier red team & gap analysis doc (docs/explanation/frontier-red-team-gap-analysis.md)
-   - [x] Ship structured JSON logging + run IDs across CLI, release, and cleanup
-   - [ ] Add cleanup dry-run previews, confirmations, and audit manifests
-   - [ ] Replace synthetic analytics with pluggable churn/coverage/embedding adapters
-   - [ ] Expose an API surface (REST/gRPC) for AI/automation clients with policy guard rails
+
+- [x] Publish frontier red team & gap analysis doc (docs/explanation/frontier-red-team-gap-analysis.md)
+- [x] Ship structured JSON logging + run IDs across CLI, release, and cleanup
+- [x] Add cleanup dry-run previews, confirmations, and audit manifests
+- [x] Define telemetry event registry with operation/run correlation contexts across CLI + release flows
+- [x] Replace synthetic analytics with pluggable churn/coverage/embedding adapters
+- [ ] Expose an API surface (REST/gRPC) for AI/automation clients with policy guard rails
 
 ---
 
@@ -133,27 +142,34 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 
 - [ ] (Tooling, due 2025-01-31) Implement SHA-256 checksum verification + fail-closed wheelhouse installs
   - Status: ✅ Delivered this pass; verification now required unless `--allow-unsigned`
-- [ ] (DX, due 2025-01-31) Add cleanup dry-run previews, confirmations, and audit manifests
-- [ ] (Platform, due 2025-02-15) Ship structured JSON logging and OpenTelemetry spans across CLI/release/cleanup *(logging complete; spans pending)*
+- [ ] (Tooling, due 2025-02-28) Backfill Sigstore bundles for historical releases and add CI enforcement for attestations
+- [x] (DX, due 2025-01-31) Add cleanup dry-run previews, confirmations, and audit manifests
+- [ ] (Platform, due 2025-02-15) Ship structured JSON logging and OpenTelemetry spans across CLI/release/cleanup _(logging complete; spans pending)_
 - [ ] (AI Insights, due 2025-03-01) Replace synthetic analytics with churn/coverage/embedding adapters and ranking API
+  - Status: 🔄 Adapters delivered this pass (`src/hephaestus/analytics.py`); ranking API & streaming ingestion pending
 - [ ] (Platform AI, due 2025-03-15) Expose secured REST/gRPC endpoints for AI/automation clients with policy guard rails
 
 ## Steps
 
 - [x] Extend release tests to cover retry/backoff propagation and sanitisation edge cases
-- [ ] Design telemetry schema + correlation strategy for structured logging rollout
-- [ ] Draft UX spec for cleanup dry-run + confirmation workflow
-- [ ] Evaluate Sigstore tooling + release pipeline hooks for artifact attestation
-- [ ] Prototype analytics ingestion adapters against representative repositories
+- [x] Add CLI regression coverage for release install Sigstore gating options
+- [x] Design telemetry schema + correlation strategy for structured logging rollout _(telemetry module + CLI operation contexts shipped)_
+- [x] Draft UX spec for cleanup dry-run + confirmation workflow _(implemented directly in CLI with preview/confirmation flow)_
+- [x] Evaluate Sigstore tooling + release pipeline hooks for artifact attestation _(verification shipped; publishing pipeline follow-up pending)_
+- [ ] Backfill Sigstore bundles for historical releases and enforce attestation publication in CI
+- [x] Prototype analytics ingestion adapters against representative repositories
 
 ## Deliverables
 
 - [x] Frontier red team & gap analysis documentation (docs/explanation/frontier-red-team-gap-analysis.md)
 - [x] Strengthened release regression suite (tests/test_release.py)
 - [x] Structured logging instrumentation across CLI/release/cleanup (src/hephaestus/logging.py, tests/test_logging.py)
-- [ ] Implementation PR for checksum verification + manifest management
-- [ ] Cleanup safety UX spec & implementation plan
+- [x] Implementation PR for checksum verification + manifest management (includes Sigstore verification support)
+- [x] Cleanup safety UX spec & implementation plan _(dry-run preview + confirmation shipped)_
+- [x] Cleanup dry-run + audit manifest implementation (src/hephaestus/cleanup.py, src/hephaestus/cli.py, docs/how-to/operating-safely.md)
+- [x] CLI release install regression coverage for Sigstore gating (tests/test_cli.py)
 - [ ] Telemetry instrumentation plan + dashboards for guard-rail health
+- [x] Analytics ingestion module + regression coverage (`src/hephaestus/analytics.py`, `tests/test_analytics.py`, `tests/test_toolbox.py`)
 
 ## Quality Gates
 
@@ -176,6 +192,6 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 ## Risks / Notes
 
 - pip-audit currently blocked by SSL trust chain inside container; rerun in CI or with configured cert bundle
-- Supply-chain verification (checksums + Sigstore) remains the top open security risk
+- Attestation coverage: Backfill and enforce Sigstore bundles across historical releases to fully close the supply-chain risk
 - Telemetry backlog blocks observability-driven SLOs; prioritise instrumentation once logging design is ready
-- Cleanup dry-run UX needed before enabling automation in wider environments
+- Monitor operator feedback on new cleanup preview/confirmation flow; extend with undo checkpoints if needed

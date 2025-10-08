@@ -8,11 +8,17 @@ The `hephaestus cleanup` command removes files and directories from your workspa
 
 ### Built-in Safety Features
 
-1. **Git Repository Detection**: By default, cleanup operates from the git repository root. If no git repository is detected, it uses the current working directory.
+1. **Mandatory Preview**: Every invocation runs a dry-run first and renders a Rich table preview so you can inspect pending deletions before anything touches disk.
 
-2. **Excluded Paths**: The `.git` directory is excluded by default unless you explicitly pass `--include-git`.
+2. **Typed Confirmation Outside the Root**: If cleanup would touch paths outside the detected workspace root (e.g., `--extra-path /tmp`), the CLI pauses and requires you to type `CONFIRM` unless you pass `--yes` explicitly.
 
-3. **Virtual Environment Protection**: When cleaning build artifacts, the command preserves `.venv/site-packages` unless you're cleaning the virtual environment itself with `--include-poetry-env`.
+3. **Git Repository Detection**: By default, cleanup operates from the git repository root. If no git repository is detected, it uses the current working directory.
+
+4. **Excluded Paths**: The `.git` directory is excluded by default unless you explicitly pass `--include-git`.
+
+5. **Virtual Environment Protection**: When cleaning build artifacts, the command preserves `.venv/site-packages` unless you're cleaning the virtual environment itself with `--include-poetry-env`.
+
+6. **Audit Manifests**: Successful runs emit a JSON manifest under `.hephaestus/audit/` (or the path provided to `--audit-manifest`) capturing the options, removals, skips, and errors for compliance reviews.
 
 ### Dangerous Operations to Avoid
 
@@ -47,8 +53,8 @@ hephaestus cleanup --deep-clean
 # Clean build artifacts only
 hephaestus cleanup --build-artifacts
 
-# Dry-run: Preview what would be removed (not yet implemented)
-# hephaestus cleanup --dry-run --deep-clean
+# Dry-run: Preview what would be removed without deleting anything
+hephaestus cleanup --dry-run --deep-clean
 ```
 
 ### Extra Paths
@@ -68,12 +74,10 @@ hephaestus cleanup --extra-path /tmp
 
 ### Future Safety Enhancements
 
-The following safety features are planned:
+Recently delivered features include previews, typed confirmations, and audit manifests. Remaining roadmap items:
 
-- **Dry-run mode**: Preview deletions before executing
-- **Outside-repo protection**: Refuse to operate on paths outside the repository unless `--allow-outside-root` is passed
-- **Interactive confirmation**: Prompt before deleting when using potentially dangerous flags
-- **Blocklist**: Automatically reject dangerous paths (/, /home, /usr, /etc)
+- **Sigstore-backed manifests**: Attach signed attestations to cleanup manifests for tamper detection.
+- **Undo checkpoints**: Offer reversible trash-bin moves for supported platforms instead of hard deletions.
 
 ## Guard Rails Workflow
 
@@ -93,21 +97,25 @@ The guard-rails command executes these steps in order:
 ### When to Use Guard Rails
 
 **Before committing:**
+
 ```bash
 hephaestus guard-rails
 ```
 
 **Before opening a PR:**
+
 ```bash
 hephaestus guard-rails
 ```
 
 **After pulling changes:**
+
 ```bash
 hephaestus guard-rails
 ```
 
 **Skip formatting (useful for reviewing changes):**
+
 ```bash
 hephaestus guard-rails --no-format
 ```
@@ -147,6 +155,8 @@ The release command includes several security features:
 - **HTTPS only**: All downloads use HTTPS
 - **Timeouts**: Configurable timeouts prevent hanging (default: 30s)
 - **Retries**: Automatic retry with exponential backoff (default: 3 attempts)
+- **Checksum verification**: SHA-256 manifests are required unless you pass `--allow-unsigned`
+- **Sigstore attestation**: Sigstore bundles are downloaded and validated automatically; use `--require-sigstore` to fail closed if an attestation is missing, `--sigstore-identity` to pin trusted identities, and `--sigstore-pattern` to override bundle discovery when repositories publish custom naming schemes
 - **Token security**: Use environment variables for GitHub tokens
 
 ```bash
@@ -162,10 +172,9 @@ hephaestus release install --token ghp_your_token_here
 
 The following security enhancements are planned:
 
-- **SHA-256 checksum verification**: Verify wheelhouse integrity before installation
-- **Sigstore attestation**: Cryptographic proof of build provenance
-- **Asset name sanitization**: Strip path separators from downloaded filenames
-- **Manifest verification**: Validate against published manifests
+- **Sigstore transparency policy enforcement**: Record attestation metadata in audit logs and require identity policies per environment profile
+- **Signed cleanup manifests**: Attach Sigstore attestations to cleanup JSON manifests for tamper detection
+- **Automated attestation publication**: Backfill Sigstore bundles for historical releases and verify during CI before upload
 
 ## Secure Development Workflow
 
@@ -178,6 +187,7 @@ uv run pre-commit install
 ```
 
 This automatically runs on every commit:
+
 - Cleanup of macOS metadata
 - Code formatting
 - Linting
@@ -187,6 +197,7 @@ This automatically runs on every commit:
 ### Dependency Management
 
 **Regular updates:**
+
 ```bash
 # Check for outdated dependencies
 pip list --outdated
@@ -196,6 +207,7 @@ pip-audit --strict
 ```
 
 **Review Dependabot PRs:**
+
 - Always review dependency updates before merging
 - Check changelogs for breaking changes
 - Verify tests pass after updates
@@ -203,6 +215,7 @@ pip-audit --strict
 ### Token Management
 
 **Best practices:**
+
 - Store tokens in environment variables or password managers
 - Use fine-grained GitHub tokens with minimal permissions
 - Rotate tokens regularly
@@ -211,6 +224,7 @@ pip-audit --strict
 ### CI/CD Security
 
 **Secrets management:**
+
 - Use GitHub Secrets for sensitive values
 - Never log tokens or credentials
 - Audit workflow permissions regularly
@@ -230,7 +244,7 @@ If you discover a security issue:
 If a bad release is deployed:
 
 1. **Identify the issue**: Review release notes and changelogs
-2. **Pin to last known good version**: 
+2. **Pin to last known good version**:
    ```bash
    hephaestus release install --tag v0.0.9
    ```
@@ -267,6 +281,7 @@ Planned observability features:
 - **Failure tracking**: Network errors, timeout counts, retry attempts
 
 All telemetry will be:
+
 - **Opt-in**: Disabled by default, enabled via environment flag
 - **Privacy-preserving**: No sensitive data or PII
 - **Transparent**: Full disclosure of what's collected

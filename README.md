@@ -8,6 +8,7 @@ Hephaestus is a standalone developer experience toolkit extracted from the spiri
 - Coverage analytics (hotspots, gaps, guard rails, focus views)
 - Lifecycle-aware CLI workflows (hotspot ranking, opportunity scouting, QA profiles, rollout plans)
 - Evidence-based refactoring workflows (hotspot analysis, opportunity scans)
+- Pluggable analytics ingestion for churn, coverage, and embedding signals powering hotspot ranking
 - Safe automation helpers (LibCST codemods, characterization test scaffolds)
 - Workspace cleanup orchestrator to remove macOS cruft, caches, and build artefacts with lifecycle automation
 - Pre-commit guardrails (Ruff, Black, PyUpgrade, Mypy, Pip Audit)
@@ -42,12 +43,13 @@ Use the Typer-based CLI to move quickly from discovery to delivery:
 - `tools refactor opportunities`: summarises advisory refactors with qualitative effort signals to aid prioritisation.
 - `tools qa profile <name>`: inspects guard-rail thresholds and rollout toggles for an individual QA profile.
 - `tools qa coverage`: highlights uncovered lines and risk scores tuned to your coverage goals.
-- `release install`: downloads the latest (or specified) wheelhouse from GitHub Releases, verifies SHA-256 manifests, installs the bundled wheels, and optionally cleans up caches when you're integrating Hephaestus into another repository.
-- `cleanup`: scrubs macOS cruft and optional caches/build artefacts from the workspace (also available via `./cleanup-macos-cruft.sh`).
+- `release install`: downloads the latest (or specified) wheelhouse from GitHub Releases, verifies SHA-256 manifests, validates Sigstore attestation bundles when published (with `--require-sigstore`, `--sigstore-identity`, and `--sigstore-pattern` controls), installs the bundled wheels, and optionally cleans up caches when you're integrating Hephaestus into another repository.
+- `cleanup`: scrubs macOS cruft and optional caches/build artefacts from the workspace with mandatory dry-run previews, typed confirmations for outside-root targets, and JSON audit manifests (also available via `./cleanup-macos-cruft.sh`).
 - `guard-rails`: runs the full quality and security pipeline (cleanup, lint, format, type check, test, audit) in one command. Use `--no-format` to skip auto-formatting.
 - `plan`: renders a rich execution plan so teams can visualise orchestration progress during a rollout.
 
 All commands honour the global logging switches: `--log-format` toggles between human-friendly text and machine-readable JSON, `--log-level` adjusts verbosity, and `--run-id` stamps every log event with a correlation identifier for distributed tracing.
+Events now follow the structured schema defined in `hephaestus.telemetry`, and each CLI invocation binds an operation identifier so downstream systems can correlate release, cleanup, and guard-rail activity.
 
 #### Shell Completions
 
@@ -67,7 +69,7 @@ See `docs/cli-completions.md` for manual installation steps and regeneration tip
 - The `uv run hephaestus guard-rails` command executes the local cleanup, lint, format, typing, testing, and audit pipeline sequentially for quick validation.
 - Automated release tagging (`Automated Release Tagging` workflow) cuts a `v*` tag and GitHub Release whenever the version in `pyproject.toml` advances on `main`, and performs a deep-clean sweep before tagging.
 - Release wheelhouse packaging (`Build Wheelhouse` workflow) zips the built wheels and sdists for each release, uploads them as workflow artefacts, and attaches the bundle to the GitHub Release for easy download while PyPI access is pending.
-- The `hephaestus release install` command fetches the latest (or a specified) wheelhouse archive from GitHub Releases and installs the wheels into the current environment, making consumption trivial from any repo.
+- The `hephaestus release install` command fetches the latest (or a specified) wheelhouse archive from GitHub Releases, verifies checksums and Sigstore attestations by default, and installs the wheels into the current environment, making consumption trivial from any repo.
 - The repository ships with the `cleanup` CLI command and `cleanup-macos-cruft.sh` wrapper for scrubbing macOS metadata, caches, and build artefacts; use them directly for ad-hoc housekeeping or leverage the built-in lifecycle automation.
 - A scheduled TurboRepo monitor (`TurboRepo Release Monitor` workflow) compares the pinned version in `ops/turborepo-release.json` with upstream releases and opens an issue if an update is available.
 - Weekly Dependabot scans cover Python packages and GitHub Actions while the CI pipeline executes `pip-audit --strict` on Python 3.13.
@@ -117,7 +119,7 @@ hephaestus/
 
 ## Configuration
 
-Hephaestus reads defaults from `[tool.hephaestus.toolkit]` in `pyproject.toml`. Use the bundled configuration at `hephaestus-toolkit/refactoring/config/refactor.config.yaml` as a reference and tailor thresholds, directory mappings, and rollout policies to match your repository layout.
+Hephaestus reads defaults from `[tool.hephaestus.toolkit]` in `pyproject.toml`. Use the bundled configuration at `hephaestus-toolkit/refactoring/config/refactor.config.yaml` as a reference and tailor thresholds, directory mappings, and rollout policies to match your repository layout. Analytics adapters can be configured via the `analytics` block—point churn, coverage, and embedding sources at YAML/JSON exports from your data warehouse to replace the synthetic defaults used for demos.
 
 ## CI Integration
 

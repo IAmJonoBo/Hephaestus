@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 from typing import Annotated, cast
 
@@ -11,11 +12,12 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from hephaestus import __version__, toolbox
+from hephaestus import __version__
 from hephaestus import cleanup as cleanup_module
 from hephaestus import logging as logging_utils
 from hephaestus import planning as planning_module
 from hephaestus import release as release_module
+from hephaestus import telemetry, toolbox
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
 tools_app = typer.Typer(name="tools", help="Toolkit command groups.", no_args_is_help=True)
@@ -40,8 +42,17 @@ LOG_FORMAT_CHOICES = ("text", "json")
 LOG_LEVEL_CHOICES = ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG")
 
 
+def _is_within_root(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except ValueError:
+        return False
+
+
 @app.callback()
 def main(
+    ctx: typer.Context,
     log_format: Annotated[
         str,
         typer.Option(
@@ -87,9 +98,12 @@ def main(
 
     normalized_format_literal = cast(logging_utils.LogFormat, normalized_format)
 
+    final_run_id = run_id or telemetry.generate_run_id()
+
     logging_utils.configure_logging(
-        log_format=normalized_format_literal, level=normalized_level, run_id=run_id
+        log_format=normalized_format_literal, level=normalized_level, run_id=final_run_id
     )
+    ctx.obj = {"run_id": final_run_id}
 
 
 @release_app.command("install")
@@ -123,6 +137,14 @@ def release_install(
             show_default=True,
         ),
     ] = release_module.DEFAULT_MANIFEST_PATTERN,
+    sigstore_pattern: Annotated[
+        str | None,
+        typer.Option(
+            "--sigstore-pattern",
+            help="Glob used to locate Sigstore bundles for attestation verification.",
+            show_default=True,
+        ),
+    ] = release_module.DEFAULT_SIGSTORE_BUNDLE_PATTERN,
     destination: Annotated[
         Path | None,
         typer.Option(
@@ -207,69 +229,102 @@ def release_install(
             show_default=False,
         ),
     ] = False,
+    require_sigstore: Annotated[
+        bool,
+        typer.Option(
+            "--require-sigstore",
+            help="Fail if a Sigstore attestation bundle is not published.",
+            show_default=False,
+        ),
+    ] = False,
+    sigstore_identity: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--sigstore-identity",
+            help=(
+                "Expected Sigstore identity (URI or email). Repeat for multiple allowed identities; "
+                "supports shell-style globs."
+            ),
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
     """Download the Hephaestus wheelhouse and install it into the current environment."""
 
     destination = (
         destination.expanduser() if destination else release_module.DEFAULT_DOWNLOAD_DIRECTORY
     )
-    logging_utils.log_event(
-        logger,
-        "cli.release.install.start",
-        message="Starting release install",
+    operation_id = telemetry.generate_operation_id()
+    with telemetry.operation_context(
+        "cli.release.install",
+        operation_id=operation_id,
+        command="release.install",
         repository=repository,
         tag=tag or "latest",
-        destination=str(destination),
-        allow_unsigned=allow_unsigned,
-        asset_pattern=asset_pattern,
-        manifest_pattern=manifest_pattern,
-        timeout=timeout,
-        max_retries=max_retries,
-    )
-    download = release_module.download_wheelhouse(
-        repository=repository,
-        destination_dir=destination,
-        tag=tag,
-        asset_pattern=asset_pattern,
-        manifest_pattern=manifest_pattern,
-        token=token,
-        overwrite=overwrite,
-        extract=False,
-        allow_unsigned=allow_unsigned,
-        timeout=timeout,
-        max_retries=max_retries,
-    )
-
-    release_module.install_from_archive(
-        download.archive_path,
-        python_executable=python_executable,
-        pip_args=list(pip_args) if pip_args else None,
-        upgrade=not no_upgrade,
-        cleanup=cleanup,
-    )
-
-    if remove_archive:
-        download.archive_path.unlink(missing_ok=True)
-        logging_utils.log_event(
+    ):
+        telemetry.emit_event(
             logger,
-            "cli.release.install.archive-removed",
-            message="Removed downloaded archive",
-            archive=str(download.archive_path),
+            telemetry.CLI_RELEASE_INSTALL_START,
+            message="Starting release install",
+            repository=repository,
+            tag=tag or "latest",
+            destination=str(destination),
+            allow_unsigned=allow_unsigned,
+            asset_pattern=asset_pattern,
+            manifest_pattern=manifest_pattern,
+            sigstore_pattern=sigstore_pattern,
+            require_sigstore=require_sigstore,
+            sigstore_identity=list(sigstore_identity) if sigstore_identity else None,
+            timeout=timeout,
+            max_retries=max_retries,
+        )
+        download = release_module.download_wheelhouse(
+            repository=repository,
+            destination_dir=destination,
+            tag=tag,
+            asset_pattern=asset_pattern,
+            manifest_pattern=manifest_pattern,
+            sigstore_bundle_pattern=sigstore_pattern,
+            token=token,
+            overwrite=overwrite,
+            extract=False,
+            allow_unsigned=allow_unsigned,
+            require_sigstore=require_sigstore,
+            sigstore_identities=list(sigstore_identity) if sigstore_identity else None,
+            timeout=timeout,
+            max_retries=max_retries,
         )
 
-    console.print(
-        "[green]Installed wheelhouse[/green] "
-        f"{download.asset.name} from [cyan]{repository}[/cyan] (tag: {tag or 'latest'})."
-    )
-    logging_utils.log_event(
-        logger,
-        "cli.release.install.complete",
-        message="Release install completed",
-        repository=repository,
-        tag=tag or "latest",
-        asset=download.asset.name,
-        allow_unsigned=allow_unsigned,
-    )
+        release_module.install_from_archive(
+            download.archive_path,
+            python_executable=python_executable,
+            pip_args=list(pip_args) if pip_args else None,
+            upgrade=not no_upgrade,
+            cleanup=cleanup,
+        )
+
+        if remove_archive:
+            download.archive_path.unlink(missing_ok=True)
+            telemetry.emit_event(
+                logger,
+                telemetry.CLI_RELEASE_INSTALL_ARCHIVE_REMOVED,
+                message="Removed downloaded archive",
+                archive=str(download.archive_path),
+            )
+
+        console.print(
+            "[green]Installed wheelhouse[/green] "
+            f"{download.asset.name} from [cyan]{repository}[/cyan] (tag: {tag or 'latest'})."
+        )
+        telemetry.emit_event(
+            logger,
+            telemetry.CLI_RELEASE_INSTALL_COMPLETE,
+            message="Release install completed",
+            repository=repository,
+            tag=tag or "latest",
+            asset=download.asset.name,
+            allow_unsigned=allow_unsigned,
+        )
 
 
 @refactor_app.command("hotspots")
@@ -416,6 +471,31 @@ def cleanup(
             show_default=False,
         ),
     ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Preview cleanup without deleting files.",
+            show_default=False,
+        ),
+    ] = False,
+    assume_yes: Annotated[
+        bool,
+        typer.Option(
+            "--yes",
+            "-y",
+            help="Skip confirmation prompts (use with caution).",
+            show_default=False,
+        ),
+    ] = False,
+    audit_manifest: Annotated[
+        Path | None,
+        typer.Option(
+            "--audit-manifest",
+            help="Write the cleanup manifest to this path (defaults to .hephaestus/audit/).",
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
     """Scrub macOS metadata and development cruft from the workspace."""
 
@@ -428,70 +508,134 @@ def cleanup(
         node_modules=node_modules,
         deep_clean=deep_clean,
         extra_paths=tuple(extra_paths or ()),
+        dry_run=dry_run,
+        audit_manifest=audit_manifest,
     )
 
     removal_log: list[Path] = []
-
-    logging_utils.log_event(
-        logger,
-        "cli.cleanup.start",
-        message="Starting cleanup command",
+    operation_id = telemetry.generate_operation_id()
+    with telemetry.operation_context(
+        "cli.cleanup",
+        operation_id=operation_id,
+        command="cleanup",
         root=str(root) if root else None,
-        include_git=include_git,
-        include_poetry_env=include_poetry_env,
-        python_cache=python_cache,
-        build_artifacts=build_artifacts,
-        node_modules=node_modules,
-        deep_clean=deep_clean,
-        extra_paths=[str(path) for path in extra_paths or []],
-    )
-
-    def _on_remove(path: Path) -> None:
-        removal_log.append(path)
-        console.print(f"[green]- removed[/green] {path}")
-
-    def _on_skip(path: Path, reason: str) -> None:
-        console.print(f"[yellow]! skipped[/yellow] {path} ({reason})")
-
-    result = cleanup_module.run_cleanup(options, on_remove=_on_remove, on_skip=_on_skip)
-
-    if result.errors:
-        logging_utils.log_event(
+    ):
+        telemetry.emit_event(
             logger,
-            "cli.cleanup.failed",
-            level=logging.ERROR,
-            message="Cleanup encountered errors",
-            errors=[{"path": str(path), "reason": message} for path, message in result.errors],
+            telemetry.CLI_CLEANUP_START,
+            message="Starting cleanup command",
+            root=str(root) if root else None,
+            include_git=include_git,
+            include_poetry_env=include_poetry_env,
+            python_cache=python_cache,
+            build_artifacts=build_artifacts,
+            node_modules=node_modules,
+            deep_clean=deep_clean,
+            extra_paths=[str(path) for path in extra_paths or []],
+            dry_run=dry_run,
+            audit_manifest=str(audit_manifest) if audit_manifest else None,
         )
-        error_table = Table(title="Cleanup Errors")
-        error_table.add_column("Path", style="red")
-        error_table.add_column("Reason", style="white")
-        for path, message in result.errors:
-            error_table.add_row(str(path), message)
-        console.print(error_table)
-        raise typer.Exit(code=1)
 
-    summary = Table(title="Cleanup Summary")
-    summary.add_column("Metric", style="cyan")
-    summary.add_column("Value", justify="right", style="magenta")
-    summary.add_row("Search roots", str(len(result.search_roots)))
-    summary.add_row("Removed paths", str(len(result.removed_paths)))
-    summary.add_row("Skipped roots", str(len(result.skipped_roots)))
-    console.print(summary)
+        normalized = options.normalize()
+        search_roots = cleanup_module.gather_search_roots(normalized)
 
-    if not removal_log:
-        console.print("[blue]No files required removal; workspace already clean.[/blue]")
-    else:
-        console.print("[green]Cleanup completed successfully.[/green]")
+        preview_result = cleanup_module.run_cleanup(
+            replace(options, dry_run=True),
+            on_remove=None,
+            on_skip=None,
+        )
 
-    logging_utils.log_event(
-        logger,
-        "cli.cleanup.complete",
-        message="Cleanup command finished",
-        removed=len(result.removed_paths),
-        skipped=len(result.skipped_roots),
-        errors=len(result.errors),
-    )
+        if preview_result.preview_paths:
+            preview_table = Table(title="Cleanup Preview")
+            preview_table.add_column("Action", style="cyan")
+            preview_table.add_column("Path", style="magenta")
+            for path in preview_result.preview_paths[:10]:
+                preview_table.add_row("remove", str(path))
+            remaining = len(preview_result.preview_paths) - min(
+                10, len(preview_result.preview_paths)
+            )
+            if remaining > 0:
+                preview_table.add_row("…", f"+{remaining} more paths")
+            console.print(preview_table)
+        else:
+            console.print("[blue]No files would be removed by cleanup.[/blue]")
+
+        if preview_result.skipped_roots:
+            skipped_table = Table(title="Skipped Roots (Preview)")
+            skipped_table.add_column("Path", style="yellow")
+            skipped_table.add_column("Reason", style="white")
+            for path, reason in preview_result.skipped_roots:
+                skipped_table.add_row(str(path), reason)
+            console.print(skipped_table)
+
+        if dry_run:
+            console.print("[blue]Dry-run complete; no changes were made.[/blue]")
+            return
+
+        outside_root = [path for path in search_roots if not _is_within_root(path, normalized.root)]
+        if outside_root and not assume_yes:
+            warning_table = Table(title="Confirmation Required")
+            warning_table.add_column("Target", style="yellow")
+            for path in outside_root:
+                warning_table.add_row(str(path))
+            console.print(warning_table)
+            console.print(
+                "[red]Cleanup will touch paths outside the workspace root. Type CONFIRM to proceed.[/red]"
+            )
+            confirmation = typer.prompt("Confirmation", default="")
+            if confirmation.strip().upper() != "CONFIRM":
+                console.print("[blue]Cleanup aborted before removing any files.[/blue]")
+                return
+
+        def _on_remove(path: Path) -> None:
+            removal_log.append(path)
+            console.print(f"[green]- removed[/green] {path}")
+
+        def _on_skip(path: Path, reason: str) -> None:
+            console.print(f"[yellow]! skipped[/yellow] {path} ({reason})")
+
+        result = cleanup_module.run_cleanup(options, on_remove=_on_remove, on_skip=_on_skip)
+
+        if result.errors:
+            telemetry.emit_event(
+                logger,
+                telemetry.CLI_CLEANUP_FAILED,
+                level=logging.ERROR,
+                message="Cleanup encountered errors",
+                errors=[{"path": str(path), "reason": message} for path, message in result.errors],
+            )
+            error_table = Table(title="Cleanup Errors")
+            error_table.add_column("Path", style="red")
+            error_table.add_column("Reason", style="white")
+            for path, message in result.errors:
+                error_table.add_row(str(path), message)
+            console.print(error_table)
+            raise typer.Exit(code=1)
+
+        summary = Table(title="Cleanup Summary")
+        summary.add_column("Metric", style="cyan")
+        summary.add_column("Value", justify="right", style="magenta")
+        summary.add_row("Search roots", str(len(result.search_roots)))
+        summary.add_row("Removed paths", str(len(result.removed_paths)))
+        summary.add_row("Skipped roots", str(len(result.skipped_roots)))
+        if result.audit_manifest:
+            summary.add_row("Audit manifest", str(result.audit_manifest))
+        console.print(summary)
+
+        if not removal_log:
+            console.print("[blue]No files required removal; workspace already clean.[/blue]")
+        else:
+            console.print("[green]Cleanup completed successfully.[/green]")
+
+        telemetry.emit_event(
+            logger,
+            telemetry.CLI_CLEANUP_COMPLETE,
+            message="Cleanup command finished",
+            removed=len(result.removed_paths),
+            skipped=len(result.skipped_roots),
+            errors=len(result.errors),
+            audit_manifest=str(result.audit_manifest) if result.audit_manifest else None,
+        )
 
 
 @app.command()
@@ -521,61 +665,68 @@ def guard_rails(
 ) -> None:
     """Run the full guard-rail pipeline: cleanup, lint, format, typecheck, test, and audit."""
 
-    console.print("[cyan]Running guard rails...[/cyan]")
-    logging_utils.log_event(
-        logger,
-        "cli.guard-rails.start",
-        message="Running guard rails",
+    operation_id = telemetry.generate_operation_id()
+    with telemetry.operation_context(
+        "cli.guard-rails",
+        operation_id=operation_id,
+        command="guard-rails",
         skip_format=no_format,
-    )
-
-    try:
-        # Step 1: Deep clean workspace
-        cleanup(deep_clean=True)
-
-        # Step 2: Lint with ruff
-        console.print("\n[cyan]→ Running ruff check...[/cyan]")
-        subprocess.run(["ruff", "check", "."], check=True)
-
-        # Step 3: Format with ruff (unless skipped)
-        if not no_format:
-            console.print("[cyan]→ Running ruff format...[/cyan]")
-            subprocess.run(["ruff", "format", "."], check=True)
-
-        # Step 4: Type check with mypy
-        console.print("[cyan]→ Running mypy...[/cyan]")
-        subprocess.run(["mypy", "src", "tests"], check=True)
-
-        # Step 5: Run tests with pytest
-        console.print("[cyan]→ Running pytest...[/cyan]")
-        subprocess.run(["pytest"], check=True)
-
-        # Step 6: Security audit with pip-audit
-        console.print("[cyan]→ Running pip-audit...[/cyan]")
-        subprocess.run(
-            ["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"], check=True
-        )
-
-        console.print("\n[green]✓ Guard rails completed successfully.[/green]")
-        logging_utils.log_event(
+    ):
+        console.print("[cyan]Running guard rails...[/cyan]")
+        telemetry.emit_event(
             logger,
-            "cli.guard-rails.complete",
-            message="Guard rails completed successfully",
+            telemetry.CLI_GUARD_RAILS_START,
+            message="Running guard rails",
             skip_format=no_format,
         )
 
-    except subprocess.CalledProcessError as exc:
-        console.print(f"\n[red]✗ Guard rails failed at: {exc.cmd[0]}[/red]")
-        console.print(f"[yellow]Exit code: {exc.returncode}[/yellow]")
-        logging_utils.log_event(
-            logger,
-            "cli.guard-rails.failed",
-            level=logging.ERROR,
-            message="Guard rails failed",
-            step=exc.cmd[0],
-            returncode=exc.returncode,
-        )
-        raise typer.Exit(code=exc.returncode) from exc
+        try:
+            # Step 1: Deep clean workspace
+            cleanup(deep_clean=True)
+
+            # Step 2: Lint with ruff
+            console.print("\n[cyan]→ Running ruff check...[/cyan]")
+            subprocess.run(["ruff", "check", "."], check=True)
+
+            # Step 3: Format with ruff (unless skipped)
+            if not no_format:
+                console.print("[cyan]→ Running ruff format...[/cyan]")
+                subprocess.run(["ruff", "format", "."], check=True)
+
+            # Step 4: Type check with mypy
+            console.print("[cyan]→ Running mypy...[/cyan]")
+            subprocess.run(["mypy", "src", "tests"], check=True)
+
+            # Step 5: Run tests with pytest
+            console.print("[cyan]→ Running pytest...[/cyan]")
+            subprocess.run(["pytest"], check=True)
+
+            # Step 6: Security audit with pip-audit
+            console.print("[cyan]→ Running pip-audit...[/cyan]")
+            subprocess.run(
+                ["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"], check=True
+            )
+
+            console.print("\n[green]✓ Guard rails completed successfully.[/green]")
+            telemetry.emit_event(
+                logger,
+                telemetry.CLI_GUARD_RAILS_COMPLETE,
+                message="Guard rails completed successfully",
+                skip_format=no_format,
+            )
+
+        except subprocess.CalledProcessError as exc:
+            console.print(f"\n[red]✗ Guard rails failed at: {exc.cmd[0]}[/red]")
+            console.print(f"[yellow]Exit code: {exc.returncode}[/yellow]")
+            telemetry.emit_event(
+                logger,
+                telemetry.CLI_GUARD_RAILS_FAILED,
+                level=logging.ERROR,
+                message="Guard rails failed",
+                step=exc.cmd[0],
+                returncode=exc.returncode,
+            )
+            raise typer.Exit(code=exc.returncode) from exc
 
 
 if __name__ == "__main__":  # pragma: no cover

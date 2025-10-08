@@ -17,6 +17,7 @@ dependencies = [
   "libcst>=1.8.5",
   "pydantic>=2.12.0",
   "pyyaml>=6.0.3",
+  "cryptography>=43.0.3",
   "tomli; python_version < '3.11'",
 ]
 

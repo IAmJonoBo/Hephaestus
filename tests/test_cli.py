@@ -54,6 +54,129 @@ def test_plan_command_renders_execution_plan() -> None:
     assert "Gather Evidence" in result.stdout
 
 
+def test_release_install_forwards_sigstore_options(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _, cli = _load_modules()
+
+    download_kwargs: dict[str, Any] = {}
+    archive_path = tmp_path / "hephaestus-1.2.3-wheelhouse.tar.gz"
+    archive_path.write_bytes(b"wheelhouse")
+    bundle_path = tmp_path / "hephaestus-1.2.3-wheelhouse.sigstore"
+    bundle_path.write_text("sigstore", encoding="utf-8")
+
+    def fake_download_wheelhouse(
+        *,
+        repository: str,
+        destination_dir: Path,
+        tag: str | None,
+        asset_pattern: str,
+        manifest_pattern: str | None,
+        sigstore_bundle_pattern: str | None,
+        token: str | None,
+        overwrite: bool,
+        extract: bool,
+        allow_unsigned: bool,
+        require_sigstore: bool,
+        sigstore_identities: list[str] | None = None,
+        extract_dir: Path | None = None,
+        timeout: float = 0,
+        max_retries: int = 0,
+    ) -> Any:
+        download_kwargs.update(
+            {
+                "repository": repository,
+                "destination_dir": destination_dir,
+                "tag": tag,
+                "asset_pattern": asset_pattern,
+                "manifest_pattern": manifest_pattern,
+                "sigstore_bundle_pattern": sigstore_bundle_pattern,
+                "allow_unsigned": allow_unsigned,
+                "require_sigstore": require_sigstore,
+                "sigstore_identities": sigstore_identities,
+                "extract": extract,
+                "extract_dir": extract_dir,
+                "timeout": timeout,
+                "max_retries": max_retries,
+            }
+        )
+
+        asset = cli.release_module.ReleaseAsset(
+            name=archive_path.name,
+            download_url="https://example.invalid/archive.tar.gz",
+            size=archive_path.stat().st_size,
+        )
+        return cli.release_module.ReleaseDownload(
+            asset=asset,
+            archive_path=archive_path,
+            extracted_path=None,
+            manifest_path=None,
+            sigstore_path=bundle_path,
+        )
+
+    monkeypatch.setattr(
+        cli.release_module,
+        "download_wheelhouse",
+        fake_download_wheelhouse,
+    )
+
+    install_calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
+
+    def fake_install_from_archive(*args: Any, **kwargs: Any) -> None:
+        install_calls.append((args, kwargs))
+
+    monkeypatch.setattr(
+        cli.release_module,
+        "install_from_archive",
+        fake_install_from_archive,
+    )
+
+    identities = [
+        "github-actions@github.com",
+        "https://example.invalid/repos/IAmJonoBo/Hephaestus/*",
+    ]
+
+    result = runner.invoke(
+        cli.app,
+        [
+            "release",
+            "install",
+            "--repository",
+            "IAmJonoBo/Hephaestus",
+            "--destination",
+            str(tmp_path),
+            "--sigstore-pattern",
+            "*wheelhouse*.sigstore",
+            "--require-sigstore",
+            "--sigstore-identity",
+            identities[0],
+            "--sigstore-identity",
+            identities[1],
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Installed wheelhouse" in result.stdout
+
+    assert download_kwargs["repository"] == "IAmJonoBo/Hephaestus"
+    assert download_kwargs["destination_dir"].resolve() == tmp_path.resolve()
+    assert download_kwargs["sigstore_bundle_pattern"] == "*wheelhouse*.sigstore"
+    assert download_kwargs["require_sigstore"] is True
+    assert download_kwargs["allow_unsigned"] is False
+    assert download_kwargs["sigstore_identities"] == identities
+    assert download_kwargs["extract"] is False
+    assert download_kwargs["tag"] is None
+    assert download_kwargs["manifest_pattern"] == cli.release_module.DEFAULT_MANIFEST_PATTERN
+    assert download_kwargs["timeout"] == cli.release_module.DEFAULT_TIMEOUT
+    assert download_kwargs["max_retries"] == cli.release_module.DEFAULT_MAX_RETRIES
+
+    assert install_calls, "Expected install_from_archive to be invoked"
+    install_args, install_kwargs = install_calls[0]
+    assert install_args[0] == archive_path
+    assert install_kwargs["upgrade"] is True
+    assert install_kwargs["cleanup"] is False
+
+
 def test_qa_coverage_command_displays_gaps() -> None:
     _, cli = _load_modules()
     result = runner.invoke(cli.app, ["tools", "qa", "coverage"])
@@ -71,9 +194,15 @@ def test_cleanup_command_removes_macos_cruft(tmp_path: Path) -> None:
     result = runner.invoke(cli.app, ["cleanup", str(workspace)])
 
     assert result.exit_code == 0
+    assert "Cleanup Preview" in result.stdout
     assert "Cleanup Summary" in result.stdout
     assert "Cleanup completed successfully" in result.stdout
+    assert "Audit manifest" in result.stdout
     assert not (workspace / ".DS_Store").exists()
+
+    audit_dir = workspace / ".hephaestus" / "audit"
+    manifests = list(audit_dir.glob("cleanup-*.json"))
+    assert manifests, "Expected cleanup manifest to be written"
 
 
 def test_cleanup_command_handles_missing_path(tmp_path: Path) -> None:
@@ -83,6 +212,7 @@ def test_cleanup_command_handles_missing_path(tmp_path: Path) -> None:
     result = runner.invoke(cli.app, ["cleanup", str(missing)])
 
     assert result.exit_code == 0
+    assert "No files would be removed by cleanup." in result.stdout
     assert "No files required removal" in result.stdout
 
 
@@ -104,6 +234,42 @@ def test_cleanup_command_reports_errors(monkeypatch: pytest.MonkeyPatch, tmp_pat
 
     assert result.exit_code == 1
     assert "Cleanup Errors" in result.stdout
+
+
+def test_cleanup_dry_run_flag_skips_deletion(tmp_path: Path) -> None:
+    _, cli = _load_modules()
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    target = workspace / ".DS_Store"
+    target.write_text("metadata", encoding="utf-8")
+
+    result = runner.invoke(cli.app, ["cleanup", str(workspace), "--dry-run"])
+
+    assert result.exit_code == 0
+    assert "Dry-run complete; no changes were made." in result.stdout
+    assert target.exists()
+
+
+def test_cleanup_requires_confirmation_for_outside_root(tmp_path: Path) -> None:
+    _, cli = _load_modules()
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    target = workspace / ".DS_Store"
+    target.write_text("metadata", encoding="utf-8")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+
+    result = runner.invoke(
+        cli.app,
+        ["cleanup", str(workspace), "--extra-path", str(outside)],
+        input="no\n",
+    )
+
+    assert result.exit_code == 0
+    assert "Confirmation Required" in result.stdout
+    assert "Cleanup aborted before removing any files." in result.stdout
+    assert target.exists()
+    assert outside.exists()
 
 
 def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> None:

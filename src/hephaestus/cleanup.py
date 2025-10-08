@@ -3,19 +3,23 @@
 from __future__ import annotations
 
 import fnmatch
+import json
 import logging
 import os
 import shutil
 import subprocess
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 
-from hephaestus.logging import log_context, log_event
+from hephaestus import telemetry
+from hephaestus.logging import log_context
 
 __all__ = [
     "CleanupOptions",
     "CleanupResult",
+    "gather_search_roots",
     "run_cleanup",
     "resolve_root",
     "is_dangerous_path",
@@ -49,6 +53,8 @@ class CleanupOptions:
     node_modules: bool = False
     deep_clean: bool = False
     extra_paths: tuple[Path, ...] = field(default_factory=tuple)
+    dry_run: bool = False
+    audit_manifest: Path | None = None
 
     def normalize(self) -> NormalizedCleanupOptions:
         """Return a normalised set of options with defaults applied."""
@@ -71,6 +77,13 @@ class CleanupOptions:
                 )
             validated_paths.append(resolved_path)
 
+        audit_manifest: Path | None = None
+        if self.audit_manifest is not None:
+            candidate = Path(self.audit_manifest)
+            if not candidate.is_absolute():
+                candidate = (root / candidate).resolve()
+            audit_manifest = candidate
+
         return NormalizedCleanupOptions(
             root=root,
             include_git=include_git,
@@ -79,6 +92,8 @@ class CleanupOptions:
             build_artifacts=build_artifacts,
             node_modules=node_modules,
             extra_paths=tuple(validated_paths),
+            dry_run=self.dry_run,
+            audit_manifest=audit_manifest,
         )
 
 
@@ -93,6 +108,8 @@ class NormalizedCleanupOptions:
     build_artifacts: bool
     node_modules: bool
     extra_paths: tuple[Path, ...] = field(default_factory=tuple)
+    dry_run: bool = False
+    audit_manifest: Path | None = None
 
 
 @dataclass(slots=True)
@@ -101,27 +118,42 @@ class CleanupResult:
 
     search_roots: list[Path] = field(default_factory=list)
     removed_paths: list[Path] = field(default_factory=list)
+    preview_paths: list[Path] = field(default_factory=list)
     skipped_roots: list[tuple[Path, str]] = field(default_factory=list)
     errors: list[tuple[Path, str]] = field(default_factory=list)
+    audit_manifest: Path | None = None
 
-    def record_removal(self, path: Path, callback: RemovalCallback | None) -> None:
-        self.removed_paths.append(path)
+    def record_removal(
+        self,
+        path: Path,
+        callback: RemovalCallback | None,
+        *,
+        dry_run: bool,
+    ) -> None:
+        if dry_run:
+            self.preview_paths.append(path)
+            message = f"Would remove {path}"
+        else:
+            self.removed_paths.append(path)
+            message = f"Removed {path}"
         if callback:
             callback(path)
-        log_event(
+        event = telemetry.CLEANUP_PATH_PREVIEW if dry_run else telemetry.CLEANUP_PATH_REMOVED
+        telemetry.emit_event(
             logger,
-            "cleanup.path.removed",
-            message=f"Removed {path}",
+            event,
+            message=message,
             path=str(path),
+            dry_run=dry_run,
         )
 
     def record_skip(self, path: Path, reason: str, callback: SkipCallback | None) -> None:
         self.skipped_roots.append((path, reason))
         if callback:
             callback(path, reason)
-        log_event(
+        telemetry.emit_event(
             logger,
-            "cleanup.path.skipped",
+            telemetry.CLEANUP_PATH_SKIPPED,
             message=f"Skipped {path}",
             path=str(path),
             reason=reason,
@@ -129,9 +161,9 @@ class CleanupResult:
 
     def record_error(self, path: Path, message: str) -> None:
         self.errors.append((path, message))
-        log_event(
+        telemetry.emit_event(
             logger,
-            "cleanup.path.error",
+            telemetry.CLEANUP_PATH_ERROR,
             level=logging.ERROR,
             message=f"Cleanup error for {path}: {message}",
             path=str(path),
@@ -210,16 +242,16 @@ def is_dangerous_path(path: Path) -> bool:
     """Check if a path is in the dangerous paths list."""
     resolved = path.resolve()
     str_path = str(resolved)
-    
+
     # Check exact match
     if str_path in DANGEROUS_PATHS:
         return True
-    
+
     # Check if it's home directory
     home = Path.home()
     if resolved == home:
         return True
-    
+
     return False
 
 
@@ -228,7 +260,7 @@ def resolve_root(root: Path | None) -> Path:
 
     if root is not None:
         resolved = Path(root).resolve()
-        
+
         # Safety check: refuse dangerous paths
         if is_dangerous_path(resolved):
             raise ValueError(
@@ -236,7 +268,7 @@ def resolve_root(root: Path | None) -> Path:
                 "If you really need to clean this path, use a tool specifically "
                 "designed for system administration."
             )
-        
+
         return resolved
 
     try:
@@ -264,14 +296,14 @@ def run_cleanup(
     """Execute cleanup with the provided options and return a summary."""
 
     normalized = options.normalize()
-    search_roots = _gather_search_roots(normalized)
+    search_roots = gather_search_roots(normalized)
 
     result = CleanupResult(search_roots=list(search_roots))
 
-    with log_context(command="cleanup", root=str(normalized.root)):
-        log_event(
+    with log_context(command="cleanup", root=str(normalized.root), dry_run=normalized.dry_run):
+        telemetry.emit_event(
             logger,
-            "cleanup.run.start",
+            telemetry.CLEANUP_RUN_START,
             message="Starting cleanup sweep",
             search_roots=[str(path) for path in result.search_roots],
             include_git=normalized.include_git,
@@ -280,25 +312,39 @@ def run_cleanup(
             build_artifacts=normalized.build_artifacts,
             node_modules=normalized.node_modules,
             extra_paths=[str(path) for path in normalized.extra_paths],
+            dry_run=normalized.dry_run,
         )
 
         for root in search_roots:
             if not root.exists():
                 result.record_skip(root, "missing", on_skip)
                 continue
-            with log_context(root=str(root)):
+            with log_context(root=str(root), dry_run=normalized.dry_run):
                 _cleanup_root(root, normalized, result, on_remove)
 
-        log_event(
+        manifest_path: Path | None = None
+        if not normalized.dry_run:
+            manifest_path = _write_audit_manifest(result, normalized)
+            result.audit_manifest = manifest_path
+
+        telemetry.emit_event(
             logger,
-            "cleanup.run.complete",
+            telemetry.CLEANUP_RUN_COMPLETE,
             message="Cleanup sweep completed",
             removed=len(result.removed_paths),
             skipped=len(result.skipped_roots),
             errors=len(result.errors),
+            dry_run=normalized.dry_run,
+            audit_manifest=str(manifest_path) if manifest_path else None,
         )
 
     return result
+
+
+def gather_search_roots(options: NormalizedCleanupOptions) -> list[Path]:
+    """Return the ordered list of search roots for the provided options."""
+
+    return _gather_search_roots(options)
 
 
 def _gather_search_roots(options: NormalizedCleanupOptions) -> list[Path]:
@@ -352,16 +398,42 @@ def _cleanup_root(
     result: CleanupResult,
     on_remove: RemovalCallback | None,
 ) -> None:
-    _remove_matches(root, options.include_git, MACOS_PATTERNS, result, on_remove)
+    _remove_matches(
+        root,
+        options.include_git,
+        MACOS_PATTERNS,
+        result,
+        on_remove,
+        dry_run=options.dry_run,
+    )
 
     if options.python_cache:
-        _remove_python_cache(root, options.include_git, result, on_remove)
+        _remove_python_cache(
+            root,
+            options.include_git,
+            result,
+            on_remove,
+            dry_run=options.dry_run,
+        )
 
     if options.build_artifacts:
-        _remove_build_artifacts(root, options.include_git, result, on_remove)
+        _remove_build_artifacts(
+            root,
+            options.include_git,
+            result,
+            on_remove,
+            dry_run=options.dry_run,
+        )
 
     if options.node_modules:
-        _remove_directory_pattern(root, options.include_git, NODE_MODULES_DIR, result, on_remove)
+        _remove_directory_pattern(
+            root,
+            options.include_git,
+            NODE_MODULES_DIR,
+            result,
+            on_remove,
+            dry_run=options.dry_run,
+        )
 
 
 def _walk_workspace(root: Path, include_git: bool) -> Iterator[tuple[Path, list[str], list[str]]]:
@@ -379,6 +451,7 @@ def _remove_directory_entries(
     result: CleanupResult,
     on_remove: RemovalCallback | None,
     skip: Callable[[Path], bool] | None = None,
+    dry_run: bool,
 ) -> None:
     for name in tuple(dirnames):
         if not _matches_any(name, patterns):
@@ -386,7 +459,7 @@ def _remove_directory_entries(
         target = current / name
         if skip and skip(target):
             continue
-        _remove_path(target, result, on_remove)
+        _remove_path(target, result, on_remove, dry_run=dry_run)
         dirnames.remove(name)
 
 
@@ -398,14 +471,16 @@ def _remove_file_entries(
     result: CleanupResult,
     on_remove: RemovalCallback | None,
     skip: Callable[[Path], bool] | None = None,
+    dry_run: bool,
 ) -> None:
-    for name in filenames:
+    for name in tuple(filenames):
         if not _matches_any(name, patterns):
             continue
         target = current / name
         if skip and skip(target):
             continue
-        _remove_path(target, result, on_remove)
+        _remove_path(target, result, on_remove, dry_run=dry_run)
+        filenames.remove(name)
 
 
 def _remove_matches(
@@ -414,6 +489,8 @@ def _remove_matches(
     patterns: Iterable[str],
     result: CleanupResult,
     on_remove: RemovalCallback | None,
+    *,
+    dry_run: bool,
 ) -> None:
     for current, dirnames, filenames in _walk_workspace(root, include_git):
         _remove_directory_entries(
@@ -422,6 +499,7 @@ def _remove_matches(
             patterns,
             result=result,
             on_remove=on_remove,
+            dry_run=dry_run,
         )
         _remove_file_entries(
             current,
@@ -429,6 +507,7 @@ def _remove_matches(
             patterns,
             result=result,
             on_remove=on_remove,
+            dry_run=dry_run,
         )
 
 
@@ -437,6 +516,8 @@ def _remove_python_cache(
     include_git: bool,
     result: CleanupResult,
     on_remove: RemovalCallback | None,
+    *,
+    dry_run: bool,
 ) -> None:
     for current, dirnames, filenames in _walk_workspace(root, include_git):
         _remove_directory_entries(
@@ -445,6 +526,7 @@ def _remove_python_cache(
             PYTHON_CACHE_DIRS,
             result=result,
             on_remove=on_remove,
+            dry_run=dry_run,
         )
         _remove_file_entries(
             current,
@@ -452,6 +534,7 @@ def _remove_python_cache(
             PYTHON_CACHE_FILES,
             result=result,
             on_remove=on_remove,
+            dry_run=dry_run,
         )
 
 
@@ -460,6 +543,8 @@ def _remove_build_artifacts(
     include_git: bool,
     result: CleanupResult,
     on_remove: RemovalCallback | None,
+    *,
+    dry_run: bool,
 ) -> None:
     patterns = BUILD_ARTIFACT_PATTERNS + (IPYNB_CHECKPOINT_DIR,)
 
@@ -474,6 +559,7 @@ def _remove_build_artifacts(
             result=result,
             on_remove=on_remove,
             skip=_skip,
+            dry_run=dry_run,
         )
         _remove_file_entries(
             current,
@@ -482,6 +568,7 @@ def _remove_build_artifacts(
             result=result,
             on_remove=on_remove,
             skip=_skip,
+            dry_run=dry_run,
         )
 
 
@@ -491,6 +578,8 @@ def _remove_directory_pattern(
     directory_name: str,
     result: CleanupResult,
     on_remove: RemovalCallback | None,
+    *,
+    dry_run: bool,
 ) -> None:
     for current, dirnames, _filenames in _walk_workspace(root, include_git):
         _remove_directory_entries(
@@ -499,6 +588,7 @@ def _remove_directory_pattern(
             (directory_name,),
             result=result,
             on_remove=on_remove,
+            dry_run=dry_run,
         )
 
 
@@ -512,15 +602,54 @@ def _should_skip_venv_site_packages(target: Path, root: Path) -> bool:
     return VENV_DIR in target.parts and root.name != VENV_DIR and VENV_DIR not in root.parts
 
 
-def _remove_path(path: Path, result: CleanupResult, on_remove: RemovalCallback | None) -> None:
+def _remove_path(
+    path: Path,
+    result: CleanupResult,
+    on_remove: RemovalCallback | None,
+    *,
+    dry_run: bool,
+) -> None:
     try:
-        if path.is_symlink() or path.is_file():
-            path.unlink(missing_ok=True)
-        else:
-            shutil.rmtree(path, ignore_errors=False)
+        if not dry_run:
+            if path.is_symlink() or path.is_file():
+                path.unlink(missing_ok=True)
+            else:
+                shutil.rmtree(path, ignore_errors=False)
     except FileNotFoundError:
         return
     except PermissionError as exc:  # pragma: no cover - unlikely in tmp based tests
         result.record_error(path, f"permission denied: {exc}")
         return
-    result.record_removal(path, on_remove)
+    result.record_removal(path, on_remove, dry_run=dry_run)
+
+
+def _resolve_manifest_path(options: NormalizedCleanupOptions) -> Path:
+    if options.audit_manifest is not None:
+        return options.audit_manifest
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    directory = options.root / ".hephaestus" / "audit"
+    return directory / f"cleanup-{timestamp}.json"
+
+
+def _write_audit_manifest(result: CleanupResult, options: NormalizedCleanupOptions) -> Path:
+    manifest_path = _resolve_manifest_path(options)
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+
+    payload = {
+        "generated_at": datetime.now(UTC).isoformat(),
+        "root": str(options.root),
+        "include_git": options.include_git,
+        "include_poetry_env": options.include_poetry_env,
+        "python_cache": options.python_cache,
+        "build_artifacts": options.build_artifacts,
+        "node_modules": options.node_modules,
+        "extra_paths": [str(path) for path in options.extra_paths],
+        "removed_paths": [str(path) for path in result.removed_paths],
+        "skipped_roots": [
+            {"path": str(path), "reason": reason} for path, reason in result.skipped_roots
+        ],
+        "errors": [{"path": str(path), "reason": reason} for path, reason in result.errors],
+    }
+
+    manifest_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    return manifest_path

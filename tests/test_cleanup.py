@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
 
 from hephaestus.cleanup import (
     CleanupOptions,
-    _gather_search_roots,
     _matches_any,
     _remove_path,
     _should_skip_venv_site_packages,
+    gather_search_roots,
     run_cleanup,
 )
 
@@ -66,6 +67,19 @@ def test_run_cleanup_records_missing_extra_paths(sample_workspace: Path, tmp_pat
     assert expected in result.skipped_roots
 
 
+def test_run_cleanup_dry_run_preserves_files(sample_workspace: Path) -> None:
+    cache = sample_workspace / "__pycache__"
+    assert cache.exists()
+
+    options = CleanupOptions(root=sample_workspace, python_cache=True, dry_run=True)
+    result = run_cleanup(options)
+
+    assert cache.exists()
+    assert result.removed_paths == []
+    preview_names = {path.name for path in result.preview_paths}
+    assert "__pycache__" in preview_names
+
+
 def test_deep_clean_enables_all_flags(sample_workspace: Path) -> None:
     options = CleanupOptions(root=sample_workspace, deep_clean=True)
     normalized = options.normalize()
@@ -95,7 +109,7 @@ def test_gather_search_roots_includes_virtualenv(
 
     options = CleanupOptions(root=root, include_poetry_env=True)
     normalized = options.normalize()
-    roots = _gather_search_roots(normalized)
+    roots = gather_search_roots(normalized)
 
     assert poetry_env.resolve() in roots
     assert (root / ".venv").resolve() in roots
@@ -104,7 +118,7 @@ def test_gather_search_roots_includes_virtualenv(
 def test_remove_path_handles_missing_files(tmp_path: Path) -> None:
     result = run_cleanup(CleanupOptions(root=tmp_path))
     missing = tmp_path / "missing"
-    _remove_path(missing, result, None)
+    _remove_path(missing, result, None, dry_run=False)
     assert missing not in result.removed_paths
 
 
@@ -173,6 +187,27 @@ def test_run_cleanup_removes_extended_build_artifacts(tmp_path: Path) -> None:
     assert expected.issubset(removed_names)
 
 
+def test_run_cleanup_writes_audit_manifest(tmp_path: Path) -> None:
+    root = tmp_path / "workspace"
+    root.mkdir()
+    target = root / ".DS_Store"
+    target.write_text("metadata", encoding="utf-8")
+
+    manifest = tmp_path / "audit.json"
+
+    result = run_cleanup(CleanupOptions(root=root, audit_manifest=manifest))
+
+    assert not target.exists()
+    assert manifest.exists()
+    assert result.errors == []
+
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    assert payload["root"] == str(root)
+    assert str(target) in payload["removed_paths"]
+    assert payload["errors"] == []
+    assert payload["skipped_roots"] == []
+
+
 def test_dangerous_path_detection() -> None:
     """Test that dangerous paths are correctly identified."""
     from hephaestus.cleanup import is_dangerous_path
@@ -227,4 +262,3 @@ def test_extra_paths_validation_refuses_dangerous_paths(tmp_path: Path) -> None:
     options = CleanupOptions(root=safe_root, extra_paths=(safe_extra,))
     normalized = options.normalize()
     assert safe_extra.resolve() in normalized.extra_paths
-
