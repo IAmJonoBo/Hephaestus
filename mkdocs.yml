@@ -13,6 +13,7 @@ nav:
       - Operating Safely: how-to/operating-safely.md
       - Quality Gate Validation: how-to/quality-gates.md
       - AI Agent Integration: how-to/ai-agent-integration.md
+      - Release Process: how-to/release-process.md
   - Explanation:
       - Architecture Overview: explanation/architecture.md
       - Evergreen Lifecycle Playbook: lifecycle.md
