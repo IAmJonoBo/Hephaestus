@@ -1,7 +1,8 @@
 # ADR-001: STRIDE Threat Model for Hephaestus CLI and Release Pipeline
 
-**Status:** Draft  
+**Status:** Accepted  
 **Date:** 2025-01-08  
+**Last Updated:** 2025-01-XX  
 **Authors:** Security Review Team  
 **Reviewers:** Platform Engineering
 
@@ -330,3 +331,13 @@ Hephaestus has a moderate attack surface due to its filesystem operations, netwo
 3. **Denial of Service:** Hanging network calls (needs timeouts/backoff)
 
 Implementing the recommended mitigations will significantly improve the security posture. The roadmap provides a phased approach to addressing threats based on risk and priority.
+
+## Status History
+
+- **2025-01-08:** Draft - Initial STRIDE threat model completed
+- **2025-01-11:** Accepted - All high-priority mitigations implemented:
+  - ✅ SHA-256 checksum verification for releases
+  - ✅ Sigstore attestation support
+  - ✅ Dangerous path protection in cleanup
+  - ✅ Network timeouts and exponential backoff
+  - ✅ SECURITY.md published with disclosure process

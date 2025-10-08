@@ -66,7 +66,8 @@ For releases, consult `docs/pre-release-checklist.md` for additional automation 
   and explanations distinct.
 - Update `docs/how-to/editor-setup.md` when onboarding instructions change, and surface major updates in
   `docs/lifecycle.md`.
-- Use `uv run mkdocs serve` while working on MkDocs content (once the site is bootstrapped).
+- Use `uv run mkdocs serve` for live preview of the MkDocs Material site, or `uv run mkdocs build` 
+  to generate the static site.
 
 ## Testing Strategy
 
