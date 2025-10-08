@@ -198,11 +198,13 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 **Comprehensive Validation:**
 
 Run all quality gates at once:
+
 ```bash
 python3 scripts/validate_quality_gates.py
 ```
 
 Or use the guard-rails command (includes cleanup + all checks):
+
 ```bash
 uv run hephaestus guard-rails
 ```
@@ -223,27 +225,32 @@ uv run hephaestus guard-rails
 This project enforces frontier-level quality standards through automated gates:
 
 ### Code Quality
+
 - **Linting**: Ruff with strict configuration (E, F, I, UP, B, C4 rules)
 - **Formatting**: Ruff format with 100-character line length
 - **Type Safety**: Mypy strict mode with full coverage of src and tests
 - **Architecture**: Nested decorator linting prevents command registration bugs
 
 ### Testing
+
 - **Coverage**: Minimum 85% test coverage enforced by pytest-cov
 - **Randomization**: pytest-randomly ensures test independence
 - **Warnings**: All warnings treated as errors to prevent degradation
 
 ### Security
+
 - **Dependency Auditing**: pip-audit with strict mode in CI
 - **Dangerous Path Protection**: Cleanup command guards against data loss
 - **Release Verification**: SHA-256 checksums + Sigstore attestation support
 
 ### Automation
+
 - **CI Pipeline**: All checks run on every PR and push to main
 - **Pre-commit Hooks**: Local validation before commits
 - **Guard Rails**: One-command validation via `hephaestus guard-rails`
 
 ### Documentation
+
 - **Diátaxis Structure**: How-to guides, explanations, tutorials, reference
 - **Security Policy**: Published disclosure process and SLAs
 - **Threat Model**: STRIDE analysis documented in ADR

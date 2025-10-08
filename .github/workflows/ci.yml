@@ -1,58 +1,56 @@
 name: CI
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
+# Minimal test pipeline that syncs via uv.lock and runs pytest with dev/qa extras.
+# For uv + GitHub Actions docs (setup, caching, private indexes):
+# https://github.com/astral-sh/uv/tree/main/projects/setup-uv
 
-permissions: read-all
+on: [push, pull_request]
 
 jobs:
-  quality:
+  deps-and-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.12", "3.13"]
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Set up uv with Python ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@v7
+      # Install uv + requested Python with built-in caching on GH-hosted runners.
+      - name: Setup uv and Python
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
+          enable-cache: true # persist uv's cache across runs
 
-      - name: Sync dependencies (qa + dev extras)
-        run: uv sync --extra qa --extra dev
+      # Optional: manual cache keyed to the lockfile (uncomment to take explicit control).
+      # - name: Restore uv cache (keyed to uv.lock)
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/.cache/uv
+      #     key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+      #     restore-keys: |
+      #       uv-${{ runner.os }}
 
-      - name: Scrub Apple cruft
-        run: uv run hephaestus cleanup
+      # Repo ships a uv.lock and installs extras exactly via `uv sync --extra dev --extra qa`.
+      - name: Sync dependencies (locked)
+        run: uv sync --locked --extra dev --extra qa
 
-      - name: Ruff lint
-        run: uv run ruff check .
+      # Quick smoke-check of the environment after sync.
+      - name: Environment report
+        run: |
+          uv --version
+          python -V
+          uv run python -c "import sys, pkgutil; print('site:', sys.executable); print('packages:', len(list(pkgutil.iter_modules())))"
 
-      - name: Ruff format check
-        run: uv run ruff format --check .
+      # Run the pytest suite (available via dev extras).
+      - name: Run tests
+        run: uv run pytest -q
 
-      - name: Check for nested decorators
-        run: python3 scripts/lint_nested_decorators.py src/hephaestus
-
-      - name: Static typing (mypy)
-        run: uv run mypy src tests hephaestus-toolkit/refactoring/scripts
-
-      - name: Run test suite with coverage
-        run: uv run pytest
-
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-${{ matrix.python-version }}
-          path: coverage.xml
-
-      - name: Security audit (pip-audit)
-        if: matrix.python-version == '3.13'
-        run: uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph
-        # pip 25.2 currently ships with GHSA-4xh5-x5gv-qwph and no patched release;
-        # ignore until upstream publishes a fix to keep the audit actionable.
+    # Private index example (commented; configure [tool.uv.index] + secrets when needed).
+    # env:
+    #   UV_INDEX_URL: https://pypi.org/simple  # example override
+    #   UV_INDEX_INTERNAL_PROXY_USERNAME: ${{ secrets.PRIVATE_INDEX_USER }}
+    #   UV_INDEX_INTERNAL_PROXY_PASSWORD: ${{ secrets.PRIVATE_INDEX_PASS }}

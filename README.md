@@ -12,7 +12,7 @@ Hephaestus is a standalone developer toolkit that helps engineering teams priori
 
 - **🛡️ Guard Rails**: One-command quality pipeline (lint, format, type-check, test, audit)
 - **📊 Analytics-Driven Rankings**: Data-backed prioritization for refactoring work
-- **🤖 AI-Native**: Export command schemas for seamless AI agent integration  
+- **🤖 AI-Native**: Export command schemas for seamless AI agent integration
 - **🔒 Safety First**: Dangerous path protection, dry-run previews, audit manifests
 - **🔍 Drift Detection**: Automatic environment validation and remediation
 - **📦 Secure Release**: SHA-256 verification and Sigstore attestation support
@@ -21,23 +21,27 @@ Hephaestus is a standalone developer toolkit that helps engineering teams priori
 ## 🎯 What's New in 0.2.0
 
 ### AI & Intelligence
+
 - **Analytics Ranking API**: Four strategies for prioritizing refactoring work (risk_weighted, coverage_first, churn_based, composite)
 - **AI-Native Schemas**: `hephaestus schema` command exports structured metadata for AI agents (Copilot, Cursor, Claude)
 - **Pluggable Analytics**: Support for churn, coverage, and embedding data sources
 
 ### Security & Safety
+
 - **Enhanced Verification**: SHA-256 checksums + Sigstore attestation support
 - **Cleanup Safety Rails**: Dangerous path protection, dry-run previews, typed confirmations, audit manifests
 - **STRIDE Threat Model**: Comprehensive security analysis documented in ADR-0001
 - **Published Security Policy**: Clear disclosure process and SLAs
 
 ### Quality & Tooling
+
 - **Drift Detection**: `hephaestus guard-rails --drift` validates environment and suggests fixes
 - **Guard-Rails Command**: One-command quality pipeline (cleanup → lint → format → typecheck → test → audit)
 - **Nested Decorator Linting**: AST-based prevention of command registration bugs
 - **Quality Gate Validation**: Single script validates all frontier-level standards
 
 ### Documentation
+
 - **AI Agent Integration Guide**: Complete patterns for AI assistant integration
 - **Operating Safely Guide**: Comprehensive safety features and best practices
 - **Quality Gates Guide**: Deep dive into validation and troubleshooting
@@ -104,7 +108,9 @@ git push
 ### Core Commands
 
 #### guard-rails
+
 Run comprehensive quality and security pipeline in one command:
+
 ```bash
 # Full pipeline: cleanup → lint → format → typecheck → test → audit
 hephaestus guard-rails
@@ -117,6 +123,7 @@ hephaestus guard-rails --drift
 ```
 
 **What it does:**
+
 1. Deep cleanup of build artifacts
 2. Lint code with ruff (auto-fix enabled)
 3. Format code with ruff format
@@ -125,7 +132,9 @@ hephaestus guard-rails --drift
 6. Security audit with pip-audit
 
 #### cleanup
+
 Safely remove development cruft with multiple safety rails:
+
 ```bash
 # Interactive cleanup with preview (default)
 hephaestus cleanup
@@ -138,6 +147,7 @@ hephaestus cleanup --dry-run
 ```
 
 **Safety features:**
+
 - Mandatory dry-run preview
 - Dangerous path protection (refuses /, /home, /usr, etc.)
 - Typed confirmation for out-of-root targets
@@ -145,7 +155,9 @@ hephaestus cleanup --dry-run
 - JSON audit manifests
 
 #### tools refactor
+
 Get intelligent refactoring recommendations:
+
 ```bash
 # View hotspots (high churn + low coverage)
 hephaestus tools refactor hotspots --limit 10
@@ -161,13 +173,16 @@ hephaestus tools refactor opportunities
 ```
 
 **Ranking strategies:**
+
 - `risk_weighted`: Balances coverage, churn, and complexity (default)
 - `coverage_first`: Prioritizes coverage gaps
 - `churn_based`: Focuses on frequently changed files
 - `composite`: Balanced with embedding bonus
 
 #### release
+
 Install wheelhouse distributions with security verification:
+
 ```bash
 # Install latest release
 hephaestus release install --repository IAmJonoBo/Hephaestus
@@ -183,13 +198,16 @@ hephaestus release install --help
 ```
 
 **Security features:**
+
 - SHA-256 checksum verification
 - Sigstore attestation validation
 - Identity pinning support
 - Path traversal prevention
 
 #### schema
+
 Export command schemas for AI agent integration:
+
 ```bash
 # Export to stdout
 hephaestus schema
@@ -199,13 +217,16 @@ hephaestus schema --output schemas.json
 ```
 
 Enables AI assistants (Copilot, Cursor, Claude) to invoke Hephaestus with:
+
 - Complete parameter specifications
 - Usage examples
 - Expected outputs
 - Retry hints
 
 #### plan
+
 Generate refactoring execution plans:
+
 ```bash
 hephaestus plan
 ```
@@ -250,16 +271,16 @@ See `docs/cli-completions.md` for manual installation steps and regeneration tip
 
 ### Development-to-Deployment Flow
 
-| Stage                  | Tooling                                                                                                                  | Purpose                                                                                              |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| Discovery & planning   | `docs/lifecycle.md`, `docs/adr/`, `plan` command                                                                         | Capture intent, align stakeholders, and visualise rollouts.                                          |
-| Local analytics        | `tools refactor hotspots`, `tools refactor opportunities`                                                                | Identify high-value refactor targets with churn and qualitative signals.                             |
-| Quality gates          | `guard-rails`, `scripts/validate_quality_gates.py`, `scripts/lint_nested_decorators.py`                                  | Comprehensive quality validation with frontier-level standards (coverage, linting, typing, security).|
-| Automation             | `hephaestus-toolkit/refactoring/scripts/`                                                                                | Execute codemods, hotspot scans, and characterization harnesses with reproducible scripts.           |
-| Developer guard rails  | `.pre-commit-config.yaml`, Ruff, Black, PyUpgrade, Mypy, Pip Audit, `uv run hephaestus cleanup`                          | Keep code style, types, security, and workspace hygiene evergreen before commits land.               |
-| Continuous integration | `.github/workflows/ci.yml`, `tests/test_cli.py`                                                                          | Enforce linting, typing, cleanup sweeps, and pytest during PRs with artefact uploads.                |
-| Release & monitoring   | `.github/workflows/release-tag.yml`, `.github/workflows/turborepo-monitor.yml`, `ops/turborepo-release.json`, Dependabot | Cut deep-clean releases automatically and track upstream updates while nudging dependency hygiene.   |
-| Post-release hygiene   | `cleanup` command, `cleanup-macos-cruft.sh`, automated CI/release/pre-commit hooks                                       | Keep workspaces clean before packaging or mirroring artefacts and ensure future syncs stay pristine. |
+| Stage                  | Tooling                                                                                                                  | Purpose                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Discovery & planning   | `docs/lifecycle.md`, `docs/adr/`, `plan` command                                                                         | Capture intent, align stakeholders, and visualise rollouts.                                           |
+| Local analytics        | `tools refactor hotspots`, `tools refactor opportunities`                                                                | Identify high-value refactor targets with churn and qualitative signals.                              |
+| Quality gates          | `guard-rails`, `scripts/validate_quality_gates.py`, `scripts/lint_nested_decorators.py`                                  | Comprehensive quality validation with frontier-level standards (coverage, linting, typing, security). |
+| Automation             | `hephaestus-toolkit/refactoring/scripts/`                                                                                | Execute codemods, hotspot scans, and characterization harnesses with reproducible scripts.            |
+| Developer guard rails  | `.pre-commit-config.yaml`, Ruff, Black, PyUpgrade, Mypy, Pip Audit, `uv run hephaestus cleanup`                          | Keep code style, types, security, and workspace hygiene evergreen before commits land.                |
+| Continuous integration | `.github/workflows/ci.yml`, `tests/test_cli.py`                                                                          | Enforce linting, typing, cleanup sweeps, and pytest during PRs with artefact uploads.                 |
+| Release & monitoring   | `.github/workflows/release-tag.yml`, `.github/workflows/turborepo-monitor.yml`, `ops/turborepo-release.json`, Dependabot | Cut deep-clean releases automatically and track upstream updates while nudging dependency hygiene.    |
+| Post-release hygiene   | `cleanup` command, `cleanup-macos-cruft.sh`, automated CI/release/pre-commit hooks                                       | Keep workspaces clean before packaging or mirroring artefacts and ensure future syncs stay pristine.  |
 
 ### Project Layout
 
@@ -356,27 +377,32 @@ export HEPHAESTUS_LOG_LEVEL="INFO"
 Hephaestus enforces frontier-level quality through automated gates:
 
 ### Code Quality
+
 - **Linting**: Ruff with strict configuration (E, F, I, UP, B, C4 rules)
 - **Formatting**: Ruff format with 100-character line length
 - **Type Safety**: Mypy strict mode with full coverage of src and tests
 - **Architecture**: Nested decorator linting prevents command registration bugs
 
 ### Testing
+
 - **Coverage**: Minimum 85% test coverage enforced by pytest-cov
 - **Randomization**: pytest-randomly ensures test independence
 - **Warnings**: All warnings treated as errors to prevent degradation
 
 ### Security
+
 - **Dependency Auditing**: pip-audit with strict mode in CI
 - **Dangerous Path Protection**: Cleanup command guards against data loss
 - **Release Verification**: SHA-256 checksums + Sigstore attestation support
 
 ### Automation
+
 - **CI Pipeline**: All checks run on every PR and push to main
 - **Pre-commit Hooks**: Local validation before commits
 - **Guard Rails**: One-command validation via `hephaestus guard-rails`
 
 ### Documentation
+
 - **Diátaxis Structure**: How-to guides, explanations, tutorials, reference
 - **Security Policy**: Published disclosure process and SLAs
 - **Threat Model**: STRIDE analysis documented in ADR
