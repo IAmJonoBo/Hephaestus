@@ -8,15 +8,13 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from hephaestus import logging as logging_utils
-
 try:
     import tomllib  # Python 3.11+
 except ImportError:
     import tomli as tomllib  # type: ignore[import-not-found,no-redef]
 
 
-logger = logging_utils.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
