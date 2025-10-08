@@ -35,6 +35,45 @@ cd "${PROJECT_ROOT}" || exit 1
 
 ARGS=("$@")
 
+VALUE_FLAGS=(
+  "--log-format"
+  "--log-level"
+  "--run-id"
+  "--extra-path"
+  "--audit-manifest"
+)
+
+should_inject_root=true
+i=0
+while [[ ${i} -lt ${#ARGS[@]} ]]; do
+  arg="${ARGS[$i]}"
+  if [[ ${arg} == "--" ]]; then
+    if [[ ${i} -lt $((${#ARGS[@]} - 1)) ]]; then
+      should_inject_root=false
+    fi
+    break
+  fi
+  if [[ ${arg} == -* ]]; then
+    flag_name="${arg%%=*}"
+    for value_flag in "${VALUE_FLAGS[@]}"; do
+      if [[ ${flag_name} == "${value_flag}" ]]; then
+        if [[ ${arg} != *=* ]]; then
+          ((i++))
+        fi
+        break
+      fi
+    done
+  else
+    should_inject_root=false
+    break
+  fi
+  ((i++))
+done
+
+if [[ ${should_inject_root} == true ]]; then
+  ARGS=("${PROJECT_ROOT}" "${ARGS[@]}")
+fi
+
 flag_present() {
   local flag="$1"
   for arg in "${ARGS[@]}"; do
