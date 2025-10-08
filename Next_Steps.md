@@ -192,15 +192,13 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 
 ### In Progress 🔄
 
-- [ ] (Tooling, due 2025-02-28) Backfill Sigstore bundles for historical releases and add CI enforcement for attestations
-  - Status: 🔄 In Progress - Verification infrastructure complete, backfill pending
-- [ ] (Platform, due 2025-06-30) OpenTelemetry spans across CLI/release/cleanup
+- [ ] (Tooling, target 2025-01-31) Backfill Sigstore bundles for historical releases
+  - Status: 🔄 In Progress - Design complete in ADR-0006, execution scheduled for Q1 2025
+- [ ] (Platform, target Q2 2025) OpenTelemetry spans across CLI/release/cleanup
   - Status: 🔄 Planned Q2 2025 - Foundation complete (structured logging), spans implementation pending (see ADR-0003)
 
 ### Future / Deferred ⏳
 
-- [ ] (Tooling, target Q1 2025) Backfill Sigstore bundles for historical releases
-  - Status: 🔄 In Progress - Design complete in ADR-0006, execution scheduled for 2025-01-31
 - [ ] (Release, target Q1 2025) Publish to PyPI with automated release notes
   - Status: 🔄 In Progress - Design complete in ADR-0005, implementation scheduled for v0.3.0
 - [ ] (Platform AI, target Q2-Q3 2025) Expose secured REST/gRPC endpoints for AI/automation clients with policy guard rails
@@ -215,7 +213,7 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 - [x] Design telemetry schema + correlation strategy for structured logging rollout _(telemetry module + CLI operation contexts shipped)_
 - [x] Draft UX spec for cleanup dry-run + confirmation workflow _(implemented directly in CLI with preview/confirmation flow)_
 - [x] Evaluate Sigstore tooling + release pipeline hooks for artifact attestation _(verification shipped; publishing pipeline follow-up pending)_
-- [ ] Backfill Sigstore bundles for historical releases and enforce attestation publication in CI
+- [ ] Backfill Sigstore bundles for historical releases (see ADR-0006 for implementation plan)
 - [x] Prototype analytics ingestion adapters against representative repositories
 
 ## Deliverables

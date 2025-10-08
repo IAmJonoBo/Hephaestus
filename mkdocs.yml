@@ -30,6 +30,7 @@ nav:
       - Pre-Release Checklist: pre-release-checklist.md
       - Refactoring Toolkit Map: refactoring-toolkit.md
   - Appendix:
+      - ADR Index: adr/README.md
       - ADR Template: adr/0000-template.md
       - ADR 0001 - STRIDE Threat Model: adr/0001-stride-threat-model.md
       - ADR 0002 - Plugin Architecture: adr/0002-plugin-architecture.md
