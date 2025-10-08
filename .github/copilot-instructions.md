@@ -1,47 +1,44 @@
 # Copilot Instructions
 
-## Project snapshot
+## Quick orientation
 
-- Hephaestus is a Typer CLI and toolkit in `src/hephaestus/` that orchestrates cleanup, QA, refactoring analytics, and release automation for other repos.
-- The CLI mirrors docs in `docs/reference/cli.md`; tests in `tests/test_cli.py` demonstrate the expected command outputs and exit codes.
-- The refactoring toolkit lives under `hephaestus-toolkit/refactoring/` with default config at `config/refactor.config.yaml` consumed by `toolbox.load_settings`.
+- Hephaestus is a Typer-based CLI plus refactoring toolkit; the main package lives in `src/hephaestus/`, while automation assets and configs sit under `hephaestus-toolkit/refactoring/`.
+- CLI behaviour is exhaustively documented in `docs/reference/cli.md` and covered by `tests/test_cli.py`; use those fixtures when extending commands.
+- Docs follow Diátaxis, with architecture context in `docs/explanation/architecture.md` and AI usage patterns in `docs/how-to/ai-agent-integration.md`.
 
-## Core modules & patterns
+## Architecture essentials
 
-- `cli.py` wires subcommands (`cleanup`, `plan`, `tools`, `release`, `guard-rails`) and always prints through a shared `rich.Console`; new commands should follow the table-driven outputs used in existing handlers.
-- `toolbox.py` returns deterministic synthetic data so commands stay predictable; extend via Pydantic `ToolkitSettings` models rather than ad-hoc dicts.
-- `cleanup.py` is defensive: it normalises options, forbids dangerous roots (/, $HOME), and logs removals via callbacks; reuse `CleanupOptions` + `run_cleanup` instead of shelling out.
-- `release.py` speaks directly to the GitHub REST API with retry/backoff; prefer its helpers over requests-based code and respect the `DEFAULT_*` constants/env overrides.
+- `cli.py` centralises command wiring (`cleanup`, `guard-rails`, `tools`, `plan`, `release`, `schema`) and shares a single `rich.Console` for consistent tables/logs.
+- `toolbox.py` and `schema.py` expose deterministic synthetic analytics so tests stay stable; introduce new data via `ToolkitSettings` models instead of ad-hoc dicts.
+- `cleanup.py` wraps all filesystem operations with `CleanupOptions` guards (path normalisation, deny-list, audit callbacks). Reuse `run_cleanup` rather than shelling out.
+- `release.py` handles wheelhouse downloads with retry/backoff, checksum + Sigstore verification, and cache management (`HEPHAESTUS_RELEASE_CACHE`).
+- `telemetry.py` defines structured events used across commands; respect the schema when logging so guard-rail correlation IDs propagate.
 
-## Local workflows
+## Workflow shortcuts
 
-- Use UV for everything: `uv sync --extra dev --extra qa` installs tooling, and `uv run hephaestus …` executes the CLI to guarantee the right interpreter.
-- `uv run hephaestus guard-rails` is the fastest parity check—it deep-cleans then runs Ruff check/format, Mypy (`src` + `tests`), Pytest, and `pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph`.
-- Individual quality steps match CI expectations: `uv run ruff check .`, `uv run ruff format .`, `uv run mypy src tests`, `uv run pytest`, `uv run pip-audit --strict`.
-- Docs are built via MkDocs Material: `uv run mkdocs serve` for local preview, with Diátaxis structure mirrored in `docs/`.
+- Bootstrap with UV: `uv sync --extra dev --extra qa`, then always run commands through `uv run hephaestus …` to pick up the managed env.
+- `uv run hephaestus guard-rails` performs the entire quality pipeline (cleanup → ruff check/format → mypy on `src` + `tests` → pytest with ≥85% coverage → `pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph`).
+- For focused checks, use the same tooling individually: `uv run ruff check .`, `uv run ruff format .`, `uv run mypy src tests`, `uv run pytest`, `uv run pip-audit --strict`.
+- Build docs via `uv run mkdocs serve` and keep navigation wired in `mkdocs.yml`.
+- Analytics demos live in `tests/test_analytics.py`; mirror those patterns when adding ranking strategies or schema fields.
 
-## Testing & diagnostics
+## Implementation patterns
 
-- Pytest is configured in `pyproject.toml` with coverage fail-under 85% and warnings treated as errors (`filterwarnings = error`); always run through `uv run pytest`.
-- CLI tests rely on `typer.testing.CliRunner`; mimic that pattern when adding commands to keep output assertions readable.
-- Coverage reports land in `coverage.xml`; the guard-rails pipeline and CI expect it for artefacts.
+- Prefer Typer command functions that return `int | None` and print via the shared console; table layouts in `cli.py` show the expected Rich API usage.
+- Tests rely on `typer.testing.CliRunner` and patching utilities (see `tests/test_guard_rails_runs_expected_commands`); keep command ordering stable or update assertions.
+- Synthetic datasets come from `toolbox.py`; extend via Pydantic models and update `tests/test_toolbox.py` to keep determinism.
+- Drift detection is orchestrated in `drift.py` and surfaced through `guard-rails --drift`; reuse helpers instead of invoking subprocesses directly.
+- Release automation expects SHA and Sigstore checks through `ReleaseVerifier`; raise `ReleaseError` for all user-facing failures.
 
-## Release & distribution
+## Safety rails & pitfalls
 
-- `release install` downloads the prebuilt wheelhouse from GitHub Releases; respect options like `--repository`, `--asset-pattern`, and `--remove-archive` when scripting automated installs.
-- Wheelhouse caching defaults to `~/.cache/hephaestus/wheelhouses` (macOS `~/Library/Caches`); override via `HEPHAESTUS_RELEASE_CACHE`.
-- All network calls enforce HTTPS and retry limits—surface errors via `ReleaseError` instead of bare exceptions.
+- Never skip `CleanupOptions.normalize`; it prevents wiping virtualenvs or system paths. Out-of-root targets require explicit confirmation.
+- `guard-rails` already embeds a cleanup step—avoid nesting manual cleanup calls to prevent duplicate prompts and log spam.
+- Wheelhouse installers assume HTTPS URLs only; tests enforce this via `tests/test_release.py`.
+- Coverage artefacts must land in `coverage.xml`; CI and the guard-rails command read that file directly.
 
-## Safety checks & gotchas
+## Quick references
 
-- Never bypass `CleanupOptions.normalize`; it guards against wiping virtualenv `site-packages` and refuses high-risk paths.
-- `guard-rails` re-invokes `cleanup` internally; avoid calling it inside other cleanup contexts to prevent nested user prompts/log spam.
-- When tests patch subprocesses (see `tests/test_guard_rails_runs_expected_commands`), assert commands exactly—order changes break expectations.
-- Synthetic analytics live in `toolbox.py`; if you need realistic data, add hooks behind new model fields so existing tests stay deterministic.
-
-## Handy references
-
-- Architecture overview: `docs/explanation/architecture.md` for component boundaries and flows.
-- Lifecycle guidance: `docs/lifecycle.md` and `docs/pre-release-checklist.md` capture rollout cadence and final checks.
-- Refactoring playbooks: `hephaestus-toolkit/refactoring/docs/` for codemod strategy templates.
-- Ops note: `ops/turborepo-release.json` is monitored by the scheduled TurboRepo workflow—adjust it alongside any release automation changes.
+- Quality gates + troubleshooting: `docs/how-to/quality-gates.md`, `docs/how-to/troubleshooting.md`.
+- Refactoring playbooks and default knobs: `hephaestus-toolkit/refactoring/docs/`, `hephaestus-toolkit/refactoring/config/refactor.config.yaml`.
+- Ops automation touchpoints: `.github/workflows/`, `ops/turborepo-release.json`, and `scripts/validate_quality_gates.py`.
