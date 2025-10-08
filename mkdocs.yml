@@ -14,6 +14,8 @@ nav:
       - Quality Gate Validation: how-to/quality-gates.md
       - AI Agent Integration: how-to/ai-agent-integration.md
       - Release Process: how-to/release-process.md
+      - Testing Guide: how-to/testing.md
+      - Troubleshooting: how-to/troubleshooting.md
   - Explanation:
       - Architecture Overview: explanation/architecture.md
       - Evergreen Lifecycle Playbook: lifecycle.md
