@@ -17,7 +17,6 @@ from __future__ import annotations
 import subprocess
 import sys
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Literal
 
 
@@ -89,12 +88,12 @@ QUALITY_GATES = [
 def run_quality_gate(gate: QualityGate, verbose: bool = True) -> bool:
     """Run a single quality gate check."""
     if verbose:
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"Running: {gate.name}")
         print(f"Description: {gate.description}")
         print(f"Category: {gate.category}")
         print(f"Command: {' '.join(gate.command)}")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
     try:
         result = subprocess.run(
@@ -153,12 +152,12 @@ def main() -> int:
     print(f"\nTotal: {passed_count}/{total_count} passed")
 
     if required_failed:
-        print(f"\n❌ Required gates FAILED:")
+        print("\n❌ Required gates FAILED:")
         for gate_name in required_failed:
             print(f"  - {gate_name}")
 
     if optional_failed:
-        print(f"\n⚠️  Optional gates failed (non-blocking):")
+        print("\n⚠️  Optional gates failed (non-blocking):")
         for gate_name in optional_failed:
             print(f"  - {gate_name}")
 

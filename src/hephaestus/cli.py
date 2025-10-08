@@ -12,14 +12,13 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from hephaestus import __version__
+from hephaestus import __version__, telemetry, toolbox
 from hephaestus import cleanup as cleanup_module
 from hephaestus import drift as drift_module
 from hephaestus import logging as logging_utils
 from hephaestus import planning as planning_module
 from hephaestus import release as release_module
 from hephaestus import schema as schema_module
-from hephaestus import telemetry, toolbox
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
