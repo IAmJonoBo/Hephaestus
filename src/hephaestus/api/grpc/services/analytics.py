@@ -28,9 +28,7 @@ class AnalyticsServiceServicer(hephaestus_pb2_grpc.AnalyticsServiceServicer):
         Returns:
             File rankings
         """
-        logger.info(
-            f"GetRankings called: strategy={request.strategy}, limit={request.limit}"
-        )
+        logger.info(f"GetRankings called: strategy={request.strategy}, limit={request.limit}")
 
         # Simulate rankings
         rankings = [

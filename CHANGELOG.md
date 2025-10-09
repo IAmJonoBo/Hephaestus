@@ -61,6 +61,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Existing telemetry event definitions moved to `events.py`
   - New `telemetry/` package for OpenTelemetry integration
   - All imports updated (`from hephaestus import events as telemetry`)
+- **REST API Hardening**: Background task orchestration now enforces bounded wait times, cancellation, and deterministic
+  streaming responses to prevent socket leaks and test hangs. Task manager utilities gained cancellation helpers,
+  pollable completion waits, and expanded regression coverage for timeouts, limits, and validation logic.
+- **Release Automation & Plugins**: CLI regression coverage now exercises archive cleanup, Sigstore backfill flows, and Ruff
+  plugin failure handling while lint gates exclude generated protobuf stubs and adopt modern typing annotations.
 
 ### Fixed
 
