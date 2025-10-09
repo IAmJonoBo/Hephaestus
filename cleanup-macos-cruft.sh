@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+
+# Re-exec under bash if a different shell invokes the script.
+if [ -z "${BASH_VERSION-}" ]; then
+  exec /usr/bin/env bash "$0" "$@"
+fi
+
 set -euo pipefail
 
 MACOS_PATTERNS=(

@@ -98,14 +98,14 @@ python -m hephaestus --help
 
 **Symptom:** Installation fails with errors like:
 
-```
+```text
 error: Failed to install: ruff-0.14.0-py3-none-macosx_11_0_arm64.whl (ruff==0.14.0)
 Caused by: RECORD file doesn't match wheel contents: Could not find entry for ruff-0.14.0.data/scripts/._ruff
 ```
 
 or:
 
-```
+```text
 warning: Failed to clone files; falling back to full copy
 error: Failed to install: bandit-1.8.6-py3-none-any.whl (bandit==1.8.6)
 Caused by: failed to copy file from ... to ...: No such file or directory

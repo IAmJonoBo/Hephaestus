@@ -44,11 +44,11 @@ print_success "Repository root detected"
 # Step 1: Check Python version
 print_status "Checking Python version..."
 PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
-PYTHON_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
-PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
+PYTHON_MAJOR=$(echo "${PYTHON_VERSION}" | cut -d. -f1)
+PYTHON_MINOR=$(echo "${PYTHON_VERSION}" | cut -d. -f2)
 
-if [[ $PYTHON_MAJOR -lt 3 ]] || [[ $PYTHON_MAJOR -eq 3 && $PYTHON_MINOR -lt 12 ]]; then
-  print_error "Python 3.12+ required, found $PYTHON_VERSION"
+if [[ ${PYTHON_MAJOR} -lt 3 ]] || [[ ${PYTHON_MAJOR} -eq 3 && ${PYTHON_MINOR} -lt 12 ]]; then
+  print_error "Python 3.12+ required, found ${PYTHON_VERSION}"
   echo ""
   echo "Recommended fixes:"
   if command -v uv &>/dev/null; then
@@ -64,7 +64,7 @@ if [[ $PYTHON_MAJOR -lt 3 ]] || [[ $PYTHON_MAJOR -eq 3 && $PYTHON_MINOR -lt 12 ]
   exit 1
 fi
 
-print_success "Python $PYTHON_VERSION detected"
+print_success "Python ${PYTHON_VERSION} detected"
 
 # Step 2: Check for uv installation
 print_status "Checking for uv package manager..."
@@ -75,7 +75,7 @@ if ! command -v uv &>/dev/null; then
   if curl -LsSf https://astral.sh/uv/install.sh | sh; then
     print_success "uv installed successfully"
     # Add to PATH for this session
-    export PATH="$HOME/.cargo/bin:$PATH"
+    export PATH="${HOME}/.cargo/bin:${PATH}"
   else
     print_error "Failed to install uv automatically"
     print_warning "Please install uv manually: https://docs.astral.sh/uv/getting-started/installation/"
@@ -83,14 +83,14 @@ if ! command -v uv &>/dev/null; then
   fi
 else
   UV_VERSION=$(uv --version 2>&1)
-  print_success "uv detected: $UV_VERSION"
+  print_success "uv detected: ${UV_VERSION}"
 fi
 
 # Step 2.5: Detect filesystem type and configure UV environment location
-REPO_NAME=$(basename "$(pwd)")
+REPO_NAME=$(basename "$(pwd)" || true)
 ENV_RELOCATED=0
 
-if [[ $OSTYPE == "darwin"* ]]; then
+if [[ ${OSTYPE} == "darwin"* ]]; then
   print_status "Detecting filesystem type..."
 
   # Check if we're on a filesystem that doesn't support extended attributes
@@ -102,7 +102,7 @@ if [[ $OSTYPE == "darwin"* ]]; then
   fi
 
   # Alternative: use df and grep
-  if [[ -z $FS_TYPE ]]; then
+  if [[ -z ${FS_TYPE} ]]; then
     FS_TYPE=$(df -T . 2>/dev/null | tail -1 | awk '{print $2}' || echo "")
   fi
 
@@ -110,22 +110,22 @@ if [[ $OSTYPE == "darwin"* ]]; then
 
   # Check if filesystem is non-xattr (exFAT, NTFS, FAT32, etc.)
   NON_XATTR_FS=0
-  if [[ $FS_TYPE =~ ^(exfat|msdos|ntfs|fat32|vfat)$ ]] || [[ $FS_TYPE =~ [Ee]x[Ff][Aa][Tt] ]]; then
+  if [[ ${FS_TYPE} =~ ^(exfat|msdos|ntfs|fat32|vfat)$ ]] || [[ ${FS_TYPE} =~ [Ee]x[Ff][Aa][Tt] ]]; then
     NON_XATTR_FS=1
-    print_warning "Non-xattr filesystem detected ($FS_TYPE)"
+    print_warning "Non-xattr filesystem detected (${FS_TYPE})"
     print_warning "Extended attributes not supported - relocating virtual environment"
   fi
 
   # Relocate environment to internal disk if on non-xattr filesystem
-  if [[ $NON_XATTR_FS -eq 1 ]]; then
-    TARGET_ENV_DIR="$HOME/.uvenvs/$REPO_NAME"
+  if [[ ${NON_XATTR_FS} -eq 1 ]]; then
+    TARGET_ENV_DIR="${HOME}/.uvenvs/${REPO_NAME}"
 
-    print_status "Configuring UV_PROJECT_ENVIRONMENT=$TARGET_ENV_DIR"
-    export UV_PROJECT_ENVIRONMENT="$TARGET_ENV_DIR"
+    print_status "Configuring UV_PROJECT_ENVIRONMENT=${TARGET_ENV_DIR}"
+    export UV_PROJECT_ENVIRONMENT="${TARGET_ENV_DIR}"
     ENV_RELOCATED=1
 
     # Create the parent directory if needed
-    mkdir -p "$HOME/.uvenvs"
+    mkdir -p "${HOME}/.uvenvs"
 
     print_success "Virtual environment will be created on internal disk"
   fi
@@ -146,17 +146,17 @@ if [[ $OSTYPE == "darwin"* ]]; then
   # Strip extended attributes from UV cache to prevent AppleDouble file creation
   print_status "Stripping extended attributes from UV cache..."
 
-  UV_CACHE_DIR="${UV_CACHE_DIR:-$HOME/.cache/uv}"
-  if [[ -d $UV_CACHE_DIR ]] && command -v xattr >/dev/null 2>&1; then
-    xattr -rc "$UV_CACHE_DIR" 2>/dev/null || true
+  UV_CACHE_DIR="${UV_CACHE_DIR:-${HOME}/.cache/uv}"
+  if [[ -d ${UV_CACHE_DIR} ]] && command -v xattr >/dev/null 2>&1; then
+    xattr -rc "${UV_CACHE_DIR}" 2>/dev/null || true
     print_success "Extended attributes stripped from UV cache"
   fi
 
   # Clean AppleDouble files from UV cache to prevent installation failures
-  if [[ -d $UV_CACHE_DIR ]]; then
-    find "$UV_CACHE_DIR" -type f -name "._*" -delete 2>/dev/null || true
-    find "$UV_CACHE_DIR" -type f -name ".DS_Store" -delete 2>/dev/null || true
-    find "$UV_CACHE_DIR" -type d -name "__MACOSX" -exec rm -rf {} + 2>/dev/null || true
+  if [[ -d ${UV_CACHE_DIR} ]]; then
+    find "${UV_CACHE_DIR}" -type f -name "._*" -delete 2>/dev/null || true
+    find "${UV_CACHE_DIR}" -type f -name ".DS_Store" -delete 2>/dev/null || true
+    find "${UV_CACHE_DIR}" -type d -name "__MACOSX" -exec rm -rf {} + 2>/dev/null || true
     print_success "UV cache cleaned"
   else
     print_success "UV cache directory not found (will be created on first sync)"
@@ -166,14 +166,14 @@ if [[ $OSTYPE == "darwin"* ]]; then
   if [[ -L ".venv" ]]; then
     # It's a symlink - resolve and clean the target
     VENV_TARGET=$(readlink ".venv")
-    if [[ -d $VENV_TARGET ]]; then
+    if [[ -d ${VENV_TARGET} ]]; then
       print_status "Cleaning macOS metadata from virtual environment..."
       if command -v xattr >/dev/null 2>&1; then
-        xattr -rc "$VENV_TARGET" 2>/dev/null || true
+        xattr -rc "${VENV_TARGET}" 2>/dev/null || true
       fi
-      find "$VENV_TARGET" -type f -name "._*" -delete 2>/dev/null || true
-      find "$VENV_TARGET" -type f -name ".DS_Store" -delete 2>/dev/null || true
-      find "$VENV_TARGET" -type d -name "__MACOSX" -exec rm -rf {} + 2>/dev/null || true
+      find "${VENV_TARGET}" -type f -name "._*" -delete 2>/dev/null || true
+      find "${VENV_TARGET}" -type f -name ".DS_Store" -delete 2>/dev/null || true
+      find "${VENV_TARGET}" -type d -name "__MACOSX" -exec rm -rf {} + 2>/dev/null || true
       print_success "Virtual environment cleaned"
     fi
   elif [[ -d ".venv" ]]; then
@@ -195,7 +195,7 @@ if uv sync --locked --extra dev --extra qa; then
   print_success "Dependencies synced successfully"
 
   # Create/update .venv symlink if environment was relocated
-  if [[ $ENV_RELOCATED -eq 1 ]] && [[ -n ${UV_PROJECT_ENVIRONMENT-} ]]; then
+  if [[ ${ENV_RELOCATED} -eq 1 ]] && [[ -n ${UV_PROJECT_ENVIRONMENT-} ]]; then
     print_status "Creating .venv symlink to relocated environment..."
 
     # Remove existing .venv if it's a directory (not a symlink)
@@ -207,13 +207,13 @@ if uv sync --locked --extra dev --extra qa; then
     # Create or update symlink
     if [[ -L ".venv" ]]; then
       # Update existing symlink
-      ln -sfn "$UV_PROJECT_ENVIRONMENT" .venv
+      ln -sfn "${UV_PROJECT_ENVIRONMENT}" .venv
     else
       # Create new symlink
-      ln -s "$UV_PROJECT_ENVIRONMENT" .venv
+      ln -s "${UV_PROJECT_ENVIRONMENT}" .venv
     fi
 
-    print_success "Symlink created: .venv -> $UV_PROJECT_ENVIRONMENT"
+    print_success "Symlink created: .venv -> ${UV_PROJECT_ENVIRONMENT}"
     print_warning "Note: .venv is now a symlink to an APFS-backed location"
   fi
 else
@@ -224,16 +224,16 @@ else
     print_warning "macOS detected - trying additional cleanup..."
 
     # Strip xattrs from cache
-    UV_CACHE_DIR="${UV_CACHE_DIR:-$HOME/.cache/uv}"
-    if [[ -d $UV_CACHE_DIR ]] && command -v xattr >/dev/null 2>&1; then
+    UV_CACHE_DIR="${UV_CACHE_DIR:-${HOME}/.cache/uv}"
+    if [[ -d ${UV_CACHE_DIR} ]] && command -v xattr >/dev/null 2>&1; then
       print_status "Stripping extended attributes from UV cache..."
-      xattr -rc "$UV_CACHE_DIR" 2>/dev/null || true
+      xattr -rc "${UV_CACHE_DIR}" 2>/dev/null || true
     fi
 
     # More aggressive cleanup of UV cache
-    if [[ -d $UV_CACHE_DIR ]]; then
+    if [[ -d ${UV_CACHE_DIR} ]]; then
       print_status "Clearing entire UV cache..."
-      rm -rf "$UV_CACHE_DIR"
+      rm -rf "${UV_CACHE_DIR}"
       print_success "UV cache cleared"
     fi
 
@@ -242,8 +242,8 @@ else
       VENV_TARGET=$(readlink ".venv")
       print_status "Removing relocated environment..."
       rm -f .venv
-      if [[ -d $VENV_TARGET ]]; then
-        rm -rf "$VENV_TARGET"
+      if [[ -d ${VENV_TARGET} ]]; then
+        rm -rf "${VENV_TARGET}"
       fi
       print_success "Environment removed"
     elif [[ -d ".venv" ]]; then
@@ -257,10 +257,10 @@ else
       print_success "Dependencies synced successfully (after cache clear)"
 
       # Create symlink if environment was relocated
-      if [[ $ENV_RELOCATED -eq 1 ]] && [[ -n ${UV_PROJECT_ENVIRONMENT-} ]]; then
+      if [[ ${ENV_RELOCATED} -eq 1 ]] && [[ -n ${UV_PROJECT_ENVIRONMENT-} ]]; then
         print_status "Creating .venv symlink..."
-        ln -s "$UV_PROJECT_ENVIRONMENT" .venv
-        print_success "Symlink created: .venv -> $UV_PROJECT_ENVIRONMENT"
+        ln -s "${UV_PROJECT_ENVIRONMENT}" .venv
+        print_success "Symlink created: .venv -> ${UV_PROJECT_ENVIRONMENT}"
       fi
     else
       print_warning "Trying without lock file..."
@@ -298,10 +298,10 @@ VALIDATION_FAILED=0
 
 # Check core dependencies
 for module in "typer" "rich" "pydantic" "pytest" "ruff" "mypy"; do
-  if uv run python -c "import $module; print(f'$module OK')" &>/dev/null; then
-    print_success "$module available"
+  if uv run python -c "import ${module}; print(f'${module} OK')" &>/dev/null; then
+    print_success "${module} available"
   else
-    print_error "$module not available"
+    print_error "${module} not available"
     VALIDATION_FAILED=1
   fi
 done
@@ -321,7 +321,7 @@ else
   VALIDATION_FAILED=1
 fi
 
-if [[ $VALIDATION_FAILED -eq 1 ]]; then
+if [[ ${VALIDATION_FAILED} -eq 1 ]]; then
   print_error "Environment validation failed"
   exit 1
 fi
@@ -342,8 +342,8 @@ if command -v pre-commit &>/dev/null || uv run pre-commit --version &>/dev/null;
 
   # Check if core.hooksPath is configured
   HOOKS_PATH=$(git config --get core.hooksPath 2>/dev/null || echo "")
-  if [[ -n $HOOKS_PATH ]]; then
-    print_warning "core.hooksPath is set to: $HOOKS_PATH"
+  if [[ -n ${HOOKS_PATH} ]]; then
+    print_warning "core.hooksPath is set to: ${HOOKS_PATH}"
     print_warning "Pre-commit hooks managed centrally - skipping local installation"
     print_warning "To enable local hooks, run: git config --unset core.hooksPath"
   else
@@ -364,10 +364,10 @@ echo -e "${CYAN}================================================================
 echo ""
 
 # Show environment location info
-if [[ $ENV_RELOCATED -eq 1 ]]; then
+if [[ ${ENV_RELOCATED} -eq 1 ]]; then
   echo -e "${YELLOW}Note:${NC} Virtual environment relocated to APFS-backed location"
-  echo "  Location: $UV_PROJECT_ENVIRONMENT"
-  echo "  Reason: Repository on non-xattr filesystem ($FS_TYPE)"
+  echo "  Location: ${UV_PROJECT_ENVIRONMENT}"
+  echo "  Reason: Repository on non-xattr filesystem (${FS_TYPE})"
   echo "  .venv is a symlink to the relocated environment"
   echo ""
 fi
