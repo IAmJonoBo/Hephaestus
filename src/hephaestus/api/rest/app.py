@@ -43,7 +43,7 @@ security = HTTPBearer(auto_error=False)
 
 
 def verify_api_key(
-    credentials: HTTPAuthorizationCredentials | None = None,
+    credentials: HTTPAuthorizationCredentials | None = Security(security),
 ) -> str:
     """Verify API key from Authorization header.
 
@@ -56,9 +56,6 @@ def verify_api_key(
     Raises:
         HTTPException: If API key is missing or invalid
     """
-    if credentials is None:
-        credentials = Security(security)
-
     if credentials is None:
         raise HTTPException(status_code=401, detail="Missing API key")
 
@@ -326,7 +323,7 @@ async def stream_task_progress(
 
 
 # Task execution functions
-def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
+async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
     """Execute guard-rails quality pipeline.
 
     Args:
@@ -371,7 +368,7 @@ def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
     }
 
 
-def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
+async def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
     """Execute cleanup operation.
 
     Args:

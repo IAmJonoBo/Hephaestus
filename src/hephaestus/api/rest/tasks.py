@@ -99,7 +99,7 @@ class TaskManager:
             task.progress = 1.0
             task.result = result
 
-            logger.info("Task completed", extra={"task_id": task_id, "name": task.name})
+            logger.info("Task completed", extra={"task_id": task_id, "task_name": task.name})
 
         except Exception as e:
             task.status = TaskStatus.FAILED
@@ -107,7 +107,7 @@ class TaskManager:
 
             logger.error(
                 "Task failed",
-                extra={"task_id": task_id, "name": task.name, "error": str(e)},
+                extra={"task_id": task_id, "task_name": task.name, "error": str(e)},
                 exc_info=True,
             )
 
