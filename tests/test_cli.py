@@ -435,6 +435,7 @@ def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> 
             "mkdocs.yml",
             "hephaestus-toolkit/",
         ],
+        ["bash", "scripts/run_actionlint.sh"],
         ["uv", "run", "mypy", "src", "tests"],
         ["uv", "run", "pytest"],
         ["uv", "run", "pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"],
@@ -466,6 +467,7 @@ def test_guard_rails_can_skip_format(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert result.exit_code == 0
     assert ["uv", "run", "ruff", "format", "."] not in executed
+    assert ["bash", "scripts/run_actionlint.sh"] in executed
 
 
 def test_guard_rails_plugin_mode_with_no_plugins(monkeypatch: pytest.MonkeyPatch) -> None:

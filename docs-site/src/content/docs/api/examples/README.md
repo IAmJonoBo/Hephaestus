@@ -2,6 +2,7 @@
 title: "gRPC API Examples"
 description: "This directory contains example client code for the Hephaestus gRPC API. The Hephaestus gRPC API provides high-performance, strongly-typed access to quality..."
 ---
+
 This directory contains example client code for the Hephaestus gRPC API.
 
 ## Overview
@@ -43,6 +44,7 @@ uv run python docs/api/examples/grpc_quality_client.py
 ```
 
 Examples include:
+
 - **RunGuardRails**: Execute quality pipeline (blocking)
 - **RunGuardRailsStream**: Execute with streaming progress updates
 - **CheckDrift**: Detect tool version drift
@@ -55,6 +57,7 @@ uv run python docs/api/examples/grpc_cleanup_client.py
 ```
 
 Examples include:
+
 - **PreviewCleanup**: Preview cleanup without executing
 - **Clean**: Execute cleanup operation
 
@@ -66,6 +69,7 @@ uv run python docs/api/examples/grpc_analytics_client.py
 ```
 
 Examples include:
+
 - **GetRankings**: Get refactoring priority rankings
 - **GetHotspots**: Identify high-risk code areas
 
@@ -81,14 +85,14 @@ from hephaestus.api.grpc.protos import hephaestus_pb2, hephaestus_pb2_grpc
 async def main():
     async with grpc.aio.insecure_channel('localhost:50051') as channel:
         stub = hephaestus_pb2_grpc.QualityServiceStub(channel)
-        
+
         # Create request
         request = hephaestus_pb2.GuardRailsRequest(
             no_format=False,
             workspace=".",
             drift_check=True,
         )
-        
+
         # Call service
         response = await stub.RunGuardRails(request)
         print(f"Success: {response.success}")
@@ -119,11 +123,9 @@ protoc --ts_out=. --grpc-web_out=import_style=typescript:. hephaestus.proto
 - `RunGuardRails(GuardRailsRequest) → GuardRailsResponse`
   - Execute complete quality pipeline
   - Returns summary of all quality gates
-  
 - `RunGuardRailsStream(GuardRailsRequest) → stream GuardRailsProgress`
   - Execute with streaming progress updates
   - Yields progress for each stage
-  
 - `CheckDrift(DriftRequest) → DriftResponse`
   - Detect tool version drift
   - Returns drift status and remediation commands
@@ -133,7 +135,6 @@ protoc --ts_out=. --grpc-web_out=import_style=typescript:. hephaestus.proto
 - `Clean(CleanupRequest) → CleanupResponse`
   - Execute workspace cleanup
   - Returns files deleted and space freed
-  
 - `PreviewCleanup(CleanupRequest) → CleanupPreview`
   - Preview cleanup without executing
   - Returns what would be cleaned
@@ -143,7 +144,6 @@ protoc --ts_out=. --grpc-web_out=import_style=typescript:. hephaestus.proto
 - `GetRankings(RankingsRequest) → RankingsResponse`
   - Get refactoring priority rankings
   - Supports multiple ranking strategies
-  
 - `GetHotspots(HotspotsRequest) → HotspotsResponse`
   - Identify high-risk code areas
   - Returns change frequency, complexity, risk scores
@@ -217,6 +217,7 @@ response = await stub.RunGuardRails(request, timeout=300)
 **Current Implementation**: Insecure channels (development only)
 
 **Production Recommendations**:
+
 - Use TLS/SSL encryption
 - Implement authentication (API keys, JWT, mTLS)
 - Add authorization checks

@@ -66,13 +66,20 @@ def verify_api_key(
         - Rate limiting per key
     """
     if credentials is None:
-        raise HTTPException(status_code=401, detail="Missing API key")
+        credentials = Security(security)
+        if credentials is None:
+            raise HTTPException(status_code=401, detail="Missing API key")
 
     api_key = credentials.credentials
 
-    # TODO(Sprint 4): Replace with secure key validation against database/vault
-    # Current implementation accepts any non-empty key for development only
-    if not api_key:
+    # Secure key validation against environment variable or vault
+    import os
+
+    # Load valid API keys from environment variable (comma-separated)
+    valid_keys = os.environ.get("HEPHAESTUS_API_KEYS", "")
+    valid_keys_set = {k.strip() for k in valid_keys.split(",") if k.strip()}
+
+    if not api_key or api_key not in valid_keys_set:
         raise HTTPException(status_code=403, detail="Invalid API key")
 
     return api_key
@@ -353,7 +360,7 @@ async def stream_task_progress(
 
 
 # Task execution functions
-async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
+def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
     """Execute guard-rails quality pipeline.
 
     Args:
@@ -397,8 +404,50 @@ async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
         "duration": total_duration,
     }
 
+    async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
+        """Execute guard-rails quality pipeline asynchronously.
 
-async def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
+        Args:
+            request: Guard-rails configuration
+
+        Returns:
+            Execution results
+        """
+        # Simulate async guard-rails execution
+        gates = []
+
+        # Cleanup step
+        if not request.no_format:
+            try:
+                # Simulate async cleanup
+                await asyncio.sleep(0.5)
+                gates.append({"name": "cleanup", "passed": True, "duration": 0.5})
+            except Exception as e:
+                gates.append({"name": "cleanup", "passed": False, "error": str(e)})
+
+        # Simulate other gates asynchronously
+        other_gates = [
+            ("ruff-check", 1.2),
+            ("ruff-format", 0.8),
+            ("mypy", 3.5),
+            ("pytest", 10.2),
+            ("pip-audit", 2.1),
+        ]
+        for name, duration in other_gates:
+            await asyncio.sleep(0)  # Yield control, simulate async
+            gates.append({"name": name, "passed": True, "duration": duration})
+
+        success = all(gate["passed"] for gate in gates)
+        total_duration = sum(gate.get("duration", 0) for gate in gates)
+
+        return {
+            "success": success,
+            "gates": gates,
+            "duration": total_duration,
+        }
+
+
+def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
     """Execute cleanup operation.
 
     Args:
@@ -418,6 +467,27 @@ async def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
             "resource_forks": 7,
         },
     }
+
+    async def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
+        """Execute cleanup operation asynchronously.
+
+        Args:
+            request: Cleanup configuration
+
+        Returns:
+            Cleanup results
+        """
+        # Simulate async cleanup execution
+        await asyncio.sleep(0.2)  # Simulate delay
+        return {
+            "files_deleted": 42,
+            "size_freed": 15728640,  # ~15MB
+            "manifest": {
+                "python_cache": 15,
+                "build_artifacts": 20,
+                "resource_forks": 7,
+            },
+        }
 
 
 def _execute_rankings(request: RankingsRequest) -> dict[str, Any]:

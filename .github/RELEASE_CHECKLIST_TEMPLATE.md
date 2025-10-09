@@ -328,7 +328,7 @@ hephaestus release install --repository IAmJonoBo/Hephaestus --tag vX.Y.Z
 git clone https://github.com/IAmJonoBo/Hephaestus.git
 cd Hephaestus
 git checkout vX.Y.Z
-uv sync --extra dev --extra qa
+uv sync --extra dev --extra qa --extra grpc
 \`\`\`
 
 ## Documentation

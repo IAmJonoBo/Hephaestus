@@ -2,6 +2,7 @@
 title: "ADR 0006: Sigstore Bundle Backfill for Historical Releases"
 description: "- Status: Sprint 1 Complete (2025-10-09) - Date: 2025-01-15 - Last Updated: 2025-10-09 - Supersedes: N/A - Superseded by: N/A - Related: ADR-0001 (STRIDE..."
 ---
+
 - Status: Sprint 1 Complete (2025-10-09)
 - Date: 2025-01-15
 - Last Updated: 2025-10-09

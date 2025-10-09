@@ -336,11 +336,12 @@ This runs:
 
 1. Deep cleanup
 2. Ruff check
-3. Ruff isort (`ruff check --select I --fix`)
-4. Ruff format
-5. Mypy
-6. Pytest
-7. pip-audit
+3. Actionlint workflow validation
+4. Ruff isort (`ruff check --select I --fix`)
+5. Ruff format
+6. Mypy
+7. Pytest
+8. pip-audit
 
 ## Development
 

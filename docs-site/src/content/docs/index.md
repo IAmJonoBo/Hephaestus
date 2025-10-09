@@ -2,6 +2,7 @@
 title: "Welcome to the Hephaestus Toolkit Docs"
 description: "Hephaestus streamlines refactoring and quality operations. These docs collect everything you need to plan rollouts, run the CLI, and keep automation evergreen...."
 ---
+
 Hephaestus streamlines refactoring and quality operations. These docs collect everything you need to
 plan rollouts, run the CLI, and keep automation evergreen.
 

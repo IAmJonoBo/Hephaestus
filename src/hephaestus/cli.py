@@ -1295,6 +1295,14 @@ def _run_guard_rails_standard(no_format: bool) -> None:  # NOSONAR(S3776)
             attributes={"step": "yamllint"},
         )
 
+        console.print("[cyan]→ Running actionlint...[/cyan]")
+        subprocess.run(["bash", "scripts/run_actionlint.sh"], check=True)
+        record_histogram(
+            GUARD_RAILS_STEP_DURATION,
+            time.perf_counter() - start_time,
+            attributes={"step": "actionlint"},
+        )
+
         # Step 5: Mypy
         console.print("[cyan]→ Running mypy...[/cyan]")
         subprocess.run(["uv", "run", "mypy", "src", "tests"], check=True)

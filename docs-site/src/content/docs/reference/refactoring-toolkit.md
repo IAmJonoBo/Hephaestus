@@ -2,6 +2,7 @@
 title: "Refactoring Toolkit Map"
 description: "Hephaestus ships advisory tooling under the hephaestus-toolkit/refactoring/ directory. Use this reference to understand the major components when wiring the..."
 ---
+
 Hephaestus ships advisory tooling under the `hephaestus-toolkit/refactoring/` directory. Use this
 reference to understand the major components when wiring the toolkit into another repository or CI
 pipeline.

@@ -191,7 +191,7 @@ fi
 
 # Step 3: Sync dependencies
 print_status "Syncing dependencies with uv..."
-if uv sync --locked --extra dev --extra qa; then
+if uv sync --locked --extra dev --extra qa --extra grpc; then
   print_success "Dependencies synced successfully"
 
   # Create/update .venv symlink if environment was relocated
@@ -264,7 +264,7 @@ else
       fi
     else
       print_warning "Trying without lock file..."
-      if uv sync --extra dev --extra qa; then
+      if uv sync --extra dev --extra qa --extra grpc; then
         print_success "Dependencies synced (without lock)"
         print_warning "Consider updating uv.lock with: uv lock"
       else
@@ -274,14 +274,14 @@ else
         echo "  1. Manually clear UV cache: rm -rf ~/.cache/uv"
         echo "  2. Run cleanup-macos-cruft.sh script"
         echo "  3. Ensure UV_LINK_MODE=copy is set: export UV_LINK_MODE=copy"
-        echo "  4. Try: uv sync --extra dev --extra qa --reinstall"
+        echo "  4. Try: uv sync --extra dev --extra qa --extra grpc --reinstall"
         echo ""
         exit 1
       fi
     fi
   else
     print_warning "Trying without lock file..."
-    if uv sync --extra dev --extra qa; then
+    if uv sync --extra dev --extra qa --extra grpc; then
       print_success "Dependencies synced (without lock)"
       print_warning "Consider updating uv.lock with: uv lock"
     else
