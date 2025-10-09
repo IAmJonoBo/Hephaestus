@@ -202,7 +202,7 @@ api = [
 
 ## Next Steps
 
-### Phase 2 Priorities (Q2 2025)
+### Sprint 2 Priorities
 
 1. **ADR-0002**: Plugin discovery, built-in plugin migration
 2. **ADR-0003**: Command instrumentation, metrics collection
@@ -228,7 +228,7 @@ Before merging to main:
 ✅ **0 breaking changes** to existing code  
 ✅ **100% backward compatible**
 
-All Phase 1 implementations are complete, tested, and documented. The foundation is in place for Phase 2 work across all four ADRs.
+All Phase 1 implementations are complete, tested, and documented. The foundation is in place for Sprint 2 work across all four ADRs.
 
 ---
 

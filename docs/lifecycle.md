@@ -136,14 +136,14 @@ The following enhancements have been successfully delivered:
 
 The following enhancements are planned for future releases:
 
-1. **OpenTelemetry Spans** (Q2 2025): Full distributed tracing with span instrumentation across CLI
+1. **OpenTelemetry Spans** (Sprint 2-3): Full distributed tracing with span instrumentation across CLI
    commands for observability and performance monitoring. See [ADR-0003](adr/0003-opentelemetry-integration.md)
    for implementation plan.
-2. **Plugin Architecture** (Q2-Q3 2025): Extensible quality gate system allowing custom checks and
+2. **Plugin Architecture** (Sprint 2-4): Extensible quality gate system allowing custom checks and
    third-party integrations. See [ADR-0002](adr/0002-plugin-architecture.md) for design details.
-3. **REST/gRPC API** (Q2-Q3 2025): Remote invocation capabilities for AI agents, CI/CD orchestration,
+3. **REST/gRPC API** (Sprint 2-4): Remote invocation capabilities for AI agents, CI/CD orchestration,
    and centralized dashboards. See [ADR-0004](adr/0004-rest-grpc-api.md) for architecture.
-4. **Publish to PyPI**: Wire the release workflow to publish tagged versions directly to PyPI with
+4. **Publish to PyPI** (Sprint 2): Wire the release workflow to publish tagged versions directly to PyPI with
    automated release notes using `git-cliff`.
 
 Staying evergreen is a journey. This playbook keeps the loop tight so engineering teams can refactor

@@ -31,11 +31,11 @@ This directory contains Architecture Decision Records documenting significant te
   - Implementation: Phase 1 (Preparation) complete - Metadata schema defined
   - Summary: Backfill Sigstore attestations for historical releases to close supply chain security gap
 
-### Proposed - Q1 2025
+### Proposed - Sprint 2
 
 - **[ADR-0005: PyPI Publication Automation](./0005-pypi-publication.md)**
   - Status: Proposed (2025-01-15)
-  - Target: v0.3.0 - Q1 2025
+  - Target: Next release (Sprint 1-2)
   - Summary: Automated publication to PyPI using GitHub Actions and Trusted Publishers for improved discoverability and standard installation
 
 ## ADR Lifecycle
@@ -98,28 +98,38 @@ When prioritizing ADR implementation, consider:
 ## Timeline Overview
 
 ```
-Q1 2025 (Current)
-├── ADR-0005: PyPI Publication (v0.3.0)
-└── ADR-0006: Sigstore Backfill (2025-01-31)
+Sprint 1 (Foundation - Complete)
+├── ADR-0002: Plugin Architecture - API specification
+├── ADR-0003: OpenTelemetry - Basic setup
+├── ADR-0004: REST API - OpenAPI spec
+└── ADR-0006: Sigstore Backfill - Metadata schema
 
-Q2 2025
-├── ADR-0003: OpenTelemetry Phase 2-3 (v0.4.0-v0.5.0)
-├── ADR-0002: Plugin Architecture Phase 1-2 (v0.3.0-v0.4.0)
-└── ADR-0004: REST API Core (v0.4.0)
+Sprint 2 (Core Features)
+├── ADR-0005: PyPI Publication - Registration & automation
+├── ADR-0006: Sigstore Backfill - Execution
+├── ADR-0003: OpenTelemetry - Instrumentation
+└── ADR-0002: Plugin Architecture - Discovery & migration
 
-Q3 2025
-├── ADR-0003: OpenTelemetry Production (v0.6.0)
-├── ADR-0002: Plugin Architecture Phase 3-4 (v0.5.0-v0.6.0)
-└── ADR-0004: gRPC Service (v0.6.0-v0.7.0)
+Sprint 3 (Advanced Features)
+├── ADR-0003: OpenTelemetry - Advanced features
+├── ADR-0002: Plugin Architecture - Ecosystem
+├── ADR-0004: REST API - Async & gRPC
+└── ADR-0006: Sigstore Backfill - Enforcement
+
+Sprint 4 (Production Ready)
+├── ADR-0003: OpenTelemetry - Production optimization
+├── ADR-0002: Plugin Architecture - Marketplace
+├── ADR-0004: REST API - Security & deployment
+└── ADR-0005: PyPI Publication - Optimization
 ```
 
 ## Maintenance
 
 ADRs should be reviewed:
 
-- Quarterly by the project team
+- After each sprint completion
 - After major feature additions
 - When technical assumptions change
 - When community feedback suggests changes
 
-Next scheduled review: 2025-04-08
+Next scheduled review: Sprint 2 retrospective

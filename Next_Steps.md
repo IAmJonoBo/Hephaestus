@@ -16,13 +16,13 @@ The Hephaestus project has successfully delivered all high-priority features and
 
 ### Future Work: Planned & Scheduled
 
-Remaining work is focused on advanced features with clear ADRs and timelines:
+Remaining work is focused on advanced features with clear ADRs and sprint-based timelines:
 
-- 🔄 Sigstore bundle backfill (Q1 2025, ADR-0006)
-- 🔄 OpenTelemetry spans (Q2 2025, ADR-0003)
-- ⏳ Plugin architecture (Q2-Q3 2025, ADR-0002)
-- ⏳ REST/gRPC API (Q2-Q3 2025, ADR-0004)
-- ⏳ PyPI publication automation (Q1 2025, ADR-0005)
+- 🔄 Sigstore bundle backfill (Sprint 2, ADR-0006)
+- 🔄 OpenTelemetry spans (Sprint 2-3, ADR-0003)
+- ⏳ Plugin architecture (Sprint 2-3, ADR-0002)
+- ⏳ REST/gRPC API (Sprint 2-4, ADR-0004)
+- ⏳ PyPI publication automation (Sprint 2, ADR-0005)
 
 ## Recent Improvements (Latest Session)
 
@@ -200,19 +200,19 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 
 ### In Progress 🔄
 
-- [ ] (Tooling, target 2025-01-31) Backfill Sigstore bundles for historical releases
-  - Status: 🔄 In Progress - Design complete in ADR-0006, execution scheduled for Q1 2025
-- [ ] (Platform, target Q2 2025) OpenTelemetry spans across CLI/release/cleanup
-  - Status: 🔄 Planned Q2 2025 - Foundation complete (structured logging), spans implementation pending (see ADR-0003)
+- [ ] (Tooling, Sprint 2) Backfill Sigstore bundles for historical releases
+  - Status: 🔄 In Progress - Design complete in ADR-0006, execution scheduled for Sprint 2
+- [ ] (Platform, Sprint 2-3) OpenTelemetry spans across CLI/release/cleanup
+  - Status: 🔄 Planned Sprint 2-3 - Foundation complete (structured logging), spans implementation pending (see ADR-0003)
 
 ### Future / Deferred ⏳
 
-- [ ] (Release, target Q1 2025) Publish to PyPI with automated release notes
-  - Status: 🔄 In Progress - Design complete in ADR-0005, implementation scheduled for v0.3.0
-- [ ] (Platform AI, target Q2-Q3 2025) Expose secured REST/gRPC endpoints for AI/automation clients with policy guard rails
-  - Status: ⏳ Planned - Design complete in ADR-0004, implementation scheduled for v0.4.0+
-- [ ] (Extensibility, target Q2-Q3 2025) Plugin architecture for custom quality gates
-  - Status: ⏳ Planned - Design complete in ADR-0002, implementation phased across v0.3.0-v0.6.0
+- [ ] (Release, Sprint 2) Publish to PyPI with automated release notes
+  - Status: 🔄 In Progress - Design complete in ADR-0005, implementation scheduled for Sprint 2
+- [ ] (Platform AI, Sprint 2-4) Expose secured REST/gRPC endpoints for AI/automation clients with policy guard rails
+  - Status: ⏳ Planned - Design complete in ADR-0004, implementation scheduled for Sprint 2-4
+- [ ] (Extensibility, Sprint 2-4) Plugin architecture for custom quality gates
+  - Status: ⏳ Planned - Design complete in ADR-0002, implementation phased across Sprint 2-4
 
 ## Steps
 
@@ -362,11 +362,11 @@ _Note: Plugin architecture planned for Q2-Q3 2025 (see ADR-0002). OpenTelemetry 
 
 With all core infrastructure complete, the project is now in maintenance mode with planned future enhancements:
 
-1. **Q1 2025 (Current)**:
+1. **Sprint 2 (Next)**:
    - Backfill Sigstore bundles for historical releases (ADR-0006)
    - PyPI publication automation (ADR-0005)
-2. **Q2 2025**: Implement OpenTelemetry spans (ADR-0003 Phase 2-3)
-3. **Q2-Q3 2025**: Deliver plugin architecture (ADR-0002) and REST/gRPC API (ADR-0004)
+2. **Sprint 3**: Implement OpenTelemetry spans (ADR-0003 Sprint 2-3)
+3. **Sprint 4**: Deliver plugin architecture (ADR-0002) and REST/gRPC API (ADR-0004)
 
 ### Decision Framework
 
@@ -377,7 +377,7 @@ When prioritizing future features from the proposals above, consider:
 - **Dependencies**: What foundational work is required?
 - **Community**: Is there external demand or contribution interest?
 
-Current recommendation: Focus on completing Q1 2025 commitments (Sigstore backfill) before starting Q2 work.
+Current recommendation: Focus on completing Sprint 2 commitments (Sigstore backfill) before starting Sprint 3 work.
 
 ## ✅ Summary: Project Health & Readiness
 

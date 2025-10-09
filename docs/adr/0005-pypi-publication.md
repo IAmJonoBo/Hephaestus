@@ -324,7 +324,7 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 
 ## Implementation Plan
 
-### Phase 1: Preparation (v0.3.0 - Q1 2025)
+### Sprint 1: Preparation
 
 - [x] Verify PyPI package name availability
 - [x] Update `pyproject.toml` with rich metadata
@@ -332,7 +332,7 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 - [ ] Set up Trusted Publishers on PyPI
 - [ ] Create Test PyPI account for testing
 
-### Phase 2: Automation (v0.3.0 - Q1 2025)
+### Sprint 2: Automation
 
 - [ ] Create PyPI publication workflow
 - [ ] Add Sigstore signing to workflow
@@ -340,7 +340,7 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 - [ ] Update documentation with pip installation
 - [ ] Add PyPI badge to README
 
-### Phase 3: Launch (v0.3.1 - Q1 2025)
+### Sprint 3: Launch
 
 - [ ] Publish first stable release to PyPI
 - [ ] Announce on GitHub, social media
@@ -348,7 +348,7 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 - [ ] Monitor PyPI analytics
 - [ ] Gather user feedback
 
-### Phase 4: Optimization (v0.4.0 - Q2 2025)
+### Sprint 4: Optimization
 
 - [ ] Add PyPI download metrics to dashboards
 - [ ] Implement automated version bumping
@@ -358,12 +358,12 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 
 ## Follow-up Actions
 
-- [ ] @IAmJonoBo/2025-01-20 — Register PyPI package name
-- [ ] @IAmJonoBo/2025-01-25 — Configure Trusted Publishers
-- [ ] @IAmJonoBo/2025-01-30 — Implement publication workflow
-- [ ] @IAmJonoBo/2025-02-05 — Test publication to Test PyPI
-- [ ] @IAmJonoBo/2025-02-10 — Launch first PyPI release
-- [ ] @IAmJonoBo/2025-02-15 — Update all documentation
+- [ ] Register PyPI package name
+- [ ] Configure Trusted Publishers
+- [ ] Implement publication workflow
+- [ ] Test publication to Test PyPI
+- [ ] Launch first PyPI release
+- [ ] Update all documentation
 
 ## References
 
@@ -396,4 +396,4 @@ wheel unpack hephaestus_toolkit-*.whl
 
 - 2025-01-15: Proposed (documented in ADR)
 - Future: Accepted after name registration and Trusted Publishers setup
-- Future: Implemented in v0.3.0 (Q1 2025 target)
+- Future: Implemented in next release

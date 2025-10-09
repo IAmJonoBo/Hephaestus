@@ -30,3 +30,6 @@ package-lock.json
 .fseventsd
 .TemporaryItems
 .apdisk
+site/
+# Build artifacts
+.hephaestus/audit/

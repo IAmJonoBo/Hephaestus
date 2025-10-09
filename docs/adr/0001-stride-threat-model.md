@@ -305,7 +305,7 @@ This document applies the STRIDE threat modeling framework to identify security 
 - [x] Structured logging (JSON format)
 - [x] Audit trail for destructive operations
 - [x] Release installation history
-- [ ] Telemetry with privacy controls (planned Q2 2025, ADR-0003)
+- [ ] Telemetry with privacy controls (planned Sprint 2-3, ADR-0003)
 
 ### Error Handling
 
@@ -342,7 +342,7 @@ This document applies the STRIDE threat modeling framework to identify security 
 
 - [x] Sigstore attestation validation
 - [ ] Certificate pinning (deferred - not required for current threat model)
-- [ ] Privacy-preserving telemetry (planned Q2 2025, see ADR-0003)
+- [ ] Privacy-preserving telemetry (planned Sprint 2-3, see ADR-0003)
 - [x] Automated security testing in CI (CodeQL implemented)
 
 ## Review & Updates
@@ -354,7 +354,7 @@ This threat model should be reviewed:
 - After security incidents
 - When new attack vectors are discovered
 
-**Next Review:** 2025-04-08
+**Next Review:** Sprint 3 retrospective
 
 ## References
 

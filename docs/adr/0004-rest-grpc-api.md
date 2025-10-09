@@ -452,7 +452,7 @@ async def stream_task_progress(task_id: str):
 
 ## Implementation Plan
 
-### Phase 1: REST API Core (v0.4.0 - Q2 2025)
+### Sprint 1: REST API Core (Complete)
 
 - [x] Design OpenAPI specification
 - [ ] Implement FastAPI application
@@ -460,21 +460,21 @@ async def stream_task_progress(task_id: str):
 - [ ] Implement authentication
 - [ ] Write API tests
 
-### Phase 2: Async & Progress (v0.5.0 - Q2 2025)
+### Sprint 2: Async & Progress
 
 - [ ] Implement async task management
 - [ ] Add progress streaming (SSE)
 - [ ] Add task status endpoints
 - [ ] Implement timeouts and limits
 
-### Phase 3: gRPC Service (v0.6.0 - Q3 2025)
+### Sprint 3: gRPC Service
 
 - [ ] Define protocol buffers
 - [ ] Implement gRPC server
 - [ ] Add streaming RPCs
 - [ ] Create gRPC client examples
 
-### Phase 4: Production Ready (v0.7.0 - Q3 2025)
+### Sprint 4: Production Ready
 
 - [ ] Add comprehensive security
 - [ ] Implement rate limiting
@@ -484,12 +484,12 @@ async def stream_task_progress(task_id: str):
 
 ## Follow-up Actions
 
-- [ ] @IAmJonoBo/2025-04-15 — Design OpenAPI specification
-- [ ] @IAmJonoBo/2025-04-30 — Implement REST API core
-- [ ] @IAmJonoBo/2025-05-15 — Add authentication and security
-- [ ] @IAmJonoBo/2025-05-31 — Implement async task management
-- [ ] @IAmJonoBo/2025-06-15 — Design gRPC protocol buffers
-- [ ] @IAmJonoBo/2025-06-30 — Implement gRPC service
+- [ ] Design OpenAPI specification
+- [ ] Implement REST API core
+- [ ] Add authentication and security
+- [ ] Implement async task management
+- [ ] Design gRPC protocol buffers
+- [ ] Implement gRPC service
 
 ## References
 
@@ -571,4 +571,4 @@ curl http://localhost:8000/api/v1/tasks/TASK_ID \
 
 - 2025-01-11: Proposed (documented in ADR)
 - Future: Accepted/Rejected based on community feedback
-- Future: Implemented in vX.Y.Z (Q2-Q3 2025 target)
+- Future: Implemented in future release
