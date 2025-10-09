@@ -190,3 +190,58 @@ def test_generate_remediation_commands_empty() -> None:
 
     # Only no-drift tools, so no pip commands
     assert not any("pip install" in cmd for cmd in commands)
+
+
+def test_generate_remediation_commands_missing_no_expected() -> None:
+    """Test remediation for missing tool with no expected version."""
+    tools = [
+        ToolVersion(name="custom-tool", expected=None, actual=None),
+    ]
+
+    commands = generate_remediation_commands(tools)
+
+    assert any("pip install custom-tool" in cmd for cmd in commands)
+
+
+def test_generate_remediation_commands_drift_no_expected() -> None:
+    """Test remediation for drifted tool with mismatched major/minor version."""
+    tools = [
+        ToolVersion(name="custom-tool", expected="2.0.0", actual="1.0.0"),
+    ]
+
+    commands = generate_remediation_commands(tools)
+
+    assert any("pip install --upgrade custom-tool>=2.0.0" in cmd for cmd in commands)
+
+
+def test_get_installed_version_subprocess_error() -> None:
+    """Test _get_installed_version with subprocess errors."""
+    from hephaestus.drift import _get_installed_version
+
+    # Test with non-existent tool
+    result = _get_installed_version("nonexistent-tool-xyz")
+    assert result is None
+
+
+def test_get_installed_version_timeout() -> None:
+    """Test _get_installed_version with timeout."""
+    from hephaestus.drift import _get_installed_version
+
+    with mock.patch("subprocess.run") as mock_run:
+        import subprocess
+
+        mock_run.side_effect = subprocess.TimeoutExpired("cmd", 5)
+        result = _get_installed_version("ruff")
+        assert result is None
+
+
+def test_get_installed_version_no_version_in_output() -> None:
+    """Test _get_installed_version when version can't be extracted."""
+    from hephaestus.drift import _get_installed_version
+
+    with mock.patch("subprocess.run") as mock_run:
+        mock_run.return_value = mock.Mock(
+            returncode=0, stdout="No version info here", stderr=""
+        )
+        result = _get_installed_version("some-tool")
+        assert result is None
