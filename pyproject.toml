@@ -85,6 +85,10 @@ ignore = ["E501"] # Line length handled by ruff format
 [tool.ruff.format]
 quote-style = "double"
 
+[tool.ruff.lint.isort]
+known-first-party = ["hephaestus", "hephaestus_toolkit", "tests"]
+combine-as-imports = true
+
 [tool.mypy]
 python_version = "3.12"
 plugins = ["pydantic.mypy"]

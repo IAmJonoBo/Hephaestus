@@ -76,6 +76,8 @@ Auto-fix issues:
 uv run ruff check --fix .
 ```
 
+Ruff's fixer also normalizes import ordering, so no separate isort pass is required.
+
 ### Formatting
 
 Check formatting:

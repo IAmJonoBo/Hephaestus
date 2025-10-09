@@ -41,7 +41,7 @@ uv run mkdocs build                                     # Docs static site build
 
 ## Pre-Commit Guard Rails
 
-- Pre-commit hooks execute Ruff, Black, PyUpgrade, Mypy, YAML Lint, Pip Audit, and the cleanup sweep on every
+- Pre-commit hooks execute Ruff (linting, formatting, and import sorting), Black, PyUpgrade, Mypy, YAML Lint, Pip Audit, and the cleanup sweep on every
   commit and push.
 - Use `uv run pre-commit run --all-files` to refresh the entire tree before shipping larger series.
 
