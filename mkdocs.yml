@@ -21,6 +21,7 @@ nav:
       - Troubleshooting: how-to/troubleshooting.md
       - Observability (OpenTelemetry): how-to/observability.md
       - Plugin Development: how-to/plugin-development.md
+      - Plugin Review Process: how-to/plugin-review-process.md
   - Explanation:
       - Architecture Overview: explanation/architecture.md
       - Evergreen Lifecycle Playbook: lifecycle.md
@@ -31,6 +32,7 @@ nav:
       - CLI Reference: reference/cli.md
       - REST API Reference: reference/api.md
       - Telemetry Events: reference/telemetry-events.md
+      - Plugin Catalog: reference/plugin-catalog.md
       - CLI Autocompletion: cli-completions.md
       - Pre-Release Checklist: pre-release-checklist.md
       - Refactoring Toolkit Map: refactoring-toolkit.md

@@ -1,0 +1,50 @@
+# Example configuration file for Hephaestus plugins
+# Save as .hephaestus/plugins.toml
+
+# Built-in plugins are automatically loaded
+# You can override their configuration here
+[builtin]
+
+[builtin.ruff-check]
+enabled = true
+# config.paths = ["."]
+# config.args = ["--select", "E,F,W"]
+
+[builtin.ruff-format]
+enabled = true
+# config.check = true
+
+[builtin.mypy]
+enabled = true
+# config.paths = ["src", "tests"]
+# config.args = ["--strict"]
+
+[builtin.pytest]
+enabled = true
+# config.min_coverage = 85.0
+# config.args = ["--cov=src", "--cov-report=xml"]
+
+[builtin.pip-audit]
+enabled = true
+# config.args = ["--strict"]
+# config.ignore_vulns = ["GHSA-xxxx-xxxx-xxxx"]
+
+# External plugins can be loaded from files or modules
+[[external]]
+name = "example-plugin"
+enabled = true
+path = "plugin-templates/example-plugin/example_plugin.py"
+
+[external.config]
+severity = "high"
+paths = ["."]
+args = ["--verbose"]
+
+# You can also load plugins from installed Python packages
+# [[external]]
+# name = "my-custom-plugin"
+# enabled = true
+# module = "my_package.my_plugin"
+# [external.config]
+# option1 = "value1"
+# option2 = "value2"

@@ -15,18 +15,14 @@ from rich.table import Table
 
 from hephaestus import (
     __version__,
-)
-from hephaestus import cleanup as cleanup_module
-from hephaestus import drift as drift_module
-from hephaestus import events as telemetry
-from hephaestus import logging as logging_utils
-from hephaestus import planning as planning_module
-from hephaestus import release as release_module
-from hephaestus import (
+    cleanup as cleanup_module,
+    drift as drift_module,
+    events as telemetry,
+    logging as logging_utils,
+    planning as planning_module,
+    release as release_module,
     resource_forks,
-)
-from hephaestus import schema as schema_module
-from hephaestus import (
+    schema as schema_module,
     toolbox,
 )
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
