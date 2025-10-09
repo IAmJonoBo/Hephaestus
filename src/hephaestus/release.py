@@ -286,23 +286,23 @@ def _open_with_retries(
 
 def _validate_github_token(token: str | None) -> None:
     """Validate GitHub token format before use.
-    
+
     Args:
         token: GitHub token to validate (can be None for public repos)
-        
+
     Raises:
         ReleaseError: If token is provided but has invalid format
     """
     if token is None:
         # Token is optional for public repos
         return
-        
+
     if not token.strip():
         raise ReleaseError(
             "GitHub token cannot be empty. "
             "Provide a valid token or omit it for public repositories."
         )
-    
+
     # Check if token matches known GitHub token patterns
     if not any(pattern.match(token) for pattern in _GITHUB_TOKEN_PATTERNS):
         telemetry.emit_event(

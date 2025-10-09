@@ -1130,7 +1130,7 @@ def test_validate_github_token_rejects_empty_string() -> None:
     """_validate_github_token rejects empty token strings."""
     with pytest.raises(release.ReleaseError, match="cannot be empty"):
         release._validate_github_token("")
-    
+
     with pytest.raises(release.ReleaseError, match="cannot be empty"):
         release._validate_github_token("   ")
 
@@ -1144,16 +1144,14 @@ def test_validate_github_token_accepts_valid_classic_token() -> None:
 def test_validate_github_token_accepts_valid_pat_token() -> None:
     """_validate_github_token accepts PAT token format."""
     # Should not raise
-    release._validate_github_token(
-        "github_pat_" + "A" * 82
-    )
+    release._validate_github_token("github_pat_" + "A" * 82)
 
 
 def test_validate_github_token_warns_on_invalid_format(caplog: pytest.LogCaptureFixture) -> None:
     """_validate_github_token warns for non-matching token patterns."""
     # Invalid format should trigger warning but not raise
     release._validate_github_token("invalid_token_format_12345")
-    
+
     # Check that warning was logged
     assert any("does not match expected patterns" in record.message for record in caplog.records)
 
@@ -1161,21 +1159,21 @@ def test_validate_github_token_warns_on_invalid_format(caplog: pytest.LogCapture
 def test_fetch_release_validates_token(monkeypatch: pytest.MonkeyPatch) -> None:
     """_fetch_release validates token before making API calls."""
     validation_called = False
-    
+
     def mock_validate(token: str | None) -> None:
         nonlocal validation_called
         validation_called = True
         if token == "":
             raise release.ReleaseError("cannot be empty")
-    
+
     monkeypatch.setattr(release, "_validate_github_token", mock_validate)
-    
+
     # Mock the network call to prevent actual HTTP requests
     def mock_open_with_retries(*args: Any, **kwargs: Any) -> Any:
         raise RuntimeError("Should not reach network call")
-    
+
     monkeypatch.setattr(release, "_open_with_retries", mock_open_with_retries)
-    
+
     # Test that validation is called
     with pytest.raises(release.ReleaseError, match="cannot be empty"):
         release._fetch_release(
@@ -1185,13 +1183,13 @@ def test_fetch_release_validates_token(monkeypatch: pytest.MonkeyPatch) -> None:
             timeout=10.0,
             max_retries=3,
         )
-    
+
     assert validation_called
 
 
 def test_fetch_release_handles_401_with_clear_message(monkeypatch: pytest.MonkeyPatch) -> None:
     """_fetch_release provides clear error message for HTTP 401 (expired token)."""
-    
+
     def mock_open_with_retries(*args: Any, **kwargs: Any) -> Any:
         # Simulate HTTP 401 error
         msg = Message()
@@ -1203,9 +1201,9 @@ def test_fetch_release_handles_401_with_clear_message(monkeypatch: pytest.Monkey
             msg,  # type: ignore[arg-type]
             io.BytesIO(b'{"message":"Bad credentials"}'),
         )
-    
+
     monkeypatch.setattr(release, "_open_with_retries", mock_open_with_retries)
-    
+
     with pytest.raises(
         release.ReleaseError,
         match="authentication failed.*expired, invalid, or lack required permissions",
