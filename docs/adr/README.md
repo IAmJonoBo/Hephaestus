@@ -12,31 +12,29 @@ This directory contains Architecture Decision Records documenting significant te
   - Summary: Comprehensive security analysis and threat mitigation strategies for Hephaestus CLI and release pipeline
 
 - **[ADR-0002: Plugin Architecture](./0002-plugin-architecture.md)**
-  - Status: Phase 1 Implemented (2025-01-15)
-  - Implementation: Phase 1 (Foundation) complete - API specification and base classes
+  - Status: Sprint 2-3 Partial (2025-10-09)
+  - Implementation: Sprint 1-2 complete (foundation, built-in plugins, discovery); Sprint 3 partial (experimental guard-rails integration)
   - Summary: Extensible plugin system for custom quality gates
 
 - **[ADR-0003: OpenTelemetry Integration](./0003-opentelemetry-integration.md)**
-  - Status: Phase 1 Implemented (2025-01-15)
-  - Implementation: Phase 1 (Foundation) complete - Optional telemetry module with no-op fallback
+  - Status: Sprint 2 Complete (2025-10-09)
+  - Implementation: Sprint 1-2 complete (foundation, tracing utilities, metrics instrumentation, privacy controls)
   - Summary: Integrate OpenTelemetry for distributed tracing, metrics, and observability
 
 - **[ADR-0004: REST/gRPC API](./0004-rest-grpc-api.md)**
-  - Status: Phase 1 Implemented (2025-01-15)
-  - Implementation: Phase 1 (Foundation) complete - OpenAPI specification and module structure
+  - Status: Foundation Only (2025-01-15)
+  - Implementation: Module structure and OpenAPI specification defined; no implementation yet
   - Summary: Dual-protocol API for remote invocation and AI agent integration
 
-- **[ADR-0006: Sigstore Bundle Backfill](./0006-sigstore-backfill.md)**
-  - Status: Phase 1 Implemented (2025-01-15)
-  - Implementation: Phase 1 (Preparation) complete - Metadata schema defined
-  - Summary: Backfill Sigstore attestations for historical releases to close supply chain security gap
-
 - **[ADR-0005: PyPI Publication Automation](./0005-pypi-publication.md)**
-  - Status: Phase 2 Implemented (2025-10-09)
-  - Implementation: Sprint 2 complete - Workflow automation and documentation
+  - Status: Implemented (2025-10-09)
+  - Implementation: Complete - Workflow automation with Trusted Publishers and Sigstore attestations
   - Summary: Automated publication to PyPI using GitHub Actions and Trusted Publishers for improved discoverability and standard installation
 
-### Proposed - Sprint 3
+- **[ADR-0006: Sigstore Bundle Backfill](./0006-sigstore-backfill.md)**
+  - Status: Sprint 1 Complete (2025-10-09)
+  - Implementation: Metadata schema and backfill script implemented; execution pending
+  - Summary: Backfill Sigstore attestations for historical releases to close supply chain security gap
 
 ## ADR Lifecycle
 
@@ -95,33 +93,26 @@ When prioritizing ADR implementation, consider:
 - **Security**: Does this address threat model findings?
 - **Stability**: Is the technical landscape mature enough?
 
-## Timeline Overview
+## Implementation Status
 
-```
-Sprint 1 (Foundation - Complete)
-├── ADR-0002: Plugin Architecture - API specification
-├── ADR-0003: OpenTelemetry - Basic setup
-├── ADR-0004: REST API - OpenAPI spec
-└── ADR-0006: Sigstore Backfill - Metadata schema
+### Completed
+- ✅ ADR-0001: STRIDE Threat Model (security hardening)
+- ✅ ADR-0005: PyPI Publication Automation (workflow complete)
+- ✅ ADR-0002: Sprint 1-2 (foundation, built-in plugins, discovery)
+- ✅ ADR-0003: Sprint 1-2 (foundation, tracing, metrics, instrumentation)
+- ✅ ADR-0006: Sprint 1 (metadata schema and backfill script)
+- ✅ ADR-0004: Foundation (OpenAPI spec, module structure)
 
-Sprint 2 (Core Features)
-├── ADR-0005: PyPI Publication - Registration & automation
-├── ADR-0006: Sigstore Backfill - Execution
-├── ADR-0003: OpenTelemetry - Instrumentation
-└── ADR-0002: Plugin Architecture - Discovery & migration
+### In Progress
+- 🔄 ADR-0002: Sprint 3 partial (experimental guard-rails plugin integration via `--use-plugins` flag)
 
-Sprint 3 (Advanced Features)
-├── ADR-0003: OpenTelemetry - Advanced features
-├── ADR-0002: Plugin Architecture - Ecosystem
-├── ADR-0004: REST API - Async & gRPC
-└── ADR-0006: Sigstore Backfill - Enforcement
-
-Sprint 4 (Production Ready)
-├── ADR-0003: OpenTelemetry - Production optimization
-├── ADR-0002: Plugin Architecture - Marketplace
-├── ADR-0004: REST API - Security & deployment
-└── ADR-0005: PyPI Publication - Optimization
-```
+### Planned
+- ⏳ ADR-0002: Sprint 3 completion (plugin template, catalog, review process)
+- ⏳ ADR-0003: Sprint 3 (sampling strategies, custom metrics, plugin instrumentation)
+- ⏳ ADR-0004: Sprint 1+ (FastAPI implementation, authentication, async tasks)
+- ⏳ ADR-0006: Sprint 2 (backfill execution, CLI verification flags)
+- ⏳ ADR-0002: Sprint 4 (marketplace, dependency resolution, versioning)
+- ⏳ ADR-0003: Sprint 4 (production optimization, cloud exporters)
 
 ## Maintenance
 
@@ -132,4 +123,4 @@ ADRs should be reviewed:
 - When technical assumptions change
 - When community feedback suggests changes
 
-Next scheduled review: Sprint 2 retrospective
+Last reviewed: 2025-10-09 (post-Sprint 2)

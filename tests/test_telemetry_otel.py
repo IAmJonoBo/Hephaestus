@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib
 import importlib.util
 import os
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -202,3 +203,97 @@ def test_telemetry_missing_attribute() -> None:
     """Telemetry module should raise AttributeError for missing attributes."""
     with pytest.raises(AttributeError, match="has no attribute 'nonexistent'"):
         _ = telemetry.nonexistent
+
+
+def test_get_meter_when_enabled_with_otel() -> None:
+    """Test get_meter when telemetry is enabled with OpenTelemetry installed."""
+    from hephaestus.telemetry.metrics import get_meter
+
+    with patch.dict(os.environ, {"HEPHAESTUS_TELEMETRY_ENABLED": "true"}):
+        with patch("importlib.import_module") as mock_import:
+            mock_otel = type("MockOTel", (), {})()
+            mock_otel.get_meter = lambda name: f"meter-{name}"
+            mock_import.return_value = mock_otel
+
+            meter = get_meter("test")
+            assert meter == "meter-test"
+
+
+def test_get_meter_when_enabled_without_otel() -> None:
+    """Test get_meter when telemetry is enabled but OpenTelemetry not installed."""
+    from hephaestus.telemetry.metrics import get_meter
+
+    with patch.dict(os.environ, {"HEPHAESTUS_TELEMETRY_ENABLED": "true"}):
+        with patch("importlib.import_module", side_effect=ImportError):
+            meter = get_meter("test")
+            # Should return no-op meter
+            assert hasattr(meter, "create_counter")
+
+
+def test_is_metrics_enabled() -> None:
+    """Test is_metrics_enabled function."""
+    from hephaestus.telemetry.metrics import is_metrics_enabled
+
+    with patch.dict(os.environ, {}, clear=True):
+        assert is_metrics_enabled() is False
+
+    with patch.dict(os.environ, {"HEPHAESTUS_TELEMETRY_ENABLED": "true"}):
+        assert is_metrics_enabled() is True
+
+
+def test_get_tracer_when_enabled_with_otel_module() -> None:
+    """Test get_tracer with OpenTelemetry module available."""
+    with patch.dict(os.environ, {"HEPHAESTUS_TELEMETRY_ENABLED": "true"}):
+        with patch("importlib.import_module") as mock_import:
+            mock_otel = type("MockTrace", (), {})()
+            mock_otel.get_tracer = lambda name: f"tracer-{name}"
+            mock_import.return_value = mock_otel
+
+            tracer = get_tracer("test")
+            assert tracer == "tracer-test"
+
+
+def test_configure_telemetry_with_endpoint() -> None:
+    """Test configure_telemetry with OTLP endpoint set."""
+    with patch.dict(
+        os.environ,
+        {
+            "HEPHAESTUS_TELEMETRY_ENABLED": "true",
+            "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4317",
+            "OTEL_SERVICE_NAME": "test-service",
+        },
+    ):
+        with patch("importlib.import_module") as mock_import:
+            # Create mock modules
+            mock_trace = type("MockTrace", (), {})()
+            mock_exporter = type("MockExporter", (), {})()
+            mock_resources = type("MockResources", (), {"SERVICE_NAME": "service.name"})()
+            mock_sdk_trace = type("MockSDKTrace", (), {})()
+            mock_sdk_export = type("MockSDKExport", (), {})()
+
+            # Setup mocks
+            mock_trace.set_tracer_provider = lambda p: None
+            mock_exporter.OTLPSpanExporter = lambda endpoint: "span_exporter"
+            mock_resources.Resource = lambda attributes: "resource"
+            mock_sdk_trace.TracerProvider = lambda resource: type(
+                "MockProvider", (), {"add_span_processor": lambda self, p: None}
+            )()
+            mock_sdk_export.BatchSpanProcessor = lambda exporter: "processor"
+
+            def import_side_effect(module_name: str) -> Any:
+                if "trace_exporter" in module_name:
+                    return mock_exporter
+                elif "resources" in module_name:
+                    return mock_resources
+                elif "sdk.trace.export" in module_name:
+                    return mock_sdk_export
+                elif "sdk.trace" in module_name:
+                    return mock_sdk_trace
+                elif "trace" in module_name:
+                    return mock_trace
+                raise ImportError(f"Unknown module: {module_name}")
+
+            mock_import.side_effect = import_side_effect
+
+            # Should not raise
+            configure_telemetry()

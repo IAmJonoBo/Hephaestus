@@ -1,7 +1,8 @@
 # ADR 0004: REST/gRPC API for Remote Invocation
 
-- Status: Phase 1 Implemented
+- Status: Foundation Only (2025-01-15)
 - Date: 2025-01-11
+- Last Updated: 2025-10-09
 - Supersedes: N/A
 - Superseded by: N/A
 

@@ -1,7 +1,8 @@
 # ADR 0005: PyPI Publication Automation
 
-- Status: Phase 2 Implemented
+- Status: Implemented (2025-10-09)
 - Date: 2025-01-15
+- Last Updated: 2025-10-09
 - Implementation Date: 2025-10-09
 - Supersedes: N/A
 - Superseded by: N/A
