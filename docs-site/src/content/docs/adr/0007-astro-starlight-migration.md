@@ -1,3 +1,8 @@
+---
+title: "ADR 0007: Documentation Migration to Astro Starlight"
+description: "Architecture Decision Record documenting the migration from MkDocs to Astro Starlight"
+---
+
 # ADR 0007: Documentation Migration to Astro Starlight
 
 **Status:** Accepted
