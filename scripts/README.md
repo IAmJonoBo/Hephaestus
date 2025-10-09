@@ -18,6 +18,7 @@ python3 scripts/validate_quality_gates.py
 
 - Pytest with coverage ≥85%
 - Ruff linting
+- Ruff import sorting (Ruff isort)
 - Ruff formatting
 - Mypy type checking
 - Nested decorator linting
@@ -277,10 +278,11 @@ This runs:
 
 1. Deep cleanup
 2. Ruff check
-3. Ruff format
-4. Mypy
-5. Pytest
-6. pip-audit
+3. Ruff isort (`ruff check --select I --fix`)
+4. Ruff format
+5. Mypy
+6. Pytest
+7. pip-audit
 
 ## Development
 

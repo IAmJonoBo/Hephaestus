@@ -35,6 +35,7 @@ Run the guard-rail tooling directly with `uv` so everything stays reproducible:
 ```bash
 uv run hephaestus guard-rails                            # Full sweep (cleanup, lint, typecheck, tests, audit)
 uv run ruff check .                                      # Lint
+uv run ruff check --select I --fix .                    # Auto-sort imports (ruff isort)
 uv run ruff format .                                    # Auto-format
 uv run yamllint -c .trunk/configs/.yamllint.yaml .github/ .pre-commit-config.yaml hephaestus-toolkit/  # YAML lint
 uv run mypy src tests                                   # Static typing
@@ -59,12 +60,13 @@ Before requesting review:
 
 1. `uv run hephaestus cleanup --deep-clean`
 2. `uv run ruff check .`
-3. `uv run ruff format .`
-4. `uv run yamllint -c .trunk/configs/.yamllint.yaml .github/ .pre-commit-config.yaml hephaestus-toolkit/`
-5. `uv run mypy src tests`
-6. `uv run pytest`
-7. `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph`
-8. Confirm `uv run hephaestus plan` shows the change in the rollout timeline when applicable.
+3. `uv run ruff check --select I --fix .`
+4. `uv run ruff format .`
+5. `uv run yamllint -c .trunk/configs/.yamllint.yaml .github/ .pre-commit-config.yaml mkdocs.yml hephaestus-toolkit/`
+6. `uv run mypy src tests`
+7. `uv run pytest`
+8. `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph`
+9. Confirm `uv run hephaestus plan` shows the change in the rollout timeline when applicable.
 
 For releases, consult `docs/pre-release-checklist.md` for additional automation steps.
 

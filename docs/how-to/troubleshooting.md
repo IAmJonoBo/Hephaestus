@@ -784,6 +784,7 @@ hephaestus guard-rails --drift
 # Individual checks
 pytest                                          # Tests
 ruff check .                                    # Linting
+ruff check --select I .                         # Import ordering
 ruff format --check .                           # Formatting
 mypy src tests                                  # Type checking
 python3 scripts/lint_nested_decorators.py       # Architecture
@@ -811,7 +812,7 @@ rm -rf .pytest_cache .mypy_cache .ruff_cache __pycache__
 
 ```bash
 # Fix imports
-pip install -e ".[dev,qa]"
+ruff check --select I --fix .
 
 # Fix drift
 uv sync --extra dev --extra qa

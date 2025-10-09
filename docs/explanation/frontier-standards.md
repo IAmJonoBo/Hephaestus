@@ -54,7 +54,7 @@ full software development lifecycle:
 ### 3. Development & Coding Standards
 
 - Respect Ruff linting profile (`E`, `F`, `I`, `UP`, `B`, `C4`) and 100-character formatting enforced
-  via `ruff format`.
+  via `ruff check --select I --fix` + `ruff format`.
 - Mypy strict mode (`disallow_untyped_defs`, `warn_return_any`, etc.) guards `src/` and
   `tests/`.
 - New public APIs ship with docstrings, usage examples, and type annotations.
@@ -65,17 +65,17 @@ full software development lifecycle:
 
 ### 4. Testing & Quality Gates
 
-| Gate                     | Threshold / Expectation                                                 | Primary Command                                               | Automation                                                |
-| ------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------- |
-| Unit & integration tests | 100% pass, coverage ≥ 85%, warnings-as-errors                           | `uv run pytest`                                               | CI (`ci.yml`), `guard-rails`, `validate_quality_gates.py` |
-| Linting                  | Zero Ruff violations                                                    | `uv run ruff check .`                                         | Pre-commit & CI                                           |
-| Formatting               | Zero drift                                                              | `uv run ruff format --check .`                                | Pre-commit & CI                                           |
-| Type safety              | No mypy errors                                                          | `uv run mypy src tests`                                       | Pre-commit & CI                                           |
-| YAML hygiene             | No yamllint errors under `.trunk/configs/.yamllint.yaml`                | `uv run yamllint …`                                           | Guard-rails & quality gate script                         |
-| Nested decorator lint    | Zero violations                                                         | `python3 scripts/lint_nested_decorators.py`                   | Pre-commit & CI                                           |
-| Build reproducibility    | Wheels & sdists build cleanly                                           | `uv run uv build` (or `python3 -m build`)                     | `validate_quality_gates.py`, release workflows            |
-| Security audit           | `pip-audit --strict` clean (ignoring GHSA-4xh5-x5gv-qwph until patched) | `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` | Guard-rails, scheduled `pip-audit.yml`                    |
-| Workflow lint (optional) | Actionlint passes                                                       | `bash scripts/run_actionlint.sh`                              | Optional quality gate, manual before large workflow edits |
+| Gate                     | Threshold / Expectation                                                 | Primary Command                                                   | Automation                                                |
+| ------------------------ | ----------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------- |
+| Unit & integration tests | 100% pass, coverage ≥ 85%, warnings-as-errors                           | `uv run pytest`                                                   | CI (`ci.yml`), `guard-rails`, `validate_quality_gates.py` |
+| Linting                  | Zero Ruff violations                                                    | `uv run ruff check .`                                             | Pre-commit & CI                                           |
+| Formatting               | Zero drift                                                              | `uv run ruff check --select I .` + `uv run ruff format --check .` | Pre-commit & CI                                           |
+| Type safety              | No mypy errors                                                          | `uv run mypy src tests`                                           | Pre-commit & CI                                           |
+| YAML hygiene             | No yamllint errors under `.trunk/configs/.yamllint.yaml`                | `uv run yamllint …`                                               | Guard-rails & quality gate script                         |
+| Nested decorator lint    | Zero violations                                                         | `python3 scripts/lint_nested_decorators.py`                       | Pre-commit & CI                                           |
+| Build reproducibility    | Wheels & sdists build cleanly                                           | `uv run uv build` (or `python3 -m build`)                         | `validate_quality_gates.py`, release workflows            |
+| Security audit           | `pip-audit --strict` clean (ignoring GHSA-4xh5-x5gv-qwph until patched) | `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph`     | Guard-rails, scheduled `pip-audit.yml`                    |
+| Workflow lint (optional) | Actionlint passes                                                       | `bash scripts/run_actionlint.sh`                                  | Optional quality gate, manual before large workflow edits |
 
 Run the full suite locally using either:
 

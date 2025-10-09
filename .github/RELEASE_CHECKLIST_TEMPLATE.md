@@ -9,6 +9,7 @@ Use this checklist for each release to ensure quality and consistency.
 - [ ] All tests passing locally: `pytest`
 - [ ] Test coverage ≥85%: Check coverage report
 - [ ] Linting clean: `ruff check .`
+- [ ] Import ordering correct: `ruff check --select I .`
 - [ ] Formatting correct: `ruff format --check .`
 - [ ] Type checking passes: `mypy src tests`
 - [ ] No nested decorator violations: `python3 scripts/lint_nested_decorators.py src/hephaestus`
@@ -181,6 +182,7 @@ gh release view vX.Y.Z
   ```
 
 - [ ] Verify all commands work:
+
   ```bash
   hephaestus --help
   hephaestus guard-rails --help
@@ -376,7 +378,7 @@ Hephaestus follows [Semantic Versioning](https://semver.org/):
 
 ---
 
-**Release completed successfully! 🎉**
+### Release completed successfully! 🎉
 
 Next steps:
 
