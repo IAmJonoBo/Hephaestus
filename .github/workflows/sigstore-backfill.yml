@@ -7,11 +7,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Specific version to backfill (leave empty for all historical versions)'
+        description: "Specific version to backfill (leave empty for all historical versions)"
         required: false
         type: string
       dry_run:
-        description: 'Perform dry run (no actual uploads)'
+        description: "Perform dry run (no actual uploads)"
         required: false
         type: boolean
         default: true
@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
