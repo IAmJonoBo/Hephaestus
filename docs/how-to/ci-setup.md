@@ -255,6 +255,27 @@ uv export --locked --format requirements-txt --extra dev --extra qa
 uv run python -m hephaestus.cli wheelhouse sanitize wheelhouse
 ```
 
+### Issue: "Failed to install" on macOS with AppleDouble files
+
+**Cause**: macOS creates AppleDouble files (`._*`) during package installation, which are not listed in wheel RECORD files.
+
+**Solution**: The `scripts/setup-dev-env.sh` script now automatically handles this. For manual setup on macOS:
+
+```bash
+# Set environment variables
+export UV_LINK_MODE=copy
+export COPYFILE_DISABLE=1
+
+# Clean existing cache and venv
+rm -rf ~/.cache/uv
+rm -rf .venv
+
+# Sync dependencies
+uv sync --locked --extra dev --extra qa
+```
+
+See the [troubleshooting guide](troubleshooting.md#macos-appledoubleresource-fork-installation-errors) for more details.
+
 ### Issue: "Python version mismatch in offline install"
 
 **Cause**: Wheelhouse built with different Python version than offline runner.
