@@ -28,30 +28,30 @@ try:
     from hephaestus.telemetry import metrics as _metrics, tracing as _tracing
 
     trace_command = _tracing.trace_command
-    trace_operation = _tracing.trace_operation
+    trace_operation = _tracing.trace_operation  # type: ignore[has-type]
     record_counter = _metrics.record_counter
     record_gauge = _metrics.record_gauge
     record_histogram = _metrics.record_histogram
 except ImportError:
     # If OpenTelemetry not installed, provide no-op implementations
-    def trace_command(name: str):  # type: ignore
-        def decorator(func):  # type: ignore
+    def trace_command(name: str):  # type: ignore[no-untyped-def,misc]
+        def decorator(func):  # type: ignore[no-untyped-def]
             return func
 
         return decorator
 
-    def trace_operation(name: str, **kwargs):  # type: ignore
+    def trace_operation(name: str, **kwargs):  # type: ignore[no-untyped-def]
         from contextlib import nullcontext
 
         return nullcontext()
 
-    def record_counter(name: str, value: int = 1, attributes=None):  # type: ignore
+    def record_counter(name: str, value: int = 1, attributes=None):  # type: ignore[no-untyped-def]
         pass
 
-    def record_gauge(name: str, value: float, attributes=None):  # type: ignore
+    def record_gauge(name: str, value: float, attributes=None):  # type: ignore[no-untyped-def]
         pass
 
-    def record_histogram(name: str, value: float, attributes=None):  # type: ignore
+    def record_histogram(name: str, value: float, attributes=None):  # type: ignore[no-untyped-def]
         pass
 
 

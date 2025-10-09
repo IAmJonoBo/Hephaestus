@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from hephaestus.backfill import BackfillMetadata, BackfillVerificationStatus
 
 
-def test_backfill_metadata_creation():
+def test_backfill_metadata_creation() -> None:
     """Backfill metadata should be created with correct fields."""
     original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=UTC)
     backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=UTC)
@@ -31,7 +31,7 @@ def test_backfill_metadata_creation():
     assert "historical release" in metadata.notes
 
 
-def test_backfill_metadata_to_dict():
+def test_backfill_metadata_to_dict() -> None:
     """Backfill metadata should serialize to dictionary."""
     original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=UTC)
     backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=UTC)
@@ -58,7 +58,7 @@ def test_backfill_metadata_to_dict():
     assert data["notes"] == "Test notes"
 
 
-def test_backfill_metadata_from_dict():
+def test_backfill_metadata_from_dict() -> None:
     """Backfill metadata should deserialize from dictionary."""
     original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=UTC)
     backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=UTC)
@@ -84,7 +84,7 @@ def test_backfill_metadata_from_dict():
     assert metadata.notes == "Test notes"
 
 
-def test_backfill_metadata_roundtrip():
+def test_backfill_metadata_roundtrip() -> None:
     """Backfill metadata should roundtrip through dict serialization."""
     original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=UTC)
     backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=UTC)
@@ -113,7 +113,7 @@ def test_backfill_metadata_roundtrip():
     assert metadata1.notes == metadata2.notes
 
 
-def test_backfill_verification_status_constants():
+def test_backfill_verification_status_constants() -> None:
     """Backfill verification status should have expected constants."""
     assert BackfillVerificationStatus.ORIGINAL == "original"
     assert BackfillVerificationStatus.BACKFILLED == "backfilled"

@@ -47,7 +47,7 @@ class MockPlugin(QualityGatePlugin):
         )
 
 
-def test_plugin_metadata_creation():
+def test_plugin_metadata_creation() -> None:
     """Plugin metadata should be created with correct fields."""
     metadata = PluginMetadata(
         name="test-plugin",
@@ -68,7 +68,7 @@ def test_plugin_metadata_creation():
     assert metadata.order == 50
 
 
-def test_plugin_result_creation():
+def test_plugin_result_creation() -> None:
     """Plugin result should be created with correct fields."""
     result = PluginResult(
         success=True,
@@ -83,7 +83,7 @@ def test_plugin_result_creation():
     assert result.exit_code == 0
 
 
-def test_plugin_result_defaults():
+def test_plugin_result_defaults() -> None:
     """Plugin result should have sensible defaults."""
     result = PluginResult(success=False, message="Failed")
 
@@ -93,7 +93,7 @@ def test_plugin_result_defaults():
     assert result.exit_code == 0
 
 
-def test_quality_gate_plugin_interface():
+def test_quality_gate_plugin_interface() -> None:
     """Mock plugin should implement QualityGatePlugin interface."""
     plugin = MockPlugin()
 
@@ -110,7 +110,7 @@ def test_quality_gate_plugin_interface():
     assert isinstance(plugin.run({}), PluginResult)
 
 
-def test_plugin_registry_register():
+def test_plugin_registry_register() -> None:
     """Registry should register plugins."""
     registry = PluginRegistry()
     plugin = MockPlugin("test-plugin")
@@ -122,7 +122,7 @@ def test_plugin_registry_register():
     assert retrieved is plugin
 
 
-def test_plugin_registry_duplicate_registration():
+def test_plugin_registry_duplicate_registration() -> None:
     """Registry should reject duplicate plugin names."""
     registry = PluginRegistry()
     plugin1 = MockPlugin("test-plugin")
@@ -134,7 +134,7 @@ def test_plugin_registry_duplicate_registration():
         registry.register(plugin2)
 
 
-def test_plugin_registry_get_nonexistent():
+def test_plugin_registry_get_nonexistent() -> None:
     """Registry should raise KeyError for nonexistent plugins."""
     registry = PluginRegistry()
 
@@ -142,7 +142,7 @@ def test_plugin_registry_get_nonexistent():
         registry.get("nonexistent")
 
 
-def test_plugin_registry_all_plugins():
+def test_plugin_registry_all_plugins() -> None:
     """Registry should return all plugins sorted by order."""
     registry = PluginRegistry()
 
@@ -163,7 +163,7 @@ def test_plugin_registry_all_plugins():
     assert all_plugins[2].metadata.name == "plugin3"
 
 
-def test_plugin_registry_is_registered():
+def test_plugin_registry_is_registered() -> None:
     """Registry should correctly report registration status."""
     registry = PluginRegistry()
     plugin = MockPlugin("test-plugin")
@@ -176,7 +176,7 @@ def test_plugin_registry_is_registered():
     assert not registry.is_registered("other-plugin")
 
 
-def test_plugin_optional_methods():
+def test_plugin_optional_methods() -> None:
     """Plugin optional methods should have default implementations."""
     plugin = MockPlugin()
 
@@ -185,7 +185,7 @@ def test_plugin_optional_methods():
     plugin.teardown()
 
 
-def test_plugin_config_creation():
+def test_plugin_config_creation() -> None:
     """PluginConfig should be created with correct fields."""
     config = PluginConfig(
         name="test-plugin",
@@ -202,7 +202,7 @@ def test_plugin_config_creation():
     assert config.path == "/path/to/plugin.py"
 
 
-def test_plugin_config_defaults():
+def test_plugin_config_defaults() -> None:
     """PluginConfig should have sensible defaults."""
     config = PluginConfig(name="test-plugin")
 
@@ -213,13 +213,13 @@ def test_plugin_config_defaults():
     assert config.path is None
 
 
-def test_load_plugin_config_missing_file():
+def test_load_plugin_config_missing_file() -> None:
     """load_plugin_config should return empty list when file doesn't exist."""
     configs = load_plugin_config(Path("/nonexistent/path/plugins.toml"))
     assert configs == []
 
 
-def test_load_plugin_config_with_builtin(tmp_path: Path):
+def test_load_plugin_config_with_builtin(tmp_path: Path) -> None:
     """load_plugin_config should parse built-in plugin configs."""
     config_file = tmp_path / "plugins.toml"
     config_file.write_text(
@@ -244,7 +244,7 @@ mypy = false
     assert mypy_config.enabled is False
 
 
-def test_load_plugin_config_with_external(tmp_path: Path):
+def test_load_plugin_config_with_external(tmp_path: Path) -> None:
     """load_plugin_config should parse external plugin configs."""
     config_file = tmp_path / "plugins.toml"
     config_file.write_text(
@@ -266,7 +266,7 @@ config = { arg1 = "value1" }
     assert configs[0].config == {"arg1": "value1"}
 
 
-def test_load_plugin_config_invalid_toml(tmp_path: Path):
+def test_load_plugin_config_invalid_toml(tmp_path: Path) -> None:
     """load_plugin_config should raise ValueError for invalid TOML."""
     config_file = tmp_path / "plugins.toml"
     config_file.write_text("invalid toml [")
@@ -275,7 +275,7 @@ def test_load_plugin_config_invalid_toml(tmp_path: Path):
         load_plugin_config(config_file)
 
 
-def test_discover_plugins_no_config():
+def test_discover_plugins_no_config() -> None:
     """discover_plugins should work with no config file."""
     registry_instance = PluginRegistry()
     result = discover_plugins(Path("/nonexistent/plugins.toml"), registry_instance)
@@ -284,7 +284,7 @@ def test_discover_plugins_no_config():
     assert result is registry_instance
 
 
-def test_discover_plugins_loads_builtin(tmp_path: Path):
+def test_discover_plugins_loads_builtin(tmp_path: Path) -> None:
     """discover_plugins should load and register built-in plugins."""
     config_file = tmp_path / "plugins.toml"
     config_file.write_text(
@@ -303,7 +303,7 @@ mypy = true
     assert registry_instance.is_registered("mypy")
 
 
-def test_plugin_registry_clear():
+def test_plugin_registry_clear() -> None:
     """Registry clear should remove all plugins."""
     registry = PluginRegistry()
     plugin1 = MockPlugin("plugin1")
@@ -321,7 +321,7 @@ def test_plugin_registry_clear():
     assert not registry.is_registered("plugin2")
 
 
-def test_discover_plugins_respects_enabled_flag(tmp_path: Path):
+def test_discover_plugins_respects_enabled_flag(tmp_path: Path) -> None:
     """discover_plugins should respect enabled flag for built-in plugins."""
     config_file = tmp_path / "plugins.toml"
     config_file.write_text(
@@ -341,7 +341,7 @@ mypy = false
     assert not registry_instance.is_registered("mypy")
 
 
-def test_load_plugin_config_edge_case_empty_file(tmp_path: Path):
+def test_load_plugin_config_edge_case_empty_file(tmp_path: Path) -> None:
     """load_plugin_config should handle empty TOML files."""
     config_file = tmp_path / "plugins.toml"
     config_file.write_text("")
@@ -350,7 +350,7 @@ def test_load_plugin_config_edge_case_empty_file(tmp_path: Path):
     assert configs == []
 
 
-def test_load_plugin_config_edge_case_no_builtin_or_external(tmp_path: Path):
+def test_load_plugin_config_edge_case_no_builtin_or_external(tmp_path: Path) -> None:
     """load_plugin_config should handle files with neither builtin nor external sections."""
     config_file = tmp_path / "plugins.toml"
     config_file.write_text(
@@ -364,7 +364,7 @@ key = "value"
     assert configs == []
 
 
-def test_load_plugin_config_edge_case_invalid_external_format(tmp_path: Path):
+def test_load_plugin_config_edge_case_invalid_external_format(tmp_path: Path) -> None:
     """load_plugin_config should handle invalid external plugin format."""
     config_file = tmp_path / "plugins.toml"
     config_file.write_text(
@@ -381,7 +381,7 @@ enabled = true
     assert configs[0].name == ""
 
 
-def test_discover_plugins_edge_case_duplicate_registrations(tmp_path: Path):
+def test_discover_plugins_edge_case_duplicate_registrations(tmp_path: Path) -> None:
     """discover_plugins should not fail on duplicate plugin registrations."""
     config_file = tmp_path / "plugins.toml"
     config_file.write_text(
@@ -402,7 +402,7 @@ ruff-check = true
     assert len(plugins) == 1
 
 
-def test_load_plugin_config_edge_case_builtin_with_empty_config(tmp_path: Path):
+def test_load_plugin_config_edge_case_builtin_with_empty_config(tmp_path: Path) -> None:
     """load_plugin_config should handle built-in plugins with various config formats."""
     config_file = tmp_path / "plugins.toml"
     config_file.write_text(
@@ -432,7 +432,7 @@ pytest = { enabled = false, config = {} }
     assert pytest_config.config == {}
 
 
-def test_plugin_validation_edge_cases():
+def test_plugin_validation_edge_cases() -> None:
     """Test plugin validation with various config edge cases."""
     from hephaestus.plugins.builtin import RuffCheckPlugin
 
@@ -453,7 +453,7 @@ def test_plugin_validation_edge_cases():
         plugin.validate_config({"args": "--fix"})
 
 
-def test_plugin_run_edge_case_missing_tool():
+def test_plugin_run_edge_case_missing_tool() -> None:
     """Test plugin run behavior when tool is not installed."""
     from hephaestus.plugins.builtin import RuffCheckPlugin
 
@@ -470,7 +470,7 @@ def test_plugin_run_edge_case_missing_tool():
     assert result.exit_code == 127
 
 
-def test_plugin_config_edge_case_none_values():
+def test_plugin_config_edge_case_none_values() -> None:
     """Test PluginConfig with None values for optional fields."""
     config = PluginConfig(name="test", enabled=True, config=None, module=None, path=None)
 

@@ -23,6 +23,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 from hephaestus import release, resource_forks
+from hephaestus.release import ReleaseAsset
 
 
 def _make_wheelhouse_tarball(tmp_path: Path) -> Path:
@@ -139,7 +140,7 @@ def test_download_wheelhouse_happy_path(tmp_path: Path, monkeypatch: pytest.Monk
         }
 
     def fake_download_asset(
-        asset: release.ReleaseAsset,
+        asset: ReleaseAsset,
         destination: Path,
         token: str | None,
         overwrite: bool,
@@ -470,7 +471,7 @@ def test_pick_asset_requires_match() -> None:
 
 
 def test_download_asset_respects_overwrite(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    asset = release.ReleaseAsset(
+    asset = ReleaseAsset(
         name="archive.tar.gz",
         download_url="https://example.invalid/archive.tar.gz",
         size=3,
@@ -521,7 +522,7 @@ def test_download_wheelhouse_without_extract(
     )
 
     def fake_download(
-        asset: release.ReleaseAsset,
+        asset: ReleaseAsset,
         destination: Path,
         *_args: Any,
         timeout: float,
@@ -585,7 +586,7 @@ def test_download_wheelhouse_with_sigstore_attestation(
         }
 
     def fake_download_asset(
-        asset: release.ReleaseAsset,
+        asset: ReleaseAsset,
         destination: Path,
         token: str | None,
         overwrite: bool,
@@ -651,7 +652,7 @@ def test_download_wheelhouse_requires_sigstore(
     )
 
     def fake_download(
-        asset: release.ReleaseAsset,
+        asset: ReleaseAsset,
         destination: Path,
         *_args: Any,
         timeout: float,
@@ -788,7 +789,7 @@ def test_fetch_release_validates_max_retries() -> None:
 
 def test_download_asset_validates_timeout(tmp_path: Path) -> None:
     """Test that _download_asset validates timeout parameter."""
-    asset = release.ReleaseAsset(
+    asset = ReleaseAsset(
         name="test.tar.gz",
         download_url="https://example.invalid/test.tar.gz",
         size=100,
@@ -804,7 +805,7 @@ def test_download_asset_validates_timeout(tmp_path: Path) -> None:
 
 def test_download_asset_validates_max_retries(tmp_path: Path) -> None:
     """Test that _download_asset validates max_retries parameter."""
-    asset = release.ReleaseAsset(
+    asset = ReleaseAsset(
         name="test.tar.gz",
         download_url="https://example.invalid/test.tar.gz",
         size=100,
@@ -923,7 +924,7 @@ def test_download_wheelhouse_propagates_timeout_and_retries(
         }
 
     def fake_download_asset(
-        asset: release.ReleaseAsset,
+        asset: ReleaseAsset,
         destination: Path,
         token: str | None,
         overwrite: bool,
@@ -996,7 +997,7 @@ def test_download_wheelhouse_raises_when_manifest_missing(
         }
 
     def fake_download_asset(
-        asset: release.ReleaseAsset,
+        asset: ReleaseAsset,
         destination: Path,
         token: str | None,
         overwrite: bool,
@@ -1046,7 +1047,7 @@ def test_download_wheelhouse_raises_on_checksum_mismatch(
         }
 
     def fake_download_asset(
-        asset: release.ReleaseAsset,
+        asset: ReleaseAsset,
         destination: Path,
         token: str | None,
         overwrite: bool,
@@ -1097,7 +1098,7 @@ def test_download_wheelhouse_can_allow_unsigned(
         }
 
     def fake_download_asset(
-        asset: release.ReleaseAsset,
+        asset: ReleaseAsset,
         destination: Path,
         token: str | None,
         overwrite: bool,
@@ -1198,7 +1199,7 @@ def test_fetch_release_handles_401_with_clear_message(monkeypatch: pytest.Monkey
             "https://api.github.com/repos/test/repo/releases/latest",
             401,
             "Unauthorized",
-            msg,  # type: ignore[arg-type]
+            msg,
             io.BytesIO(b'{"message":"Bad credentials"}'),
         )
 

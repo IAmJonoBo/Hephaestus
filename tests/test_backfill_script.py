@@ -12,7 +12,7 @@ import pytest
 # Import the backfill script functions
 # Since it's a script, we'll mock most of the external calls
 @pytest.fixture
-def mock_github_api():
+def mock_github_api():  # type: ignore[no-untyped-def]
     """Mock GitHub API responses."""
     with (
         patch("requests.get") as mock_get,
@@ -48,14 +48,14 @@ def mock_github_api():
         }
 
 
-def test_backfill_script_dry_run_creates_dummy_bundle(tmp_path: Path, mock_github_api):
+def test_backfill_script_dry_run_creates_dummy_bundle(tmp_path: Path, mock_github_api) -> None:  # type: ignore[no-untyped-def]
     """Test that dry run creates dummy bundle without actual signing."""
     # This would require importing the script module which is tricky
     # For now, we'll test the logic patterns
     assert True  # Placeholder - full integration test would be in e2e
 
 
-def test_backfill_metadata_structure():
+def test_backfill_metadata_structure() -> None:
     """Test that backfill metadata has expected structure."""
     metadata = {
         "version": "v0.2.3",
@@ -82,7 +82,7 @@ def test_backfill_metadata_structure():
     assert metadata["verification_status"] == "backfilled"
 
 
-def test_backfill_historical_versions_list():
+def test_backfill_historical_versions_list() -> None:
     """Test that historical versions list is complete."""
     # Based on ADR-0006
     expected_versions = [
@@ -100,7 +100,7 @@ def test_backfill_historical_versions_list():
     assert all(v.startswith("v") for v in expected_versions)
 
 
-def test_backfill_notice_format():
+def test_backfill_notice_format() -> None:
     """Test that backfill notice has expected format."""
     notice = (
         "\n\n---\n\n"
@@ -119,7 +119,7 @@ def test_backfill_notice_format():
     assert "SHA-256 checksum" in notice
 
 
-def test_checksum_verification_logic():
+def test_checksum_verification_logic() -> None:
     """Test checksum verification logic pattern."""
     import hashlib
 
@@ -137,7 +137,7 @@ def test_checksum_verification_logic():
     assert wrong_checksum != expected_checksum
 
 
-def test_sigstore_bundle_filename_convention():
+def test_sigstore_bundle_filename_convention() -> None:
     """Test that Sigstore bundle filenames follow convention."""
     wheelhouse_name = "wheelhouse-v0.2.3.tar.gz"
     expected_bundle = "wheelhouse-v0.2.3.tar.gz.sigstore"
@@ -147,7 +147,7 @@ def test_sigstore_bundle_filename_convention():
     assert actual_bundle == expected_bundle
 
 
-def test_backfill_workflow_validates_token():
+def test_backfill_workflow_validates_token() -> None:
     """Test that workflow properly validates GitHub token."""
     import os
 
@@ -169,7 +169,7 @@ def test_backfill_workflow_validates_token():
         assert valid_token.startswith(("ghp_", "github_pat_"))
 
 
-def test_dry_run_mode_skips_uploads():
+def test_dry_run_mode_skips_uploads() -> None:
     """Test that dry run mode prevents actual uploads."""
     dry_run = True
 
@@ -180,7 +180,7 @@ def test_dry_run_mode_skips_uploads():
         assert True  # Dry run logic expected
 
 
-def test_backfill_checks_existing_bundles():
+def test_backfill_checks_existing_bundles() -> None:
     """Test that backfill skips releases that already have bundles."""
     assets = [
         {"name": "wheelhouse-v0.2.3.tar.gz"},
@@ -192,7 +192,7 @@ def test_backfill_checks_existing_bundles():
     assert bundle_exists  # Should skip backfill
 
 
-def test_backfill_workflow_permissions():
+def test_backfill_workflow_permissions() -> None:
     """Test that workflow has required permissions."""
     required_permissions = {
         "contents": "write",  # Upload release assets

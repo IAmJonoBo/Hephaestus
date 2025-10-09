@@ -26,6 +26,7 @@ from hephaestus import (
     toolbox,
 )
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
+from hephaestus.logging import LogFormat
 from hephaestus.telemetry import trace_command, trace_operation
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
@@ -109,7 +110,7 @@ def main(
             f"Invalid log level {log_level!r}. Choose from: {', '.join(LOG_LEVEL_CHOICES)}."
         )
 
-    normalized_format_literal = cast(logging_utils.LogFormat, normalized_format)
+    normalized_format_literal = cast(LogFormat, normalized_format)
 
     final_run_id = run_id or telemetry.generate_run_id()
 
