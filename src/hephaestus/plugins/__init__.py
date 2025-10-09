@@ -11,7 +11,9 @@ Phase 3 (This update): Plugin discovery and configuration loading
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import logging
+import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -203,7 +205,7 @@ class PluginRegistry:
 
     def clear(self) -> None:
         """Clear all registered plugins.
-        
+
         Useful for testing and reloading plugins.
         """
         self._plugins.clear()
@@ -321,7 +323,8 @@ def discover_plugins(
         for plugin_name, plugin_class in builtin_plugins.items():
             # Check if explicitly disabled in config
             plugin_config = next(
-                (c for c in configs if c.name == plugin_name), PluginConfig(name=plugin_name, enabled=True)
+                (c for c in configs if c.name == plugin_name),
+                PluginConfig(name=plugin_name, enabled=True),
             )
 
             if plugin_config.enabled:
@@ -331,7 +334,10 @@ def discover_plugins(
                         registry_instance.register(plugin_instance)
                         logger.debug("Registered built-in plugin", extra={"plugin": plugin_name})
                 except Exception as e:
-                    logger.warning("Failed to load built-in plugin", extra={"plugin": plugin_name, "error": str(e)})
+                    logger.warning(
+                        "Failed to load built-in plugin",
+                        extra={"plugin": plugin_name, "error": str(e)},
+                    )
 
     except ImportError as e:
         logger.debug("Built-in plugins not available", extra={"error": str(e)})
@@ -343,7 +349,8 @@ def discover_plugins(
                 _load_external_plugin(plugin_config, registry_instance)
             except Exception as e:
                 logger.warning(
-                    "Failed to load external plugin", extra={"plugin": plugin_config.name, "error": str(e)}
+                    "Failed to load external plugin",
+                    extra={"plugin": plugin_config.name, "error": str(e)},
                 )
 
     return registry_instance
@@ -393,9 +400,6 @@ def _load_external_plugin(config: PluginConfig, registry_instance: PluginRegistr
             raise ValueError(f"Plugin path does not exist: {config.path}")
 
         try:
-            import importlib.util
-            import sys
-
             spec = importlib.util.spec_from_file_location(config.name, config.path)
             if spec is None or spec.loader is None:
                 raise ValueError(f"Failed to load plugin from {config.path}")

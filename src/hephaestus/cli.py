@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 from dataclasses import replace
 from pathlib import Path
@@ -338,6 +339,83 @@ def release_install(
             asset=download.asset.name,
             allow_unsigned=allow_unsigned,
         )
+
+
+@release_app.command("backfill")
+@trace_command("release-backfill")
+def release_backfill(
+    version: Annotated[
+        str | None,
+        typer.Option(
+            "--version",
+            "-v",
+            help="Specific version to backfill (default: all historical versions)",
+        ),
+    ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Perform all steps except uploads (for testing)",
+        ),
+    ] = False,
+) -> None:
+    """Backfill Sigstore bundles for historical releases (ADR-0006).
+
+    This command generates Sigstore attestations for historical releases that
+    predate Sigstore integration. It downloads existing wheelhouse archives,
+    verifies checksums, generates attestations, and uploads .sigstore bundles.
+
+    Requires GITHUB_TOKEN environment variable with repo write access.
+    """
+    import subprocess
+
+    console.print("[cyan]Starting Sigstore bundle backfill...[/cyan]")
+
+    # Check for GITHUB_TOKEN
+    token = os.environ.get("GITHUB_TOKEN")
+    if not token:
+        console.print("[red]✗ GITHUB_TOKEN environment variable not set[/red]")
+        console.print("\nSet your GitHub token:")
+        console.print("  export GITHUB_TOKEN=<your-token>")
+        raise typer.Exit(code=1)
+
+    # Build command
+    import sys
+
+    script_path = Path(__file__).parent.parent.parent / "scripts" / "backfill_sigstore_bundles.py"
+
+    cmd = [sys.executable, str(script_path)]
+
+    if version:
+        cmd.extend(["--version", version])
+
+    if dry_run:
+        cmd.append("--dry-run")
+        console.print("[yellow]DRY RUN MODE - No actual uploads will be performed[/yellow]")
+
+    # Execute backfill script
+    console.print(f"\nExecuting: {' '.join(cmd)}\n")
+
+    try:
+        result = subprocess.run(
+            cmd,
+            check=False,
+            env=os.environ.copy(),
+        )
+
+        if result.returncode == 0:
+            console.print("\n[green]✓ Backfill completed successfully![/green]")
+        else:
+            console.print("\n[red]✗ Backfill failed - see output above[/red]")
+            raise typer.Exit(code=result.returncode)
+
+    except FileNotFoundError as exc:
+        console.print(f"[red]✗ Backfill script not found: {script_path}[/red]")
+        raise typer.Exit(code=1) from exc
+    except Exception as exc:
+        console.print(f"[red]✗ Unexpected error: {exc}[/red]")
+        raise typer.Exit(code=1) from exc
 
 
 @refactor_app.command("hotspots")
