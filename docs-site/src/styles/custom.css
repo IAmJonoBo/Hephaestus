@@ -1,0 +1,91 @@
+/* Custom styles for Hephaestus documentation */
+
+:root {
+  --sl-color-accent-low: #1e1b4b;
+  --sl-color-accent: #6366f1;
+  --sl-color-accent-high: #a5b4fc;
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #f8fafc;
+  --sl-color-gray-2: #f1f5f9;
+  --sl-color-gray-3: #e2e8f0;
+  --sl-color-gray-4: #cbd5e1;
+  --sl-color-gray-5: #94a3b8;
+  --sl-color-gray-6: #64748b;
+  --sl-color-black: #0f172a;
+}
+
+/* Dark mode overrides */
+:root[data-theme='dark'] {
+  --sl-color-accent-low: #312e81;
+  --sl-color-accent: #818cf8;
+  --sl-color-accent-high: #c7d2fe;
+}
+
+/* Code block enhancements */
+.astro-code {
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1.5rem 0;
+}
+
+/* Admonition styling */
+.starlight-aside {
+  border-radius: 0.5rem;
+  margin: 1.5rem 0;
+}
+
+/* Table improvements */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0;
+}
+
+table th {
+  background-color: var(--sl-color-gray-2);
+  font-weight: 600;
+}
+
+:root[data-theme='dark'] table th {
+  background-color: var(--sl-color-gray-6);
+}
+
+/* Command line styling */
+code {
+  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+}
+
+/* Badge styling for version indicators */
+.version-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--sl-color-accent);
+  color: var(--sl-color-white);
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+/* Auto-generated content indicator */
+.auto-generated {
+  border-left: 4px solid var(--sl-color-accent);
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  opacity: 0.9;
+}
+
+.auto-generated::before {
+  content: '🤖 Auto-generated';
+  display: block;
+  font-size: 0.875rem;
+  color: var(--sl-color-gray-5);
+  margin-bottom: 0.5rem;
+}
+
+/* Last updated timestamp styling */
+.last-updated {
+  font-size: 0.875rem;
+  color: var(--sl-color-gray-5);
+  font-style: italic;
+}

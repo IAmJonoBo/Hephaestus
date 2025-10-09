@@ -36,13 +36,13 @@ Run the guard-rail tooling directly with `uv` so everything stays reproducible:
 uv run hephaestus guard-rails                            # Full sweep (cleanup, lint, typecheck, tests, audit)
 uv run ruff check .                                      # Lint
 uv run ruff format .                                    # Auto-format
-uv run yamllint -c .trunk/configs/.yamllint.yaml .github/ .pre-commit-config.yaml mkdocs.yml hephaestus-toolkit/  # YAML lint
+uv run yamllint -c .trunk/configs/.yamllint.yaml .github/ .pre-commit-config.yaml hephaestus-toolkit/  # YAML lint
 uv run mypy src tests                                   # Static typing
 uv run pytest                                           # Unit tests with coverage
 uv run hephaestus cleanup --deep-clean                  # Workspace hygiene
 uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph  # Dependency audit
-uv run mkdocs serve                                     # Docs live preview
-uv run mkdocs build                                     # Docs static site build
+cd docs-site && npm run dev                             # Docs live preview (Astro Starlight)
+cd docs-site && npm run build                           # Docs static site build
 ```
 
 ## Pre-Commit Guard Rails
@@ -60,7 +60,7 @@ Before requesting review:
 1. `uv run hephaestus cleanup --deep-clean`
 2. `uv run ruff check .`
 3. `uv run ruff format .`
-4. `uv run yamllint -c .trunk/configs/.yamllint.yaml .github/ .pre-commit-config.yaml mkdocs.yml hephaestus-toolkit/`
+4. `uv run yamllint -c .trunk/configs/.yamllint.yaml .github/ .pre-commit-config.yaml hephaestus-toolkit/`
 5. `uv run mypy src tests`
 6. `uv run pytest`
 7. `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph`
@@ -70,12 +70,24 @@ For releases, consult `docs/pre-release-checklist.md` for additional automation 
 
 ## Documentation
 
-- The `docs/` folder follows a Diátaxis-inspired layout. Keep tutorials, how-to guides, reference,
-  and explanations distinct.
-- Update `docs/how-to/editor-setup.md` when onboarding instructions change, and surface major updates in
-  `docs/lifecycle.md`.
-- Use `uv run mkdocs serve` for live preview of the MkDocs Material site, or `uv run mkdocs build`
-  to generate the static site.
+- The `docs-site/` folder contains the Astro Starlight documentation site with automated content generation.
+- Source markdown files follow a Diátaxis-inspired layout: tutorials, how-to guides, reference, and explanations.
+- Documentation is automatically updated with CLI references, API docs, changelog, and version information.
+- **Local development:**
+  ```bash
+  cd docs-site
+  npm install          # First time only
+  npm run dev          # Live preview at http://localhost:4321
+  npm run build        # Production build
+  ```
+- **Automation scripts** (run automatically in CI, but can be run manually):
+  ```bash
+  npm run update-all   # Update CLI reference, API docs, changelog, versions
+  npm run validate-all # Validate links, examples, detect stale content
+  ```
+- When adding new documentation, place files in `docs-site/src/content/docs/` following the Diátaxis structure.
+- The legacy `docs/` folder content has been migrated; new docs should go in `docs-site/`.
+- See [ADR 0007](docs-site/src/content/docs/adr/0007-astro-starlight-migration.md) for migration details.
 
 ## Testing Strategy
 
