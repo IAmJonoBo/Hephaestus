@@ -1,6 +1,6 @@
 # ADR 0004: REST/gRPC API for Remote Invocation
 
-- Status: Sprint 2 Core Implementation Complete (2025-01-16)
+- Status: Sprint 3 Complete (2025-01-16)
 - Date: 2025-01-11
 - Last Updated: 2025-01-16
 - Supersedes: N/A
@@ -474,12 +474,14 @@ async def stream_task_progress(task_id: str):
 
 **Sprint 2 Status**: Complete. Full async task manager with status tracking, SSE streaming for progress updates, comprehensive error handling. All tests passing.
 
-### Sprint 3: gRPC Service
+### Sprint 3: gRPC Service (Complete)
 
-- [ ] Define protocol buffers
-- [ ] Implement gRPC server
-- [ ] Add streaming RPCs
-- [ ] Create gRPC client examples
+- [x] Define protocol buffers
+- [x] Implement gRPC server
+- [x] Add streaming RPCs
+- [x] Create gRPC client examples
+
+**Sprint 3 Status**: Complete. Full gRPC implementation with all three services (QualityService, CleanupService, AnalyticsService), streaming progress updates via RunGuardRailsStream, protocol buffers compiled to Python, server with reflection support, comprehensive client examples, and 10 tests all passing.
 
 ### Sprint 4: Production Ready
 
@@ -579,4 +581,5 @@ curl http://localhost:8000/api/v1/tasks/TASK_ID \
 - 2025-01-11: Proposed (documented in ADR)
 - 2025-01-15: Sprint 1 Foundation Complete - OpenAPI spec and module structure defined
 - 2025-01-16: Sprint 2 Complete - FastAPI implementation with async task management, SSE streaming, authentication, and comprehensive tests
-- Future: Sprint 3-4 - gRPC implementation and production hardening
+- 2025-01-16: Sprint 3 Complete - Full gRPC implementation with protocol buffers, three services, streaming RPCs, client examples, and comprehensive tests
+- Future: Sprint 4 - Production hardening and deployment

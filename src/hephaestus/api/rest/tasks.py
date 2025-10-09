@@ -4,12 +4,18 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
+
+# Constants for task management
+DEFAULT_TASK_TIMEOUT = 300  # 5 minutes
+MAX_TASKS = 100
+MAX_TASK_AGE = 3600  # 1 hour
 
 
 class TaskStatus(Enum):
@@ -31,20 +37,28 @@ class Task:
     progress: float = 0.0
     result: dict[str, Any] | None = None
     error: str | None = None
+    created_at: float = field(default_factory=time.time)
+    completed_at: float | None = None
 
 
 class TaskManager:
     """Manages async task execution and tracking."""
 
-    def __init__(self) -> None:
-        """Initialize task manager."""
+    def __init__(self, max_tasks: int = MAX_TASKS) -> None:
+        """Initialize task manager.
+
+        Args:
+            max_tasks: Maximum number of concurrent tasks to track
+        """
         self._tasks: dict[str, Task] = {}
+        self._max_tasks = max_tasks
 
     async def create_task(
         self,
         name: str,
         func: Callable[..., Any],
         *args: Any,
+        timeout: float | None = DEFAULT_TASK_TIMEOUT,
         **kwargs: Any,
     ) -> str:
         """Create and start a new async task.
@@ -53,11 +67,26 @@ class TaskManager:
             name: Task name for tracking
             func: Async function to execute
             *args: Positional arguments for func
+            timeout: Task timeout in seconds (None for no timeout)
             **kwargs: Keyword arguments for func
 
         Returns:
             Task ID
+
+        Raises:
+            ValueError: If max tasks exceeded or invalid parameters
         """
+        # Validate name
+        if not name or not isinstance(name, str):
+            raise ValueError("Task name must be a non-empty string")
+
+        # Check task limit
+        if len(self._tasks) >= self._max_tasks:
+            # Auto-cleanup old tasks
+            self.cleanup_completed_tasks()
+            if len(self._tasks) >= self._max_tasks:
+                raise ValueError(f"Maximum number of tasks ({self._max_tasks}) exceeded")
+
         task_id = str(uuid4())
         task = Task(
             id=task_id,
@@ -67,8 +96,10 @@ class TaskManager:
         )
         self._tasks[task_id] = task
 
-        # Start task in background
-        asyncio.create_task(self._execute_task(task_id, func, *args, **kwargs))
+        # Start task in background with timeout
+        asyncio.create_task(
+            self._execute_task(task_id, func, *args, timeout=timeout, **kwargs)
+        )
 
         logger.info("Created task", extra={"task_id": task_id, "name": name})
         return task_id
@@ -78,6 +109,7 @@ class TaskManager:
         task_id: str,
         func: Callable[..., Any],
         *args: Any,
+        timeout: float | None = None,
         **kwargs: Any,
     ) -> None:
         """Execute a task and update its status.
@@ -86,24 +118,40 @@ class TaskManager:
             task_id: Task identifier
             func: Function to execute
             *args: Positional arguments
+            timeout: Timeout in seconds
             **kwargs: Keyword arguments
         """
         task = self._tasks[task_id]
         task.status = TaskStatus.RUNNING
 
         try:
-            # Execute the task function
-            result = await func(*args, **kwargs)
+            # Execute with timeout if specified
+            if timeout:
+                result = await asyncio.wait_for(func(*args, **kwargs), timeout=timeout)
+            else:
+                result = await func(*args, **kwargs)
 
             task.status = TaskStatus.COMPLETED
             task.progress = 1.0
             task.result = result
+            task.completed_at = time.time()
 
             logger.info("Task completed", extra={"task_id": task_id, "task_name": task.name})
+
+        except asyncio.TimeoutError:
+            task.status = TaskStatus.FAILED
+            task.error = f"Task timed out after {timeout} seconds"
+            task.completed_at = time.time()
+
+            logger.error(
+                "Task timed out",
+                extra={"task_id": task_id, "task_name": task.name, "timeout": timeout},
+            )
 
         except Exception as e:
             task.status = TaskStatus.FAILED
             task.error = str(e)
+            task.completed_at = time.time()
 
             logger.error(
                 "Task failed",
@@ -137,11 +185,15 @@ class TaskManager:
 
         Raises:
             KeyError: If task not found
+            ValueError: If progress value is invalid
         """
         if task_id not in self._tasks:
             raise KeyError(f"Task {task_id} not found")
 
-        self._tasks[task_id].progress = max(0.0, min(1.0, progress))
+        if not 0.0 <= progress <= 1.0:
+            raise ValueError(f"Progress must be between 0.0 and 1.0, got {progress}")
+
+        self._tasks[task_id].progress = progress
 
     def list_tasks(self) -> list[Task]:
         """List all tasks.
@@ -151,16 +203,33 @@ class TaskManager:
         """
         return list(self._tasks.values())
 
-    def cleanup_completed_tasks(self, max_age_seconds: int = 3600) -> None:
+    def cleanup_completed_tasks(self, max_age_seconds: int = MAX_TASK_AGE) -> int:
         """Clean up old completed/failed tasks.
 
         Args:
-            max_age_seconds: Maximum age of tasks to keep
+            max_age_seconds: Maximum age of completed tasks to keep
+
+        Returns:
+            Number of tasks cleaned up
         """
-        # Simple implementation - just keep the last N tasks
-        # In production, would track timestamps and clean based on age
-        if len(self._tasks) > 100:
-            # Keep only the 50 most recent
-            tasks_by_id = sorted(self._tasks.items(), key=lambda x: x[0])[-50:]
-            self._tasks = dict(tasks_by_id)
-            logger.info("Cleaned up old tasks", extra={"remaining": len(self._tasks)})
+        current_time = time.time()
+        initial_count = len(self._tasks)
+
+        # Remove old completed/failed tasks
+        tasks_to_remove = []
+        for task_id, task in self._tasks.items():
+            if task.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
+                if task.completed_at and (current_time - task.completed_at) > max_age_seconds:
+                    tasks_to_remove.append(task_id)
+
+        for task_id in tasks_to_remove:
+            del self._tasks[task_id]
+
+        cleaned = initial_count - len(self._tasks)
+        if cleaned > 0:
+            logger.info(
+                "Cleaned up old tasks",
+                extra={"cleaned": cleaned, "remaining": len(self._tasks)},
+            )
+
+        return cleaned

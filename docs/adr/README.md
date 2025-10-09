@@ -22,8 +22,8 @@ This directory contains Architecture Decision Records documenting significant te
   - Summary: Integrate OpenTelemetry for distributed tracing, metrics, and observability
 
 - **[ADR-0004: REST/gRPC API](./0004-rest-grpc-api.md)**
-  - Status: Sprint 1 Foundation Complete (2025-01-16)
-  - Implementation: Module structure and OpenAPI specification defined; full implementation deferred pending prioritization
+  - Status: Sprint 3 Complete (2025-01-16)
+  - Implementation: FastAPI REST API with authentication, async task management, SSE streaming; gRPC services with protocol buffers, streaming RPCs, comprehensive tests
   - Summary: Dual-protocol API for remote invocation and AI agent integration
 
 - **[ADR-0005: PyPI Publication Automation](./0005-pypi-publication.md)**
@@ -100,7 +100,7 @@ When prioritizing ADR implementation, consider:
 - ✅ ADR-0001: STRIDE Threat Model (all three phases complete - Critical Security, Hardening, Advanced Features)
 - ✅ ADR-0002: Plugin Architecture Sprint 1-3 (foundation, built-in plugins, discovery, guard-rails integration)
 - ✅ ADR-0003: OpenTelemetry Integration Sprint 1-3 (foundation, tracing, metrics, instrumentation, custom analytics)
-- ✅ ADR-0004: REST/gRPC API Sprint 1 Foundation (OpenAPI spec, module structure)
+- ✅ ADR-0004: REST/gRPC API Sprint 1-3 (OpenAPI spec, module structure, FastAPI implementation, gRPC services)
 - ✅ ADR-0006: Sigstore Backfill Sprint 1 (metadata schema and backfill script)
 
 ### In Progress
@@ -111,7 +111,7 @@ When prioritizing ADR implementation, consider:
 ### Planned
 
 - ⏳ ADR-0003: Sprint 4 (sampling strategies, plugin instrumentation, Prometheus exporter, monitoring guide)
-- ⏳ ADR-0004: Sprint 2+ (FastAPI implementation, authentication, async tasks, gRPC service)
+- ⏳ ADR-0004: Sprint 4 (production hardening, rate limiting, API versioning, deployment guides)
 - ⏳ ADR-0005: Sprint 3 (PyPI account setup, first publication)
 - ⏳ ADR-0006: Sprint 3 (CLI verification flags, documentation updates)
 - ⏳ ADR-0002: Sprint 4 (marketplace, dependency resolution, versioning)
@@ -125,4 +125,4 @@ ADRs should be reviewed:
 - When technical assumptions change
 - When community feedback suggests changes
 
-Last reviewed: 2025-01-16 (ADR status consolidation and implementation updates)
+Last reviewed: 2025-01-16 (ADR-0004 Sprint 3 completion - gRPC implementation)

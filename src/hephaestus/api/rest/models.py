@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class GuardRailsRequest(BaseModel):
@@ -22,6 +22,14 @@ class GuardRailsRequest(BaseModel):
         default=False,
         description="Check for tool version drift",
     )
+
+    @field_validator("workspace")
+    @classmethod
+    def validate_workspace(cls, v: str | None) -> str | None:
+        """Validate workspace path."""
+        if v is not None and len(v) > 1000:
+            raise ValueError("Workspace path too long (max 1000 characters)")
+        return v
 
 
 class QualityGateResult(BaseModel):
@@ -59,6 +67,17 @@ class CleanupRequest(BaseModel):
         description="Preview changes without executing",
     )
 
+    @field_validator("root")
+    @classmethod
+    def validate_root(cls, v: str | None) -> str | None:
+        """Validate root path."""
+        if v is not None:
+            if len(v) > 1000:
+                raise ValueError("Root path too long (max 1000 characters)")
+            if v.startswith(".."):
+                raise ValueError("Relative parent paths not allowed")
+        return v
+
 
 class CleanupResponse(BaseModel):
     """Response schema for cleanup endpoint."""
@@ -81,6 +100,15 @@ class RankingsRequest(BaseModel):
         le=100,
         description="Maximum number of results",
     )
+
+    @field_validator("strategy")
+    @classmethod
+    def validate_strategy(cls, v: str) -> str:
+        """Validate ranking strategy."""
+        allowed = ["risk_weighted", "coverage_first", "churn_based", "composite"]
+        if v not in allowed:
+            raise ValueError(f"Strategy must be one of {allowed}, got {v}")
+        return v
 
 
 class RankingsResponse(BaseModel):
