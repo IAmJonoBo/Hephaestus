@@ -18,11 +18,11 @@ The Hephaestus project has successfully delivered all high-priority features and
 
 Remaining work is focused on advanced features with clear ADRs and sprint-based timelines:
 
-- 🔄 Sigstore bundle backfill (Sprint 2, ADR-0006)
-- 🔄 OpenTelemetry spans (Sprint 2-3, ADR-0003)
-- ⏳ Plugin architecture (Sprint 2-3, ADR-0002)
-- ⏳ REST/gRPC API (Sprint 2-4, ADR-0004)
-- ⏳ PyPI publication automation (Sprint 2, ADR-0005)
+- 🔄 ADR-0006: Sigstore bundle backfill Sprint 2 (execution ready, pending manual trigger)
+- 🔄 ADR-0005: PyPI publication Sprint 3 (workflow complete, pending account registration)
+- ⏳ ADR-0003: OpenTelemetry Sprint 4 (sampling strategies, plugin instrumentation, Prometheus exporter)
+- ⏳ ADR-0004: REST/gRPC API Sprint 2+ (FastAPI implementation, authentication, gRPC service)
+- ⏳ ADR-0002: Plugin architecture Sprint 4 (marketplace, dependency resolution, versioning)
 
 ## Recent Improvements (Latest Session)
 
@@ -212,18 +212,18 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 ### In Progress 🔄
 
 - [ ] (Tooling, Sprint 2) Backfill Sigstore bundles for historical releases
-  - Status: 🔄 In Progress - Design complete in ADR-0006, execution scheduled for Sprint 2
-- [ ] (Platform, Sprint 2-3) OpenTelemetry spans across CLI/release/cleanup
-  - Status: 🔄 Planned Sprint 2-3 - Foundation complete (structured logging), spans implementation pending (see ADR-0003)
+  - Status: 🔄 In Progress - Script complete, execution ready (requires manual trigger in GitHub Actions)
+- [ ] (Release, Sprint 3) Publish to PyPI with automated release notes
+  - Status: 🔄 In Progress - Workflow complete, pending PyPI account setup and Trusted Publisher configuration
 
 ### Future / Deferred ⏳
 
-- [ ] (Release, Sprint 2) Publish to PyPI with automated release notes
-  - Status: 🔄 In Progress - Design complete in ADR-0005, implementation scheduled for Sprint 2
+- [ ] (Platform, Sprint 4) OpenTelemetry advanced features (sampling strategies, plugin instrumentation, Prometheus exporter)
+  - Status: ⏳ Planned Sprint 4 - Sprint 1-3 complete (foundation, tracing, metrics, custom analytics)
 - [ ] (Platform AI, Sprint 2-4) Expose secured REST/gRPC endpoints for AI/automation clients with policy guard rails
-  - Status: ⏳ Planned - Design complete in ADR-0004, implementation scheduled for Sprint 2-4
-- [ ] (Extensibility, Sprint 2-4) Plugin architecture for custom quality gates
-  - Status: ⏳ Planned - Design complete in ADR-0002, implementation phased across Sprint 2-4
+  - Status: ⏳ Planned - Sprint 1 foundation complete (OpenAPI spec, module structure); implementation in Sprint 2-4
+- [ ] (Extensibility, Sprint 4) Plugin architecture advanced features (marketplace, dependency resolution, versioning)
+  - Status: ⏳ Planned - Sprint 1-3 complete (foundation, built-in plugins, guard-rails integration)
 
 ## Steps
 
@@ -373,11 +373,12 @@ _Note: Plugin architecture planned for Q2-Q3 2025 (see ADR-0002). OpenTelemetry 
 
 With all core infrastructure complete, the project is now in maintenance mode with planned future enhancements:
 
-1. **Sprint 2 (Next)**:
-   - Backfill Sigstore bundles for historical releases (ADR-0006)
-   - PyPI publication automation (ADR-0005)
-2. **Sprint 3**: Implement OpenTelemetry spans (ADR-0003 Sprint 2-3)
-3. **Sprint 4**: Deliver plugin architecture (ADR-0002) and REST/gRPC API (ADR-0004)
+1. **Sprint 2 (Next - Manual Execution Required)**:
+   - Backfill Sigstore bundles for historical releases (ADR-0006 - script ready, requires manual trigger)
+   - PyPI account registration and Trusted Publisher setup (ADR-0005 - workflow ready)
+2. **Sprint 3**: Complete PyPI publication launch (ADR-0005)
+3. **Sprint 4**: Implement OpenTelemetry advanced features (ADR-0003) and plugin marketplace (ADR-0002)
+4. **Future**: Deliver REST/gRPC API implementation (ADR-0004)
 
 ### Decision Framework
 
@@ -388,7 +389,7 @@ When prioritizing future features from the proposals above, consider:
 - **Dependencies**: What foundational work is required?
 - **Community**: Is there external demand or contribution interest?
 
-Current recommendation: Focus on completing Sprint 2 commitments (Sigstore backfill) before starting Sprint 3 work.
+Current recommendation: Focus on completing Sprint 2 manual prerequisites (Sigstore backfill execution, PyPI account setup) before starting Sprint 3 work.
 
 ## ✅ Summary: Project Health & Readiness
 

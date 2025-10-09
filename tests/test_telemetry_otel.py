@@ -124,7 +124,7 @@ def test_noop_span_context_manager() -> None:
     with patch.dict(os.environ, {}, clear=True):
         # Reset global state to ensure test isolation
         telemetry.trace = None
-        
+
         tracer = get_tracer(__name__)
 
         with tracer.start_as_current_span("outer") as outer_span:
