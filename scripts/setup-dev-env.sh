@@ -74,19 +74,97 @@ else
     print_success "uv detected: $UV_VERSION"
 fi
 
+# Step 2.5: Configure UV for macOS compatibility
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    print_status "Configuring UV for macOS..."
+    
+    # Prevent reflink issues on cross-filesystem operations
+    export UV_LINK_MODE=copy
+    
+    # Prevent macOS from creating AppleDouble files during copy operations
+    export COPYFILE_DISABLE=1
+    
+    print_success "macOS compatibility settings applied"
+    
+    # Clean AppleDouble files from UV cache to prevent installation failures
+    print_status "Cleaning macOS metadata from UV cache..."
+    
+    # Get UV cache directory
+    UV_CACHE_DIR="${UV_CACHE_DIR:-$HOME/.cache/uv}"
+    if [[ -d "$UV_CACHE_DIR" ]]; then
+        find "$UV_CACHE_DIR" -type f -name "._*" -delete 2>/dev/null || true
+        find "$UV_CACHE_DIR" -type f -name ".DS_Store" -delete 2>/dev/null || true
+        find "$UV_CACHE_DIR" -type d -name "__MACOSX" -exec rm -rf {} + 2>/dev/null || true
+        print_success "UV cache cleaned"
+    else
+        print_success "UV cache directory not found (will be created on first sync)"
+    fi
+    
+    # Clean AppleDouble files from .venv if it exists
+    if [[ -d ".venv" ]]; then
+        print_status "Cleaning macOS metadata from .venv..."
+        find .venv -type f -name "._*" -delete 2>/dev/null || true
+        find .venv -type f -name ".DS_Store" -delete 2>/dev/null || true
+        find .venv -type d -name "__MACOSX" -exec rm -rf {} + 2>/dev/null || true
+        print_success ".venv cleaned"
+    fi
+fi
+
 # Step 3: Sync dependencies
 print_status "Syncing dependencies with uv..."
 if uv sync --locked --extra dev --extra qa; then
     print_success "Dependencies synced successfully"
 else
     print_error "Failed to sync dependencies"
-    print_warning "Trying without lock file..."
-    if uv sync --extra dev --extra qa; then
-        print_success "Dependencies synced (without lock)"
-        print_warning "Consider updating uv.lock with: uv lock"
+    
+    # If on macOS and failed, suggest additional cleanup
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        print_warning "macOS detected - trying additional cleanup..."
+        
+        # More aggressive cleanup of UV cache
+        UV_CACHE_DIR="${UV_CACHE_DIR:-$HOME/.cache/uv}"
+        if [[ -d "$UV_CACHE_DIR" ]]; then
+            print_status "Clearing entire UV cache..."
+            rm -rf "$UV_CACHE_DIR"
+            print_success "UV cache cleared"
+        fi
+        
+        # Clear .venv completely
+        if [[ -d ".venv" ]]; then
+            print_status "Removing .venv..."
+            rm -rf .venv
+            print_success ".venv removed"
+        fi
+        
+        print_warning "Retrying with fresh cache..."
+        if uv sync --locked --extra dev --extra qa; then
+            print_success "Dependencies synced successfully (after cache clear)"
+        else
+            print_warning "Trying without lock file..."
+            if uv sync --extra dev --extra qa; then
+                print_success "Dependencies synced (without lock)"
+                print_warning "Consider updating uv.lock with: uv lock"
+            else
+                print_error "Failed to sync dependencies"
+                echo ""
+                echo "If you're still experiencing issues on macOS, try:"
+                echo "  1. Manually clear UV cache: rm -rf ~/.cache/uv"
+                echo "  2. Run cleanup-macos-cruft.sh script"
+                echo "  3. Ensure UV_LINK_MODE=copy is set: export UV_LINK_MODE=copy"
+                echo "  4. Try: uv sync --extra dev --extra qa --reinstall"
+                echo ""
+                exit 1
+            fi
+        fi
     else
-        print_error "Failed to sync dependencies"
-        exit 1
+        print_warning "Trying without lock file..."
+        if uv sync --extra dev --extra qa; then
+            print_success "Dependencies synced (without lock)"
+            print_warning "Consider updating uv.lock with: uv lock"
+        else
+            print_error "Failed to sync dependencies"
+            exit 1
+        fi
     fi
 fi
 

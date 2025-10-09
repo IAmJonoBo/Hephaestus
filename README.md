@@ -105,6 +105,9 @@ The setup script ensures a bulletproof development environment with:
 - All dependencies synced from lockfile
 - Pre-commit hooks configured
 - Environment validation
+- **macOS compatibility**: Automatic cleanup of resource fork files and proper UV configuration
+
+> **Note for macOS users**: The setup script automatically configures UV to avoid reflink issues and cleans up AppleDouble files (`._*`) that can cause installation failures. If you encounter issues, see the [troubleshooting guide](docs/how-to/troubleshooting.md#macos-appledoubleresource-fork-installation-errors).
 
 ### Essential Commands
 

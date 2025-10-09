@@ -94,6 +94,69 @@ pip install -e ".[dev,qa]"
 python -m hephaestus --help
 ```
 
+#### macOS AppleDouble/Resource Fork Installation Errors
+
+**Symptom:** Installation fails with errors like:
+```
+error: Failed to install: ruff-0.14.0-py3-none-macosx_11_0_arm64.whl (ruff==0.14.0)
+Caused by: RECORD file doesn't match wheel contents: Could not find entry for ruff-0.14.0.data/scripts/._ruff
+```
+
+or:
+
+```
+warning: Failed to clone files; falling back to full copy
+error: Failed to install: bandit-1.8.6-py3-none-any.whl (bandit==1.8.6)
+Caused by: failed to copy file from ... to ...: No such file or directory
+```
+
+**Cause:** macOS creates AppleDouble files (prefixed with `._`) in the UV cache and virtual environment, which are not listed in wheel RECORD files. This happens when:
+- Files are copied across filesystems (e.g., network drives, external drives)
+- The cache contains corrupted or stale metadata
+- Reflink operations fail on non-APFS filesystems
+
+**Solution:**
+
+The `scripts/setup-dev-env.sh` script now automatically handles this on macOS. If you still encounter issues:
+
+```bash
+# 1. Set environment variables to prevent the issue
+export UV_LINK_MODE=copy
+export COPYFILE_DISABLE=1
+
+# 2. Clear UV cache completely
+rm -rf ~/.cache/uv
+
+# 3. Remove virtual environment
+rm -rf .venv
+
+# 4. Run the cleanup script to remove all macOS metadata
+./cleanup-macos-cruft.sh
+
+# 5. Re-run setup
+./scripts/setup-dev-env.sh
+
+# Alternatively, if the issue persists, try:
+uv sync --extra dev --extra qa --reinstall
+```
+
+**Prevention:**
+
+Always run development commands with the environment variables set:
+
+```bash
+export UV_LINK_MODE=copy
+export COPYFILE_DISABLE=1
+```
+
+Or add these to your `~/.bashrc` or `~/.zshrc`:
+
+```bash
+# Prevent macOS resource fork issues
+export UV_LINK_MODE=copy
+export COPYFILE_DISABLE=1
+```
+
 ### Guard-Rails Issues
 
 #### Guard-rails fails immediately
