@@ -97,6 +97,7 @@ python -m hephaestus --help
 #### macOS AppleDouble/Resource Fork Installation Errors
 
 **Symptom:** Installation fails with errors like:
+
 ```
 error: Failed to install: ruff-0.14.0-py3-none-macosx_11_0_arm64.whl (ruff==0.14.0)
 Caused by: RECORD file doesn't match wheel contents: Could not find entry for ruff-0.14.0.data/scripts/._ruff
@@ -111,6 +112,7 @@ Caused by: failed to copy file from ... to ...: No such file or directory
 ```
 
 **Cause:** macOS creates AppleDouble files (prefixed with `._`) in the UV cache and virtual environment, which are not listed in wheel RECORD files. This happens when:
+
 - Files are copied across filesystems (e.g., network drives, external drives)
 - The repository is on a non-xattr filesystem (exFAT, NTFS, FAT32)
 - The cache contains corrupted or stale metadata
@@ -119,6 +121,7 @@ Caused by: failed to copy file from ... to ...: No such file or directory
 **Solution:**
 
 The `scripts/setup-dev-env.sh` script now automatically handles this on macOS, including:
+
 - Detecting non-xattr filesystems (exFAT, NTFS, FAT32, etc.)
 - Automatically relocating the virtual environment to an APFS-backed location (`$HOME/.uvenvs/<repo>`)
 - Stripping extended attributes from UV cache and environment before sync

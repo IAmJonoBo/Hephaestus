@@ -33,6 +33,7 @@ FS_TYPE=$(df -T . 2>/dev/null | tail -1 | awk '{print $2}' || echo "")
 ```
 
 Pattern matching identifies non-xattr filesystems:
+
 - exFAT (case-insensitive)
 - MSDOS
 - NTFS
@@ -94,6 +95,7 @@ fi
 ### scripts/setup-dev-env.sh
 
 **Changes:**
+
 1. Added filesystem detection logic (Step 2.5)
 2. Added automatic environment relocation
 3. Added xattr stripping before sync
@@ -106,6 +108,7 @@ fi
 ### docs/how-to/troubleshooting.md
 
 **Changes:**
+
 1. Expanded "macOS AppleDouble/Resource Fork Installation Errors" section
 2. Added "Working on External/USB Drives (exFAT, NTFS, FAT32)" subsection
 3. Documented manual workaround steps
@@ -115,12 +118,14 @@ fi
 ### README.md
 
 **Changes:**
+
 1. Added note about external drive support in Quick Start section
 2. Linked to troubleshooting guide for details
 
 ### tests/test_setup_script_logic.sh (new file)
 
 **Test Coverage:**
+
 - Script syntax validation
 - Filesystem type detection (12 filesystem types tested)
 - Environment relocation flag logic
@@ -142,6 +147,7 @@ Simply run the setup script:
 ```
 
 The script will:
+
 1. Detect if you're on a non-xattr filesystem
 2. Automatically relocate the environment
 3. Strip xattrs from cache and environment
@@ -185,12 +191,14 @@ The setup script uses these environment variables:
 ## Compatibility
 
 **Tested on:**
+
 - macOS 14+ (Sonoma)
 - exFAT-formatted external drives
 - APFS internal disks
 - Python 3.12+
 
 **Future Considerations:**
+
 - Linux support (if needed)
 - Windows support (WSL)
 - Network share detection

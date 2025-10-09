@@ -102,6 +102,7 @@ uv sync --extra dev --extra qa
 **Note for macOS users on external drives (exFAT, NTFS, FAT32):** The setup script automatically detects non-xattr filesystems and relocates the virtual environment to `$HOME/.uvenvs/<repo-name>` on your internal disk, creating a symlink at `.venv`. This prevents AppleDouble file issues. See [troubleshooting guide](docs/how-to/troubleshooting.md#working-on-externalusb-drives-exfat-ntfs-fat32) for details.
 
 The setup script ensures a bulletproof development environment with:
+
 - Python 3.12+ validation
 - uv package manager installation (if needed)
 - All dependencies synced from lockfile

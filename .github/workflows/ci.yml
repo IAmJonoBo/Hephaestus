@@ -89,28 +89,28 @@ jobs:
         run: |
           set -xeuo pipefail
           export PYTHONPATH="src:${PYTHONPATH:-}"
-          
+
           echo "Installing pip..."
           python -m pip install --upgrade pip
-          
+
           echo "Building wheels from requirements..."
           pip wheel -r requirements.txt -w wheelhouse
-          
+
           echo "Building project wheel..."
           uv build --wheel
-          
+
           echo "Copying project wheel to wheelhouse..."
           cp dist/*.whl wheelhouse/
-          
+
           echo "Wheelhouse contents:"
           ls -lh wheelhouse/ | head -20
-          
+
           echo "Sanitizing wheelhouse..."
           uv run -- python -m hephaestus.cli wheelhouse sanitize wheelhouse
-          
+
           echo "Verifying wheelhouse..."
           uv run -- python -m hephaestus.cli wheelhouse verify wheelhouse
-          
+
           echo "Wheelhouse build complete ✓"
 
       - name: Upload wheelhouse artifact
@@ -158,13 +158,13 @@ jobs:
           echo "Validating wheelhouse artifact structure..."
           test -d wheelhouse/wheelhouse || (echo "❌ wheelhouse directory missing in artifact" && exit 1)
           test -f wheelhouse/requirements.txt || (echo "❌ requirements.txt missing in wheelhouse artifact" && exit 1)
-          
+
           echo "Wheelhouse contents:"
           ls -lh wheelhouse/wheelhouse/ | head -20
-          
+
           echo "Requirements preview:"
           head -10 wheelhouse/requirements.txt
-          
+
           echo "Wheelhouse validation complete ✓"
 
       # No internet: install only from local wheels.
@@ -173,23 +173,23 @@ jobs:
           echo "Creating virtual environment..."
           python -m venv .venv
           . .venv/bin/activate
-          
+
           echo "Upgrading pip..."
           pip install --no-index --find-links=wheelhouse/wheelhouse pip
-          
+
           echo "Installing dependencies from wheelhouse..."
           # The wheels reside in wheelhouse/wheelhouse after artifact extraction.
           pip install --no-index \
             --find-links=wheelhouse/wheelhouse \
             -r wheelhouse/requirements.txt
-          
+
           echo "Installing hephaestus from wheelhouse..."
           # Install our package from the local wheel by name (resolves to wheel in
           # find-links).
           pip install --no-index \
             --find-links=wheelhouse/wheelhouse \
             hephaestus
-          
+
           echo "Verifying installation..."
           pip list | grep -E "(hephaestus|pytest|ruff|mypy)"
           python -c "import hephaestus; print(f'Hephaestus {hephaestus.__version__} installed ✓')"

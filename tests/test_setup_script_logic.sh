@@ -12,17 +12,17 @@ PASSED=0
 FAILED=0
 
 print_test() {
-    echo -e "${YELLOW}→ TEST:${NC} $1"
+  echo -e "${YELLOW}→ TEST:${NC} $1"
 }
 
 print_pass() {
-    echo -e "${GREEN}✓ PASS:${NC} $1"
-    PASSED=$((PASSED + 1))
+  echo -e "${GREEN}✓ PASS:${NC} $1"
+  PASSED=$((PASSED + 1))
 }
 
 print_fail() {
-    echo -e "${RED}✗ FAIL:${NC} $1"
-    FAILED=$((FAILED + 1))
+  echo -e "${RED}✗ FAIL:${NC} $1"
+  FAILED=$((FAILED + 1))
 }
 
 echo "================================================"
@@ -34,9 +34,9 @@ echo ""
 TEST_COUNT=$((TEST_COUNT + 1))
 print_test "Validating setup-dev-env.sh syntax"
 if bash -n scripts/setup-dev-env.sh 2>/dev/null; then
-    print_pass "Script has valid bash syntax"
+  print_pass "Script has valid bash syntax"
 else
-    print_fail "Script has syntax errors"
+  print_fail "Script has syntax errors"
 fi
 
 # Test 2: Test filesystem type detection logic
@@ -45,29 +45,29 @@ print_test "Testing filesystem detection regex"
 
 # Simulate the detection logic
 check_fs_type() {
-    local fs_type="$1"
-    
-    if [[ "$fs_type" =~ ^(exfat|msdos|ntfs|fat32|vfat)$ ]] || [[ "$fs_type" =~ [Ee]x[Ff][Aa][Tt] ]]; then
-        echo "non-xattr"
-    else
-        echo "xattr"
-    fi
+  local fs_type="$1"
+
+  if [[ $fs_type =~ ^(exfat|msdos|ntfs|fat32|vfat)$ ]] || [[ $fs_type =~ [Ee]x[Ff][Aa][Tt] ]]; then
+    echo "non-xattr"
+  else
+    echo "xattr"
+  fi
 }
 
 # Test various filesystem types
 test_fs() {
-    local fs_type="$1"
-    local expected="$2"
-    local result
-    result=$(check_fs_type "$fs_type")
-    
-    if [[ "$result" == "$expected" ]]; then
-        print_pass "Detected $fs_type as $expected"
-        return 0
-    else
-        print_fail "Expected $fs_type to be $expected, got $result"
-        return 1
-    fi
+  local fs_type="$1"
+  local expected="$2"
+  local result
+  result=$(check_fs_type "$fs_type")
+
+  if [[ $result == "$expected" ]]; then
+    print_pass "Detected $fs_type as $expected"
+    return 0
+  else
+    print_fail "Expected $fs_type to be $expected, got $result"
+    return 1
+  fi
 }
 
 # Test non-xattr filesystems
@@ -94,13 +94,13 @@ ENV_RELOCATED=0
 NON_XATTR_FS=1
 
 if [[ $NON_XATTR_FS -eq 1 ]]; then
-    ENV_RELOCATED=1
+  ENV_RELOCATED=1
 fi
 
 if [[ $ENV_RELOCATED -eq 1 ]]; then
-    print_pass "ENV_RELOCATED flag set correctly"
+  print_pass "ENV_RELOCATED flag set correctly"
 else
-    print_fail "ENV_RELOCATED flag not set"
+  print_fail "ENV_RELOCATED flag not set"
 fi
 
 # Test 4: Verify symlink target path generation
@@ -110,10 +110,10 @@ print_test "Testing symlink path generation"
 REPO_NAME="Hephaestus"
 TARGET_ENV_DIR="$HOME/.uvenvs/$REPO_NAME"
 
-if [[ "$TARGET_ENV_DIR" == "$HOME/.uvenvs/Hephaestus" ]]; then
-    print_pass "Target environment path generated correctly"
+if [[ $TARGET_ENV_DIR == "$HOME/.uvenvs/Hephaestus" ]]; then
+  print_pass "Target environment path generated correctly"
 else
-    print_fail "Target environment path incorrect: $TARGET_ENV_DIR"
+  print_fail "Target environment path incorrect: $TARGET_ENV_DIR"
 fi
 
 # Test 5: Test Python version checking logic
@@ -121,32 +121,32 @@ TEST_COUNT=$((TEST_COUNT + 1))
 print_test "Testing Python version check logic"
 
 check_python_version() {
-    local version="$1"
-    local major minor
-    major=$(echo "$version" | cut -d. -f1)
-    minor=$(echo "$version" | cut -d. -f2)
-    
-    if [[ "$major" -lt 3 ]] || [[ "$major" -eq 3 && "$minor" -lt 12 ]]; then
-        echo "fail"
-    else
-        echo "pass"
-    fi
+  local version="$1"
+  local major minor
+  major=$(echo "$version" | cut -d. -f1)
+  minor=$(echo "$version" | cut -d. -f2)
+
+  if [[ $major -lt 3 ]] || [[ $major -eq 3 && $minor -lt 12 ]]; then
+    echo "fail"
+  else
+    echo "pass"
+  fi
 }
 
 # Test various Python versions
 test_python() {
-    local version="$1"
-    local expected="$2"
-    local result
-    result=$(check_python_version "$version")
-    
-    if [[ "$result" == "$expected" ]]; then
-        print_pass "Python $version correctly evaluated as $expected"
-        return 0
-    else
-        print_fail "Python $version incorrectly evaluated as $result, expected $expected"
-        return 1
-    fi
+  local version="$1"
+  local expected="$2"
+  local result
+  result=$(check_python_version "$version")
+
+  if [[ $result == "$expected" ]]; then
+    print_pass "Python $version correctly evaluated as $expected"
+    return 0
+  else
+    print_fail "Python $version incorrectly evaluated as $result, expected $expected"
+    return 1
+  fi
 }
 
 test_python "3.11.0" "fail"
@@ -166,9 +166,9 @@ cd "$TEST_DIR" || exit 1
 # Test case 1: .venv is a directory
 mkdir -p .venv
 if [[ -d ".venv" ]] && [[ ! -L ".venv" ]]; then
-    print_pass "Correctly detected .venv as directory (not symlink)"
+  print_pass "Correctly detected .venv as directory (not symlink)"
 else
-    print_fail "Failed to detect .venv as directory"
+  print_fail "Failed to detect .venv as directory"
 fi
 
 # Test case 2: .venv is a symlink
@@ -176,14 +176,14 @@ rm -rf .venv
 mkdir -p /tmp/test-target-$$
 ln -s /tmp/test-target-$$ .venv
 if [[ -L ".venv" ]]; then
-    VENV_TARGET=$(readlink ".venv")
-    if [[ "$VENV_TARGET" == "/tmp/test-target-$$" ]]; then
-        print_pass "Correctly detected .venv as symlink and read target"
-    else
-        print_fail "Failed to read symlink target correctly"
-    fi
+  VENV_TARGET=$(readlink ".venv")
+  if [[ $VENV_TARGET == "/tmp/test-target-$$" ]]; then
+    print_pass "Correctly detected .venv as symlink and read target"
+  else
+    print_fail "Failed to read symlink target correctly"
+  fi
 else
-    print_fail "Failed to detect .venv as symlink"
+  print_fail "Failed to detect .venv as symlink"
 fi
 
 # Clean up test directory
@@ -201,19 +201,19 @@ git init -q 2>/dev/null
 
 # Test without hooksPath set
 HOOKS_PATH=$(git config --get core.hooksPath 2>/dev/null || echo "")
-if [[ -z "$HOOKS_PATH" ]]; then
-    print_pass "Correctly detected no core.hooksPath configured"
+if [[ -z $HOOKS_PATH ]]; then
+  print_pass "Correctly detected no core.hooksPath configured"
 else
-    print_fail "Incorrectly detected core.hooksPath when none set"
+  print_fail "Incorrectly detected core.hooksPath when none set"
 fi
 
 # Test with hooksPath set
 git config core.hooksPath /some/path 2>/dev/null
 HOOKS_PATH=$(git config --get core.hooksPath 2>/dev/null || echo "")
-if [[ -n "$HOOKS_PATH" ]] && [[ "$HOOKS_PATH" == "/some/path" ]]; then
-    print_pass "Correctly detected core.hooksPath configuration"
+if [[ -n $HOOKS_PATH ]] && [[ $HOOKS_PATH == "/some/path" ]]; then
+  print_pass "Correctly detected core.hooksPath configuration"
 else
-    print_fail "Failed to detect core.hooksPath configuration"
+  print_fail "Failed to detect core.hooksPath configuration"
 fi
 
 # Clean up test repo
@@ -227,9 +227,9 @@ echo "================================================"
 echo "Total tests: $TEST_COUNT"
 echo -e "${GREEN}Passed: $PASSED${NC}"
 if [[ $FAILED -gt 0 ]]; then
-    echo -e "${RED}Failed: $FAILED${NC}"
-    exit 1
+  echo -e "${RED}Failed: $FAILED${NC}"
+  exit 1
 else
-    echo -e "${GREEN}All tests passed!${NC}"
-    exit 0
+  echo -e "${GREEN}All tests passed!${NC}"
+  exit 0
 fi

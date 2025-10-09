@@ -1,0 +1,31 @@
+name: Copilot Setup Steps
+on:
+  workflow_dispatch:
+  push:
+    paths: [.github/workflows/copilot-setup-steps.yml]
+  pull_request:
+    paths: [.github/workflows/copilot-setup-steps.yml]
+
+jobs:
+  # This name MUST be exactly 'copilot-setup-steps'
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      # Install uv from GitHub Releases; no curl/astral.sh needed.
+      - name: Install uv + activate environment
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          activate-environment: true
+
+      # Install all deps strictly from your lock; creates .venv and fills it.
+      - name: Sync dependencies (locked)
+        run: |
+          set -euo pipefail
+          uv sync --frozen --all-extras
+          uv run python -V

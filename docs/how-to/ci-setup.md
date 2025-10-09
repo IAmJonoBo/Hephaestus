@@ -12,11 +12,13 @@ The Hephaestus CI pipeline uses a dual-path approach to ensure reliability in bo
 ## Why Two Paths?
 
 ### Online Path Benefits
+
 - **Speed**: Uses uv's built-in caching and parallel downloads
 - **Simplicity**: Direct dependency resolution from PyPI
 - **Latest versions**: Always uses the locked versions from `uv.lock`
 
 ### Offline Path Benefits
+
 - **Reliability**: Works in restricted network environments
 - **Reproducibility**: Guaranteed exact versions from wheelhouse
 - **Security**: Reduced external dependencies during CI runs
@@ -37,6 +39,7 @@ The Hephaestus CI pipeline uses a dual-path approach to ensure reliability in bo
 ```
 
 **Key Features:**
+
 - Uses `astral-sh/setup-uv@v7` for consistent uv installation
 - Enables uv caching for faster subsequent runs
 - Validates all tools are available before running checks
@@ -54,6 +57,7 @@ The Hephaestus CI pipeline uses a dual-path approach to ensure reliability in bo
 ```
 
 **Key Features:**
+
 - Uses `--extra` (not `--group`) for optional-dependencies
 - Includes comprehensive logging for debugging
 - Validates wheelhouse integrity before upload
@@ -72,6 +76,7 @@ The Hephaestus CI pipeline uses a dual-path approach to ensure reliability in bo
 ```
 
 **Key Features:**
+
 - Uses `--no-index` to ensure no network access
 - Validates Python version matches build environment
 - Comprehensive tool availability checks
@@ -90,6 +95,7 @@ uv sync --locked --extra dev --extra qa
 ```
 
 The lockfile ensures:
+
 - Exact versions across all environments
 - Transitive dependency resolution
 - Consistent builds in CI and local development
@@ -197,6 +203,7 @@ Use the provided setup script for a bulletproof local environment:
 ```
 
 This script:
+
 - Validates Python 3.12+ is installed
 - Installs uv if not present
 - Syncs dependencies from uv.lock
@@ -235,6 +242,7 @@ uv run hephaestus guard-rails
 **Cause**: Using `--group` instead of `--extra` for optional-dependencies.
 
 **Solution**: Use `--extra` for optional-dependencies:
+
 ```bash
 # Correct
 uv export --locked --format requirements-txt --extra dev --extra qa
@@ -251,6 +259,7 @@ uv export --locked --format requirements-txt --extra dev --extra qa
 **Cause**: macOS resource fork artifacts present in wheelhouse.
 
 **Solution**: Run sanitization:
+
 ```bash
 uv run python -m hephaestus.cli wheelhouse sanitize wheelhouse
 ```
@@ -281,13 +290,14 @@ See the [troubleshooting guide](troubleshooting.md#macos-appledoubleresource-for
 **Cause**: Wheelhouse built with different Python version than offline runner.
 
 **Solution**: Ensure both jobs use the same Python version and OS/arch:
+
 ```yaml
 build-wheelhouse:
   runs-on: ubuntu-24.04
   # ...
 
 ci-offline:
-  runs-on: ubuntu-24.04  # Must match!
+  runs-on: ubuntu-24.04 # Must match!
   # ...
 ```
 
@@ -296,6 +306,7 @@ ci-offline:
 **Cause**: Missing dependencies or environment issues.
 
 **Solution**:
+
 1. Check validation step output
 2. Verify uv.lock is committed and up-to-date
 3. Ensure all extras are specified in export command
