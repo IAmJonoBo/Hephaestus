@@ -14,18 +14,14 @@ from rich.table import Table
 
 from hephaestus import (
     __version__,
-)
-from hephaestus import cleanup as cleanup_module
-from hephaestus import drift as drift_module
-from hephaestus import events as telemetry
-from hephaestus import logging as logging_utils
-from hephaestus import planning as planning_module
-from hephaestus import release as release_module
-from hephaestus import (
+    cleanup as cleanup_module,
+    drift as drift_module,
+    events as telemetry,
+    logging as logging_utils,
+    planning as planning_module,
+    release as release_module,
     resource_forks,
-)
-from hephaestus import schema as schema_module
-from hephaestus import (
+    schema as schema_module,
     toolbox,
 )
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
@@ -541,7 +537,7 @@ def _run_cleanup_pipeline(  # NOSONAR(S3776)
 
 
 @release_app.command("backfill")
-@trace_command()
+@trace_command("release.backfill")
 def release_backfill(
     version: Annotated[
         str | None,
@@ -936,7 +932,7 @@ def schema(
 
 
 @app.command()
-@trace_command()
+@trace_command("cleanup")
 def cleanup(
     root: Annotated[
         Path | None,
@@ -1403,7 +1399,7 @@ def plan() -> None:
 
 
 @app.command("guard-rails")
-@trace_command()
+@trace_command("guard-rails")
 def guard_rails(
     no_format: Annotated[
         bool,

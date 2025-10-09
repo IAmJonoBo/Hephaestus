@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, cast
+from typing import Any
 
 try:
     from fastapi import FastAPI, HTTPException, Security
@@ -34,7 +35,7 @@ from hephaestus.api.rest.models import (
     RankingsResponse,
     TaskStatusResponse,
 )
-from hephaestus.api.rest.tasks import TaskManager, TaskStatus
+from hephaestus.api.rest.tasks import DEFAULT_TASK_TIMEOUT, TaskManager, TaskStatus
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ security = HTTPBearer(auto_error=False)
 
 
 def verify_api_key(
-    credentials: HTTPAuthorizationCredentials | None = None,
+    credentials: HTTPAuthorizationCredentials | None = Security(security),  # noqa: B008
 ) -> str:
     """Verify API key from Authorization header.
 
@@ -146,13 +147,18 @@ async def run_guard_rails(
         # Start async task for guard-rails execution
         task_id = await task_manager.create_task("guard-rails", _execute_guard_rails, request)
 
-        # For now, wait for completion (blocking)
-        # In future, return task_id for async polling
-        while True:
-            status = await task_manager.get_task_status(task_id)
-            if status.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
-                break
-            await asyncio.sleep(0.5)
+        try:
+            status = await task_manager.wait_for_completion(
+                task_id,
+                poll_interval=0.5,
+                timeout=DEFAULT_TASK_TIMEOUT,
+            )
+        except TimeoutError as exc:
+            logger.error(
+                "Guard-rails task timed out",
+                extra={"task_id": task_id},
+            )
+            raise HTTPException(status_code=504, detail="Guard-rails execution timed out") from exc
 
         if status.status == TaskStatus.FAILED:
             raise HTTPException(status_code=500, detail=status.error)
@@ -160,7 +166,7 @@ async def run_guard_rails(
         result = status.result
         if not isinstance(result, dict):
             raise HTTPException(status_code=500, detail="Invalid task result")
-        data = cast(dict[str, Any], result)
+        data = result
         return GuardRailsResponse(
             success=data.get("success", False),
             gates=data.get("gates", []),
@@ -168,6 +174,8 @@ async def run_guard_rails(
             task_id=task_id,
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Error executing guard-rails")
         raise HTTPException(status_code=500, detail=str(e)) from e
@@ -196,12 +204,18 @@ async def cleanup(
         # Start async task
         task_id = await task_manager.create_task("cleanup", _execute_cleanup, request)
 
-        # Wait for completion
-        while True:
-            status = await task_manager.get_task_status(task_id)
-            if status.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
-                break
-            await asyncio.sleep(0.5)
+        try:
+            status = await task_manager.wait_for_completion(
+                task_id,
+                poll_interval=0.5,
+                timeout=DEFAULT_TASK_TIMEOUT,
+            )
+        except TimeoutError as exc:
+            logger.error(
+                "Cleanup task timed out",
+                extra={"task_id": task_id},
+            )
+            raise HTTPException(status_code=504, detail="Cleanup execution timed out") from exc
 
         if status.status == TaskStatus.FAILED:
             raise HTTPException(status_code=500, detail=status.error)
@@ -209,13 +223,15 @@ async def cleanup(
         result = status.result
         if not isinstance(result, dict):
             raise HTTPException(status_code=500, detail="Invalid task result")
-        data = cast(dict[str, Any], result)
+        data = result
         return CleanupResponse(
             files_deleted=data.get("files_deleted", 0),
             size_freed=data.get("size_freed", 0),
             manifest=data.get("manifest", {}),
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Error executing cleanup")
         raise HTTPException(status_code=500, detail=str(e)) from e
@@ -312,6 +328,7 @@ async def stream_task_progress(
         import json
 
         try:
+            deadline = time.monotonic() + DEFAULT_TASK_TIMEOUT
             while True:
                 status = await task_manager.get_task_status(task_id)
 
@@ -326,6 +343,11 @@ async def stream_task_progress(
                 yield f"data: {json_str}\n\n".encode()
 
                 if status.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
+                    break
+
+                if time.monotonic() >= deadline:
+                    timeout_data = {"status": "timeout", "error": "Task stream timed out"}
+                    yield f"data: {json.dumps(timeout_data)}\n\n".encode()
                     break
 
                 await asyncio.sleep(1)
@@ -351,7 +373,7 @@ def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
 
     # Simulate guard-rails execution
     # In production, this would call actual Hephaestus commands
-    gates = []
+    gates: list[dict[str, Any]] = []
 
     # Cleanup step
     if not request.no_format:
@@ -373,8 +395,8 @@ def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
         ]
     )
 
-    success = all(gate["passed"] for gate in gates)
-    total_duration = sum(gate.get("duration", 0) for gate in gates)
+    success = all(bool(gate.get("passed", False)) for gate in gates)
+    total_duration = sum(float(gate.get("duration", 0)) for gate in gates)
 
     return {
         "success": success,

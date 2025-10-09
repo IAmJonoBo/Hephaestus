@@ -5,9 +5,11 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
@@ -39,6 +41,7 @@ class Task:
     error: str | None = None
     created_at: float = field(default_factory=time.time)
     completed_at: float | None = None
+    handle: asyncio.Task[Any] | None = field(default=None, repr=False)
 
 
 class TaskManager:
@@ -99,7 +102,7 @@ class TaskManager:
         # Start task in background with timeout
         asyncio.create_task(self._execute_task(task_id, func, *args, timeout=timeout, **kwargs))
 
-        logger.info("Created task", extra={"task_id": task_id, "name": name})
+        logger.info("Created task", extra={"task_id": task_id, "task_name": name})
         return task_id
 
     async def _execute_task(
@@ -136,7 +139,18 @@ class TaskManager:
 
             logger.info("Task completed", extra={"task_id": task_id, "task_name": task.name})
 
-        except asyncio.TimeoutError:
+        except asyncio.CancelledError:
+            task.status = TaskStatus.FAILED
+            task.error = "Task cancelled"
+            task.completed_at = time.time()
+
+            logger.warning(
+                "Task cancelled",
+                extra={"task_id": task_id, "task_name": task.name},
+            )
+            raise
+
+        except TimeoutError:
             task.status = TaskStatus.FAILED
             task.error = f"Task timed out after {timeout} seconds"
             task.completed_at = time.time()
@@ -156,6 +170,10 @@ class TaskManager:
                 extra={"task_id": task_id, "task_name": task.name, "error": str(e)},
                 exc_info=True,
             )
+
+        finally:
+            if task_id in self._tasks:
+                self._tasks[task_id].handle = None
 
     async def get_task_status(self, task_id: str) -> Task:
         """Get status of a task.
@@ -192,6 +210,53 @@ class TaskManager:
             raise ValueError(f"Progress must be between 0.0 and 1.0, got {progress}")
 
         self._tasks[task_id].progress = progress
+
+    async def wait_for_completion(
+        self,
+        task_id: str,
+        poll_interval: float = 0.5,
+        timeout: float | None = None,
+    ) -> Task:
+        """Wait for a task to finish, polling until completion or timeout."""
+
+        if task_id not in self._tasks:
+            raise KeyError(f"Task {task_id} not found")
+
+        timeout_seconds = DEFAULT_TASK_TIMEOUT if timeout is None else timeout
+        deadline = time.monotonic() + timeout_seconds
+
+        while True:
+            task = await self.get_task_status(task_id)
+            if task.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
+                return task
+
+            if time.monotonic() >= deadline:
+                raise TimeoutError(
+                    f"Task {task_id} did not complete within {timeout_seconds} seconds"
+                )
+
+            await asyncio.sleep(poll_interval)
+
+    async def cancel_task(self, task_id: str) -> None:
+        """Cancel an active task if it has not completed."""
+
+        if task_id not in self._tasks:
+            raise KeyError(f"Task {task_id} not found")
+
+        task = self._tasks[task_id]
+        handle = task.handle
+
+        if handle is None or handle.done():
+            return
+
+        handle.cancel()
+        with suppress(asyncio.CancelledError):
+            await handle
+
+        task.status = TaskStatus.FAILED
+        task.error = "Task cancelled"
+        task.completed_at = time.time()
+        task.handle = None
 
     def list_tasks(self) -> list[Task]:
         """List all tasks.

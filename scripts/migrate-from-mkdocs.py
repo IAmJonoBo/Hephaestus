@@ -211,13 +211,13 @@ def create_index_redirects(dest_dir: Path) -> None:
             )
 
             index_content = f"""---
-title: "{info['title']}"
-description: "{info['description']}"
+title: "{info["title"]}"
+description: "{info["description"]}"
 ---
 
-# {info['title']}
+# {info["title"]}
 
-{info['content']}
+{info["content"]}
 """
             index_path = dir_path / "index.md"
             index_path.write_text(index_content, encoding="utf-8")

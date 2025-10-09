@@ -1,6 +1,6 @@
 # Next Steps Tracker
 
-Last updated: 2025-01-XX (Documentation alignment and status consolidation)
+Last updated: 2025-02-XX (Telemetry typing hardening + REST QA follow-up)
 
 ## Current Status Summary
 
@@ -25,6 +25,15 @@ Remaining work is focused on advanced features with clear ADRs and sprint-based 
 - ⏳ ADR-0002: Plugin architecture Sprint 4 (marketplace, dependency resolution, versioning)
 
 ## Recent Improvements (Latest Session)
+
+**Telemetry Fallback Hardening (2025-02-XX):**
+
+- ✅ Rebuilt `hephaestus.telemetry` shims to provide typed fallbacks with deterministic no-op behaviour when OpenTelemetry is absent.
+- ✅ Re-ran type checking (`uv run mypy src tests`) to confirm the TaskManager and REST changes compile cleanly.
+- ✅ Re-validated REST regression suites (`uv run pytest`) to ensure SSE/task polling updates remain green (345 passed, 3 skipped, 85.51% coverage).
+- ✅ Targeted lint pass for the touched telemetry module (`uv run ruff check src/hephaestus/telemetry/__init__.py`).
+- ⚠️ `uv run pip-audit` blocked by container SSL trust chain; document waiver and retry once trust store is patched.
+- 🔄 Follow-up: reconcile repository-wide Ruff violations in generated gRPC assets without regressing proto sync (coordinate with tooling owner).
 
 **E2E Testing & Validation (2025-10-09):**
 
@@ -85,11 +94,11 @@ Remaining work is focused on advanced features with clear ADRs and sprint-based 
 
 ## Baseline Validation (current session)
 
-- ✅ `uv run --extra dev --extra qa pytest` (85 passed, coverage 87.29%)
-- ✅ `uv run --extra dev --extra qa ruff check .`
-- ✅ `uv run --extra dev --extra qa mypy src tests`
-- ⚠️ `uv run --extra dev --extra qa pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (fails: SSL trust chain unavailable in container)
-- ✅ `uv run --extra dev --extra qa uv build`
+- ✅ `uv run pytest` (345 passed, 3 skipped, 85.51% coverage)
+- ⚠️ `uv run ruff check` (fails on generated gRPC stubs; manual follow-up required to adjust tooling exclusions)
+- ✅ `uv run ruff check src/hephaestus/telemetry/__init__.py`
+- ✅ `uv run mypy src tests`
+- ⚠️ `uv run pip-audit` (fails: SSL certificate verification error against pypi.org)
 
 ## Implementation Status Summary
 
@@ -185,6 +194,13 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 - [x] Define telemetry event registry with operation/run correlation contexts across CLI + release flows
 - [x] Replace synthetic analytics with pluggable churn/coverage/embedding adapters
 - [ ] Expose an API surface (REST/gRPC) for AI/automation clients with policy guard rails
+
+8. **Telemetry shim hardening** – keep typed fallbacks aligned with OTEL integrations and tooling gates.
+
+- [x] Rebuild telemetry shims with typed no-op paths and cached module resolution.
+- [x] Verify mypy + pytest green against updated shims.
+- [ ] Update Ruff configuration or proto generation pipeline to silence deterministic lint noise for gRPC artefacts.
+- [ ] Re-run `pip-audit` once container trust store is refreshed; capture waiver scope if issues persist.
 
 ---
 
