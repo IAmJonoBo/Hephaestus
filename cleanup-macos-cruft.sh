@@ -118,14 +118,41 @@ unlock_apple_metadata() {
 unlock_apple_metadata "${PROJECT_ROOT}"
 
 if command -v uv >/dev/null 2>&1; then
-  exec uv run hephaestus cleanup "${ARGS[@]}"
+  if uv run hephaestus cleanup "${ARGS[@]}"; then
+    exit 0
+  else
+    status=$?
+    echo "WARN uv run hephaestus cleanup failed (exit ${status}); falling back to local CLI" >&2
+  fi
 fi
 
 if command -v hephaestus >/dev/null 2>&1; then
-  exec hephaestus cleanup "${ARGS[@]}"
+  if hephaestus cleanup "${ARGS[@]}"; then
+    exit 0
+  else
+    status=$?
+    echo "WARN hephaestus cleanup failed (exit ${status}); falling back to python module execution" >&2
+  fi
 fi
 
-PYTHON_BIN="${PYTHON_BIN:-python3}"
+if [[ -z ${PYTHON_BIN-} ]]; then
+  if [[ -x "${PROJECT_ROOT}/.venv/bin/python" ]]; then
+    PYTHON_BIN="${PROJECT_ROOT}/.venv/bin/python"
+  elif command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+  elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="python"
+  else
+    echo "ERROR Unable to locate a Python interpreter; set PYTHON_BIN to a Python 3.11+ executable." >&2
+    exit 1
+  fi
+fi
+
+if ! "${PYTHON_BIN}" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)'; then
+  echo "ERROR ${PYTHON_BIN} must be Python 3.11 or newer; export PYTHON_BIN to override or install a compatible version." >&2
+  exit 1
+fi
+
 export PYTHONPATH="${PROJECT_ROOT}/src${PYTHONPATH:+:${PYTHONPATH}}"
 
 exec "${PYTHON_BIN}" -m hephaestus.cli cleanup "${ARGS[@]}"
