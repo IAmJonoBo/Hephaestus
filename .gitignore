@@ -5,6 +5,11 @@ dist/
 build/
 wheelhouse/
 
+# Coverage reports
+.coverage
+coverage.xml
+htmlcov/
+
 # Virtual environments
 .venv/
 venv/
