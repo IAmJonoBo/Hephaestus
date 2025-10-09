@@ -3,15 +3,19 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 import yaml
 
 from hephaestus import toolbox
 
+if TYPE_CHECKING:
+    from hephaestus.toolbox import ToolkitSettings
+
 
 @pytest.fixture()
-def sample_settings(tmp_path: Path) -> toolbox.ToolkitSettings:
+def sample_settings(tmp_path: Path) -> ToolkitSettings:
     config = {
         "coverage_threshold": 0.8,
         "hotspot_limit": 5,
@@ -21,11 +25,11 @@ def sample_settings(tmp_path: Path) -> toolbox.ToolkitSettings:
     config_path = tmp_path / "config.yaml"
     config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
 
-    return toolbox.load_settings(config_path)
+    return toolbox.load_settings(config_path)  # type: ignore[no-any-return]
 
 
 @pytest.fixture()
-def analytics_settings(tmp_path: Path) -> toolbox.ToolkitSettings:
+def analytics_settings(tmp_path: Path) -> ToolkitSettings:
     churn = [
         {"path": "repo-a/module_alpha.py", "churn": 140},
         {"path": "repo-a/module_beta.py", "churn": 95},
@@ -64,7 +68,7 @@ def analytics_settings(tmp_path: Path) -> toolbox.ToolkitSettings:
     config_path = tmp_path / "config.yaml"
     config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
 
-    return toolbox.load_settings(config_path)
+    return toolbox.load_settings(config_path)  # type: ignore[no-any-return]
 
 
 def test_load_settings_missing_file_raises(tmp_path: Path) -> None:
@@ -73,7 +77,7 @@ def test_load_settings_missing_file_raises(tmp_path: Path) -> None:
         toolbox.load_settings(missing_path)
 
 
-def test_analyze_hotspots_respects_limit(sample_settings: toolbox.ToolkitSettings) -> None:
+def test_analyze_hotspots_respects_limit(sample_settings: ToolkitSettings) -> None:
     results = toolbox.analyze_hotspots(sample_settings, limit=4)
 
     assert len(results) == 4
@@ -82,7 +86,7 @@ def test_analyze_hotspots_respects_limit(sample_settings: toolbox.ToolkitSetting
 
 
 def test_analyze_hotspots_uses_ingested_signals(
-    analytics_settings: toolbox.ToolkitSettings,
+    analytics_settings: ToolkitSettings,
 ) -> None:
     results = toolbox.analyze_hotspots(analytics_settings)
 
@@ -93,7 +97,7 @@ def test_analyze_hotspots_uses_ingested_signals(
     assert results[0].coverage == pytest.approx(0.55, rel=1e-2)
 
 
-def test_find_coverage_gaps_uses_threshold(sample_settings: toolbox.ToolkitSettings) -> None:
+def test_find_coverage_gaps_uses_threshold(sample_settings: ToolkitSettings) -> None:
     gaps = toolbox.find_coverage_gaps(sample_settings)
 
     assert all(gap.uncovered_lines > 0 for gap in gaps)
@@ -101,7 +105,7 @@ def test_find_coverage_gaps_uses_threshold(sample_settings: toolbox.ToolkitSetti
 
 
 def test_find_coverage_gaps_prefers_ingested_metrics(
-    analytics_settings: toolbox.ToolkitSettings,
+    analytics_settings: ToolkitSettings,
 ) -> None:
     gaps = toolbox.find_coverage_gaps(analytics_settings)
 
@@ -111,7 +115,7 @@ def test_find_coverage_gaps_prefers_ingested_metrics(
 
 
 def test_enumerate_refactor_opportunities_uses_repositories(
-    sample_settings: toolbox.ToolkitSettings,
+    sample_settings: ToolkitSettings,
 ) -> None:
     opportunities = toolbox.enumerate_refactor_opportunities(sample_settings)
 
@@ -120,7 +124,7 @@ def test_enumerate_refactor_opportunities_uses_repositories(
 
 
 def test_enumerate_refactor_opportunities_surface_ingested_gaps(
-    analytics_settings: toolbox.ToolkitSettings,
+    analytics_settings: ToolkitSettings,
 ) -> None:
     opportunities = toolbox.enumerate_refactor_opportunities(analytics_settings)
 
@@ -130,7 +134,7 @@ def test_enumerate_refactor_opportunities_surface_ingested_gaps(
 
 
 def test_qa_profile_summary_returns_profile_data(
-    sample_settings: toolbox.ToolkitSettings,
+    sample_settings: ToolkitSettings,
 ) -> None:
     profile = toolbox.qa_profile_summary(sample_settings, "smoke")
 
@@ -139,7 +143,7 @@ def test_qa_profile_summary_returns_profile_data(
 
 
 def test_qa_profile_summary_unknown_profile_raises(
-    sample_settings: toolbox.ToolkitSettings,
+    sample_settings: ToolkitSettings,
 ) -> None:
     with pytest.raises(KeyError):
         toolbox.qa_profile_summary(sample_settings, "missing")

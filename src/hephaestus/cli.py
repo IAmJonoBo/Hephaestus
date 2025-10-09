@@ -26,6 +26,7 @@ from hephaestus import (
     toolbox,
 )
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
+from hephaestus.logging import LogFormat
 from hephaestus.telemetry import trace_command, trace_operation
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
@@ -109,7 +110,7 @@ def main(
             f"Invalid log level {log_level!r}. Choose from: {', '.join(LOG_LEVEL_CHOICES)}."
         )
 
-    normalized_format_literal = cast(logging_utils.LogFormat, normalized_format)
+    normalized_format_literal = cast(LogFormat, normalized_format)
 
     final_run_id = run_id or telemetry.generate_run_id()
 
@@ -814,6 +815,14 @@ def cleanup(
             show_default=False,
         ),
     ] = None,
+    max_depth: Annotated[
+        int | None,
+        typer.Option(
+            "--max-depth",
+            help="Maximum directory depth to traverse (DoS mitigation, default: unlimited).",
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
     """Scrub macOS metadata and development cruft from the workspace."""
 
@@ -828,6 +837,7 @@ def cleanup(
         extra_paths=tuple(extra_paths or ()),
         dry_run=dry_run,
         audit_manifest=audit_manifest,
+        max_depth=max_depth,
     )
 
     removal_log: list[Path] = []

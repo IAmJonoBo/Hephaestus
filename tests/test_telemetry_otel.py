@@ -7,7 +7,7 @@ import importlib.util
 import os
 from unittest.mock import patch
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from hephaestus import telemetry
 from hephaestus.telemetry import configure_telemetry, get_tracer, is_telemetry_enabled

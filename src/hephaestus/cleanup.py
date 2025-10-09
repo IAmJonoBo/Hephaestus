@@ -56,6 +56,7 @@ class CleanupOptions:
     extra_paths: tuple[Path, ...] = field(default_factory=tuple)
     dry_run: bool = False
     audit_manifest: Path | None = None
+    max_depth: int | None = None  # Maximum directory traversal depth (None = unlimited)
 
     def normalize(self) -> NormalizedCleanupOptions:
         """Return a normalised set of options with defaults applied."""
@@ -95,6 +96,7 @@ class CleanupOptions:
             extra_paths=tuple(validated_paths),
             dry_run=self.dry_run,
             audit_manifest=audit_manifest,
+            max_depth=self.max_depth,
         )
 
 
@@ -111,6 +113,7 @@ class NormalizedCleanupOptions:
     extra_paths: tuple[Path, ...] = field(default_factory=tuple)
     dry_run: bool = False
     audit_manifest: Path | None = None
+    max_depth: int | None = None
 
 
 @dataclass(slots=True)
@@ -432,6 +435,7 @@ def _cleanup_root(
         result,
         on_remove,
         dry_run=options.dry_run,
+        max_depth=options.max_depth,
     )
 
     if options.python_cache:
@@ -441,6 +445,7 @@ def _cleanup_root(
             result,
             on_remove,
             dry_run=options.dry_run,
+            max_depth=options.max_depth,
         )
 
     if options.build_artifacts:
@@ -450,6 +455,7 @@ def _cleanup_root(
             result,
             on_remove,
             dry_run=options.dry_run,
+            max_depth=options.max_depth,
         )
 
     if options.node_modules:
@@ -460,13 +466,29 @@ def _cleanup_root(
             result,
             on_remove,
             dry_run=options.dry_run,
+            max_depth=options.max_depth,
         )
 
 
-def _walk_workspace(root: Path, include_git: bool) -> Iterator[tuple[Path, list[str], list[str]]]:
+def _walk_workspace(
+    root: Path, include_git: bool, max_depth: int | None = None
+) -> Iterator[tuple[Path, list[str], list[str]]]:
     for current_dir, dirnames, filenames in os.walk(root, topdown=True):
         if not include_git:
             dirnames[:] = [name for name in dirnames if name != GIT_DIR]
+        
+        # Check depth limit
+        if max_depth is not None:
+            current_path = Path(current_dir)
+            try:
+                relative_depth = len(current_path.relative_to(root).parts)
+                if relative_depth >= max_depth:
+                    # Stop descending into subdirectories
+                    dirnames.clear()
+            except ValueError:
+                # current_dir is not relative to root, skip depth check
+                pass
+        
         yield Path(current_dir), dirnames, filenames
 
 
@@ -518,8 +540,9 @@ def _remove_matches(
     on_remove: RemovalCallback | None,
     *,
     dry_run: bool,
+    max_depth: int | None = None,
 ) -> None:
-    for current, dirnames, filenames in _walk_workspace(root, include_git):
+    for current, dirnames, filenames in _walk_workspace(root, include_git, max_depth):
         _remove_directory_entries(
             current,
             dirnames,
@@ -545,8 +568,9 @@ def _remove_python_cache(
     on_remove: RemovalCallback | None,
     *,
     dry_run: bool,
+    max_depth: int | None = None,
 ) -> None:
-    for current, dirnames, filenames in _walk_workspace(root, include_git):
+    for current, dirnames, filenames in _walk_workspace(root, include_git, max_depth):
         _remove_directory_entries(
             current,
             dirnames,
@@ -572,13 +596,14 @@ def _remove_build_artifacts(
     on_remove: RemovalCallback | None,
     *,
     dry_run: bool,
+    max_depth: int | None = None,
 ) -> None:
     patterns = BUILD_ARTIFACT_PATTERNS + (IPYNB_CHECKPOINT_DIR,)
 
     def _skip(target: Path) -> bool:
         return _should_skip_venv_site_packages(target, root)
 
-    for current, dirnames, filenames in _walk_workspace(root, include_git):
+    for current, dirnames, filenames in _walk_workspace(root, include_git, max_depth):
         _remove_directory_entries(
             current,
             dirnames,
@@ -607,8 +632,9 @@ def _remove_directory_pattern(
     on_remove: RemovalCallback | None,
     *,
     dry_run: bool,
+    max_depth: int | None = None,
 ) -> None:
-    for current, dirnames, _filenames in _walk_workspace(root, include_git):
+    for current, dirnames, _filenames in _walk_workspace(root, include_git, max_depth):
         _remove_directory_entries(
             current,
             dirnames,

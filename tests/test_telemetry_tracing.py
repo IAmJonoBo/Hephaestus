@@ -13,11 +13,11 @@ class TestTracing:
     """Tests for tracing utilities."""
 
     @patch("hephaestus.telemetry.tracing.is_telemetry_enabled", return_value=False)
-    def test_trace_command_disabled(self, mock_enabled):
+    def test_trace_command_disabled(self, mock_enabled) -> None:  # type: ignore[no-untyped-def]
         """Test that trace_command is no-op when telemetry disabled."""
 
         @tracing.trace_command("test-command")
-        def test_func():
+        def test_func() -> str:
             return "result"
 
         result = test_func()
@@ -25,7 +25,7 @@ class TestTracing:
 
     @patch("hephaestus.telemetry.tracing.is_telemetry_enabled", return_value=True)
     @patch("hephaestus.telemetry.tracing.get_tracer")
-    def test_trace_command_enabled(self, mock_get_tracer, mock_enabled):
+    def test_trace_command_enabled(self, mock_get_tracer, mock_enabled) -> None:  # type: ignore[no-untyped-def]
         """Test that trace_command creates spans when telemetry enabled."""
         mock_span = MagicMock()
         mock_tracer = MagicMock()
@@ -33,7 +33,7 @@ class TestTracing:
         mock_get_tracer.return_value = mock_tracer
 
         @tracing.trace_command("test-command")
-        def test_func(arg1: str):
+        def test_func(arg1: str) -> str:
             return f"result-{arg1}"
 
         result = test_func("value")
@@ -46,7 +46,7 @@ class TestTracing:
 
     @patch("hephaestus.telemetry.tracing.is_telemetry_enabled", return_value=True)
     @patch("hephaestus.telemetry.tracing.get_tracer")
-    def test_trace_command_with_exception(self, mock_get_tracer, mock_enabled):
+    def test_trace_command_with_exception(self, mock_get_tracer, mock_enabled) -> None:  # type: ignore[no-untyped-def]
         """Test that trace_command records exceptions."""
         mock_span = MagicMock()
         mock_tracer = MagicMock()
@@ -54,7 +54,7 @@ class TestTracing:
         mock_get_tracer.return_value = mock_tracer
 
         @tracing.trace_command("test-command")
-        def test_func():
+        def test_func() -> None:
             raise ValueError("test error")
 
         with pytest.raises(ValueError, match="test error"):
@@ -64,14 +64,14 @@ class TestTracing:
         mock_span.add_event.assert_called_once()
 
     @patch("hephaestus.telemetry.tracing.is_telemetry_enabled", return_value=False)
-    def test_trace_operation_disabled(self, mock_enabled):
+    def test_trace_operation_disabled(self, mock_enabled) -> None:  # type: ignore[no-untyped-def]
         """Test that trace_operation is no-op when telemetry disabled."""
         with tracing.trace_operation("test-op") as span:
             assert span is None
 
     @patch("hephaestus.telemetry.tracing.is_telemetry_enabled", return_value=True)
     @patch("hephaestus.telemetry.tracing.get_tracer")
-    def test_trace_operation_enabled(self, mock_get_tracer, mock_enabled):
+    def test_trace_operation_enabled(self, mock_get_tracer, mock_enabled) -> None:  # type: ignore[no-untyped-def]
         """Test that trace_operation creates spans when telemetry enabled."""
         mock_span = MagicMock()
         mock_tracer = MagicMock()
@@ -88,7 +88,7 @@ class TestTracing:
 
     @patch("hephaestus.telemetry.tracing.is_telemetry_enabled", return_value=True)
     @patch("hephaestus.telemetry.tracing.get_tracer")
-    def test_trace_operation_with_exception(self, mock_get_tracer, mock_enabled):
+    def test_trace_operation_with_exception(self, mock_get_tracer, mock_enabled) -> None:  # type: ignore[no-untyped-def]
         """Test that trace_operation records exceptions."""
         mock_span = MagicMock()
         mock_tracer = MagicMock()
@@ -107,14 +107,14 @@ class TestMetrics:
     """Tests for metrics utilities."""
 
     @patch("hephaestus.telemetry.metrics.is_metrics_enabled", return_value=False)
-    def test_record_counter_disabled(self, mock_enabled):
+    def test_record_counter_disabled(self, mock_enabled) -> None:  # type: ignore[no-untyped-def]
         """Test that record_counter is no-op when metrics disabled."""
         # Should not raise
         metrics.record_counter("test.counter", 1)
 
     @patch("hephaestus.telemetry.metrics.is_metrics_enabled", return_value=True)
     @patch("hephaestus.telemetry.metrics.get_meter")
-    def test_record_counter_enabled(self, mock_get_meter, mock_enabled):
+    def test_record_counter_enabled(self, mock_get_meter, mock_enabled) -> None:  # type: ignore[no-untyped-def]
         """Test that record_counter creates and adds to counter."""
         mock_counter = MagicMock()
         mock_meter = MagicMock()
@@ -127,20 +127,20 @@ class TestMetrics:
         mock_counter.add.assert_called_once_with(5, {"foo": "bar"})
 
     @patch("hephaestus.telemetry.metrics.is_metrics_enabled", return_value=False)
-    def test_record_gauge_disabled(self, mock_enabled):
+    def test_record_gauge_disabled(self, mock_enabled) -> None:  # type: ignore[no-untyped-def]
         """Test that record_gauge is no-op when metrics disabled."""
         # Should not raise
         metrics.record_gauge("test.gauge", 42.5)
 
     @patch("hephaestus.telemetry.metrics.is_metrics_enabled", return_value=False)
-    def test_record_histogram_disabled(self, mock_enabled):
+    def test_record_histogram_disabled(self, mock_enabled) -> None:  # type: ignore[no-untyped-def]
         """Test that record_histogram is no-op when metrics disabled."""
         # Should not raise
         metrics.record_histogram("test.histogram", 123.45)
 
     @patch("hephaestus.telemetry.metrics.is_metrics_enabled", return_value=True)
     @patch("hephaestus.telemetry.metrics.get_meter")
-    def test_record_histogram_enabled(self, mock_get_meter, mock_enabled):
+    def test_record_histogram_enabled(self, mock_get_meter, mock_enabled) -> None:  # type: ignore[no-untyped-def]
         """Test that record_histogram creates and records to histogram."""
         mock_histogram = MagicMock()
         mock_meter = MagicMock()
@@ -156,19 +156,19 @@ class TestMetrics:
 class TestNoOpImplementations:
     """Tests for no-op implementations."""
 
-    def test_noop_meter_counter(self):
+    def test_noop_meter_counter(self) -> None:
         """Test no-op meter counter."""
         meter = metrics._NoOpMeter()
         counter = meter.create_counter("test")
         counter.add(1, {})  # Should not raise
 
-    def test_noop_meter_gauge(self):
+    def test_noop_meter_gauge(self) -> None:
         """Test no-op meter gauge."""
         meter = metrics._NoOpMeter()
         gauge = meter.create_observable_gauge("test", [])
         assert gauge is not None  # Should exist but do nothing
 
-    def test_noop_meter_histogram(self):
+    def test_noop_meter_histogram(self) -> None:
         """Test no-op meter histogram."""
         meter = metrics._NoOpMeter()
         histogram = meter.create_histogram("test")
@@ -182,9 +182,9 @@ class TestIntegration:
     @patch("hephaestus.telemetry.metrics.is_metrics_enabled", return_value=True)
     @patch("hephaestus.telemetry.tracing.get_tracer")
     @patch("hephaestus.telemetry.metrics.get_meter")
-    def test_trace_and_metrics_together(
+    def test_trace_and_metrics_together(  # type: ignore[no-untyped-def]
         self, mock_get_meter, mock_get_tracer, mock_metrics_enabled, mock_trace_enabled
-    ):
+    ) -> None:
         """Test using tracing and metrics together."""
         mock_span = MagicMock()
         mock_tracer = MagicMock()
@@ -197,7 +197,7 @@ class TestIntegration:
         mock_get_meter.return_value = mock_meter
 
         @tracing.trace_command("test-command")
-        def test_func():
+        def test_func() -> str:
             with tracing.trace_operation("test-op"):
                 metrics.record_counter("test.counter", 1)
             return "result"

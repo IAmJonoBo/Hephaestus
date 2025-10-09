@@ -41,6 +41,7 @@ __all__ = [
     "DEFAULT_SIGSTORE_BUNDLE_PATTERN",
     "DEFAULT_TIMEOUT",
     "DEFAULT_MAX_RETRIES",
+    "ReleaseAsset",
     "ReleaseDownload",
     "ReleaseError",
     "default_download_dir",

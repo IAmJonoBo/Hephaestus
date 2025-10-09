@@ -19,7 +19,7 @@ from hephaestus.plugins.builtin import (
 class TestRuffCheckPlugin:
     """Tests for RuffCheckPlugin."""
 
-    def test_metadata_structure(self):
+    def test_metadata_structure(self) -> None:
         """Test that plugin metadata is properly structured."""
         plugin = RuffCheckPlugin()
         metadata = plugin.metadata
@@ -29,7 +29,7 @@ class TestRuffCheckPlugin:
         assert "ruff" in metadata.requires[0].lower()
         assert metadata.order == 10
 
-    def test_validate_config_accepts_valid(self):
+    def test_validate_config_accepts_valid(self) -> None:
         """Test that valid configuration is accepted."""
         plugin = RuffCheckPlugin()
 
@@ -38,14 +38,14 @@ class TestRuffCheckPlugin:
         assert plugin.validate_config({"args": ["--fix"]})
         assert plugin.validate_config({"paths": ["src"], "args": ["--fix"]})
 
-    def test_validate_config_rejects_invalid_paths(self):
+    def test_validate_config_rejects_invalid_paths(self) -> None:
         """Test that invalid paths configuration is rejected."""
         plugin = RuffCheckPlugin()
 
         with pytest.raises(ValueError, match="'paths' must be a list"):
             plugin.validate_config({"paths": "."})
 
-    def test_validate_config_rejects_invalid_args(self):
+    def test_validate_config_rejects_invalid_args(self) -> None:
         """Test that invalid args configuration is rejected."""
         plugin = RuffCheckPlugin()
 
@@ -53,7 +53,7 @@ class TestRuffCheckPlugin:
             plugin.validate_config({"args": "--fix"})
 
     @patch("subprocess.run")
-    def test_run_success(self, mock_run):
+    def test_run_success(self, mock_run) -> None:  # type: ignore[no-untyped-def]
         """Test successful execution."""
         mock_run.return_value = MagicMock(returncode=0, stdout="All checks passed", stderr="")
 
@@ -65,7 +65,7 @@ class TestRuffCheckPlugin:
         assert result.exit_code == 0
 
     @patch("subprocess.run")
-    def test_run_failure(self, mock_run):
+    def test_run_failure(self, mock_run) -> None:  # type: ignore[no-untyped-def]
         """Test failed execution."""
         mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="Found issues")
 
@@ -77,7 +77,7 @@ class TestRuffCheckPlugin:
         assert result.exit_code == 1
 
     @patch("subprocess.run", side_effect=FileNotFoundError)
-    def test_run_missing_tool(self, mock_run):
+    def test_run_missing_tool(self, mock_run) -> None:  # type: ignore[no-untyped-def]
         """Test handling of missing tool."""
         plugin = RuffCheckPlugin()
         result = plugin.run({})
@@ -90,7 +90,7 @@ class TestRuffCheckPlugin:
 class TestRuffFormatPlugin:
     """Tests for RuffFormatPlugin."""
 
-    def test_metadata_structure(self):
+    def test_metadata_structure(self) -> None:
         """Test that plugin metadata is properly structured."""
         plugin = RuffFormatPlugin()
         metadata = plugin.metadata
@@ -99,7 +99,7 @@ class TestRuffFormatPlugin:
         assert metadata.category == "formatting"
         assert metadata.order == 20
 
-    def test_validate_config_check_flag(self):
+    def test_validate_config_check_flag(self) -> None:
         """Test check flag validation."""
         plugin = RuffFormatPlugin()
 
@@ -113,7 +113,7 @@ class TestRuffFormatPlugin:
 class TestMypyPlugin:
     """Tests for MypyPlugin."""
 
-    def test_metadata_structure(self):
+    def test_metadata_structure(self) -> None:
         """Test that plugin metadata is properly structured."""
         plugin = MypyPlugin()
         metadata = plugin.metadata
@@ -122,7 +122,7 @@ class TestMypyPlugin:
         assert metadata.category == "type-checking"
         assert metadata.order == 30
 
-    def test_default_paths(self):
+    def test_default_paths(self) -> None:
         """Test that default paths are src and tests."""
         plugin = MypyPlugin()
 
@@ -138,7 +138,7 @@ class TestMypyPlugin:
 class TestPytestPlugin:
     """Tests for PytestPlugin."""
 
-    def test_metadata_structure(self):
+    def test_metadata_structure(self) -> None:
         """Test that plugin metadata is properly structured."""
         plugin = PytestPlugin()
         metadata = plugin.metadata
@@ -148,7 +148,7 @@ class TestPytestPlugin:
         assert "pytest" in metadata.requires[0].lower()
         assert metadata.order == 40
 
-    def test_validate_config_min_coverage(self):
+    def test_validate_config_min_coverage(self) -> None:
         """Test min_coverage validation."""
         plugin = PytestPlugin()
 
@@ -159,7 +159,7 @@ class TestPytestPlugin:
             plugin.validate_config({"min_coverage": "85"})
 
     @patch("subprocess.run")
-    def test_run_with_custom_coverage(self, mock_run):
+    def test_run_with_custom_coverage(self, mock_run) -> None:  # type: ignore[no-untyped-def]
         """Test execution with custom coverage threshold."""
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
@@ -173,7 +173,7 @@ class TestPytestPlugin:
 class TestPipAuditPlugin:
     """Tests for PipAuditPlugin."""
 
-    def test_metadata_structure(self):
+    def test_metadata_structure(self) -> None:
         """Test that plugin metadata is properly structured."""
         plugin = PipAuditPlugin()
         metadata = plugin.metadata
@@ -182,7 +182,7 @@ class TestPipAuditPlugin:
         assert metadata.category == "security"
         assert metadata.order == 50
 
-    def test_validate_config_ignore_vulns(self):
+    def test_validate_config_ignore_vulns(self) -> None:
         """Test ignore_vulns validation."""
         plugin = PipAuditPlugin()
 
@@ -193,7 +193,7 @@ class TestPipAuditPlugin:
             plugin.validate_config({"ignore_vulns": "CVE-2024-1234"})
 
     @patch("subprocess.run")
-    def test_run_with_ignored_vulns(self, mock_run):
+    def test_run_with_ignored_vulns(self, mock_run) -> None:  # type: ignore[no-untyped-def]
         """Test execution with ignored vulnerabilities."""
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
@@ -209,7 +209,7 @@ class TestPipAuditPlugin:
 class TestPluginIntegration:
     """Integration tests for plugin system."""
 
-    def test_all_plugins_have_unique_names(self):
+    def test_all_plugins_have_unique_names(self) -> None:
         """Test that all built-in plugins have unique names."""
         plugins = [
             RuffCheckPlugin(),
@@ -222,7 +222,7 @@ class TestPluginIntegration:
         names = [p.metadata.name for p in plugins]
         assert len(names) == len(set(names)), "Plugin names must be unique"
 
-    def test_all_plugins_have_valid_order(self):
+    def test_all_plugins_have_valid_order(self) -> None:
         """Test that all plugins have valid execution orders."""
         plugins = [
             RuffCheckPlugin(),
@@ -236,7 +236,7 @@ class TestPluginIntegration:
         assert all(o > 0 for o in orders), "Orders must be positive"
         assert orders == sorted(orders), "Orders should be sequential"
 
-    def test_all_plugins_implement_required_methods(self):
+    def test_all_plugins_implement_required_methods(self) -> None:
         """Test that all plugins implement required interface."""
         plugins = [
             RuffCheckPlugin(),
@@ -258,11 +258,11 @@ class TestPluginIntegration:
             # All plugins must be runnable
             assert callable(plugin.run)
 
-    def test_plugin_result_structure(self):
+    def test_plugin_result_structure(self) -> None:
         """Test that plugin results have consistent structure."""
 
         @patch("subprocess.run")
-        def check_result(mock_run):
+        def check_result(mock_run):  # type: ignore[no-untyped-def]
             mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
             plugins = [

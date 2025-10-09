@@ -269,6 +269,19 @@ def test_cleanup_requires_confirmation_for_outside_root(tmp_path: Path) -> None:
     assert outside.exists()
 
 
+def test_cleanup_accepts_max_depth_parameter(tmp_path: Path) -> None:
+    """Test that cleanup command accepts --max-depth parameter."""
+    _, cli = _load_modules()
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / ".DS_Store").write_text("metadata", encoding="utf-8")
+
+    result = runner.invoke(cli.app, ["cleanup", str(workspace), "--max-depth", "5", "--dry-run"])
+
+    assert result.exit_code == 0
+    assert "Dry-run complete" in result.stdout
+
+
 def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> None:
     _, cli = _load_modules()
 

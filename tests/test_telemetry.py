@@ -5,7 +5,7 @@ import json
 import logging
 from collections.abc import Iterator
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from hephaestus import events, logging as heph_logging, telemetry
 
