@@ -1006,8 +1006,6 @@ def guard_rails(
             subprocess.run(
                 [
                     "yamllint",
-                    "-c",
-                    ".trunk/configs/.yamllint.yaml",
                     ".github/",
                     ".pre-commit-config.yaml",
                     "mkdocs.yml",

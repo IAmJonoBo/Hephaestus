@@ -17,6 +17,7 @@ nav:
       - AI Agent Integration: how-to/ai-agent-integration.md
       - Release Process: how-to/release-process.md
       - Testing Guide: how-to/testing.md
+      - E2E Testing Guide: how-to/e2e-testing.md
       - Troubleshooting: how-to/troubleshooting.md
       - Observability (OpenTelemetry): how-to/observability.md
       - Plugin Development: how-to/plugin-development.md

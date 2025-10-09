@@ -624,9 +624,15 @@ def _matches_any(name: str, patterns: Iterable[str]) -> bool:
 
 
 def _should_skip_venv_site_packages(target: Path, root: Path) -> bool:
+    """Check if target is a site-packages directory inside a virtual environment.
+
+    Site-packages should be preserved to avoid breaking virtual environments,
+    regardless of whether we're cleaning from the repo root or from .venv directly.
+    """
     if SITE_PACKAGES_DIR not in target.parts:
         return False
-    return VENV_DIR in target.parts and root.name != VENV_DIR and VENV_DIR not in root.parts
+    # Skip if target contains both .venv and site-packages in its path
+    return VENV_DIR in target.parts
 
 
 def _remove_path(
