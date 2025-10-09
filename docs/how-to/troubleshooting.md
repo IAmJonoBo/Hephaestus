@@ -112,32 +112,67 @@ Caused by: failed to copy file from ... to ...: No such file or directory
 
 **Cause:** macOS creates AppleDouble files (prefixed with `._`) in the UV cache and virtual environment, which are not listed in wheel RECORD files. This happens when:
 - Files are copied across filesystems (e.g., network drives, external drives)
+- The repository is on a non-xattr filesystem (exFAT, NTFS, FAT32)
 - The cache contains corrupted or stale metadata
 - Reflink operations fail on non-APFS filesystems
 
 **Solution:**
 
-The `scripts/setup-dev-env.sh` script now automatically handles this on macOS. If you still encounter issues:
+The `scripts/setup-dev-env.sh` script now automatically handles this on macOS, including:
+- Detecting non-xattr filesystems (exFAT, NTFS, FAT32, etc.)
+- Automatically relocating the virtual environment to an APFS-backed location (`$HOME/.uvenvs/<repo>`)
+- Stripping extended attributes from UV cache and environment before sync
+- Creating a symlink from `.venv` to the relocated environment
+
+If you still encounter issues:
 
 ```bash
 # 1. Set environment variables to prevent the issue
 export UV_LINK_MODE=copy
 export COPYFILE_DISABLE=1
 
-# 2. Clear UV cache completely
+# 2. Strip extended attributes from UV cache
+xattr -rc ~/.cache/uv
+
+# 3. Clear UV cache completely
 rm -rf ~/.cache/uv
 
-# 3. Remove virtual environment
-rm -rf .venv
+# 4. Remove virtual environment (if it's a symlink, remove the target too)
+if [[ -L .venv ]]; then
+    rm -rf "$(readlink .venv)"
+    rm .venv
+else
+    rm -rf .venv
+fi
 
-# 4. Run the cleanup script to remove all macOS metadata
+# 5. Run the cleanup script to remove all macOS metadata
 ./cleanup-macos-cruft.sh
 
-# 5. Re-run setup
+# 6. Re-run setup
 ./scripts/setup-dev-env.sh
 
 # Alternatively, if the issue persists, try:
 uv sync --extra dev --extra qa --reinstall
+```
+
+**Working on External/USB Drives (exFAT, NTFS, FAT32):**
+
+If your repository is on an external drive or USB stick formatted as exFAT, NTFS, or FAT32, the setup script will automatically:
+
+1. Detect the non-xattr filesystem
+2. Set `UV_PROJECT_ENVIRONMENT=$HOME/.uvenvs/<repo-name>`
+3. Create the virtual environment on your internal APFS disk
+4. Create a symlink: `.venv -> $HOME/.uvenvs/<repo-name>`
+5. Strip extended attributes before syncing dependencies
+
+You can manually configure this behavior:
+
+```bash
+# For any repository on exFAT/NTFS/FAT32
+export UV_PROJECT_ENVIRONMENT="$HOME/.uvenvs/$(basename $(pwd))"
+./scripts/setup-dev-env.sh
+
+# The .venv symlink will be created automatically
 ```
 
 **Prevention:**
@@ -155,6 +190,13 @@ Or add these to your `~/.bashrc` or `~/.zshrc`:
 # Prevent macOS resource fork issues
 export UV_LINK_MODE=copy
 export COPYFILE_DISABLE=1
+```
+
+For repositories on external drives, set:
+
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+export UV_PROJECT_ENVIRONMENT="$HOME/.uvenvs/$(basename $(pwd))"
 ```
 
 ### Guard-Rails Issues
