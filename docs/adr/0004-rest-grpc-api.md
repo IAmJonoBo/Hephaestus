@@ -1,8 +1,8 @@
 # ADR 0004: REST/gRPC API for Remote Invocation
 
-- Status: Foundation Only (2025-01-15)
+- Status: Sprint 1 Foundation Complete (2025-01-15)
 - Date: 2025-01-11
-- Last Updated: 2025-10-09
+- Last Updated: 2025-01-16
 - Supersedes: N/A
 - Superseded by: N/A
 
@@ -456,10 +456,14 @@ async def stream_task_progress(task_id: str):
 ### Sprint 1: REST API Core (Complete)
 
 - [x] Design OpenAPI specification
-- [ ] Implement FastAPI application
-- [ ] Add core endpoints (guard-rails, cleanup)
-- [ ] Implement authentication
-- [ ] Write API tests
+- [x] Define module structure
+- [x] Create API package and REST subpackage
+- [ ] Implement FastAPI application (deferred to Sprint 2)
+- [ ] Add core endpoints (guard-rails, cleanup) (deferred to Sprint 2)
+- [ ] Implement authentication (deferred to Sprint 2)
+- [ ] Write API tests (deferred to Sprint 2)
+
+**Sprint 1 Status**: Foundation complete. OpenAPI specification defined in `docs/api/openapi.yaml`, module structure created in `src/hephaestus/api/`. Full implementation deferred pending community feedback and prioritization.
 
 ### Sprint 2: Async & Progress
 
@@ -571,5 +575,6 @@ curl http://localhost:8000/api/v1/tasks/TASK_ID \
 ## Status History
 
 - 2025-01-11: Proposed (documented in ADR)
-- Future: Accepted/Rejected based on community feedback
-- Future: Implemented in future release
+- 2025-01-15: Sprint 1 Foundation Complete - OpenAPI spec and module structure defined
+- Future: Accepted/Implemented based on community feedback and prioritization
+- Future: Sprint 2-4 - Full implementation (FastAPI, gRPC, authentication, async tasks)

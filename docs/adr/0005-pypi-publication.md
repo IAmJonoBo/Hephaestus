@@ -1,9 +1,9 @@
 # ADR 0005: PyPI Publication Automation
 
-- Status: Implemented (2025-10-09)
+- Status: Sprint 2 Workflow Complete (2025-01-16)
 - Date: 2025-01-15
-- Last Updated: 2025-10-09
-- Implementation Date: 2025-10-09
+- Last Updated: 2025-01-16
+- Implementation Date: Pending PyPI account setup
 - Supersedes: N/A
 - Superseded by: N/A
 
@@ -326,26 +326,31 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 
 ## Implementation Plan
 
-### Sprint 1: Preparation
+### Sprint 1: Preparation (Complete)
 
-- [x] Verify PyPI package name availability
+- [x] Verify PyPI package name availability (`hephaestus-toolkit` available)
 - [x] Update `pyproject.toml` with rich metadata
-- [ ] Register PyPI account and configure 2FA
-- [ ] Set up Trusted Publishers on PyPI
-- [ ] Create Test PyPI account for testing
+- [x] Design PyPI publication workflow
+- [x] Document installation methods
+- [ ] Register PyPI account and configure 2FA (pending manual setup)
+- [ ] Set up Trusted Publishers on PyPI (pending account registration)
 
-### Sprint 2: Automation
+### Sprint 2: Automation (Workflow Ready)
 
-- [x] Create PyPI publication workflow
+- [x] Create PyPI publication workflow (`pypi-publish.yml`)
 - [x] Add Sigstore signing to workflow
 - [x] Update documentation with pip installation
-- [x] Add PyPI badge to README
-- [ ] Register PyPI account and configure 2FA
-- [ ] Set up Trusted Publishers on PyPI
-- [ ] Test publication to Test PyPI
+- [x] Add PyPI badge placeholder to README
+- [ ] Register PyPI account and configure 2FA (manual prerequisite)
+- [ ] Set up Trusted Publishers on PyPI (manual prerequisite)
+- [ ] Test publication to Test PyPI (requires account setup)
 
-### Sprint 3: Launch
+**Sprint 2 Status**: Workflow implementation complete and tested. Execution pending PyPI account registration and Trusted Publisher configuration (manual steps required).
 
+### Sprint 3: Launch (Pending Prerequisites)
+
+- [ ] Register PyPI Trusted Publisher
+- [ ] Publish first test release to Test PyPI
 - [ ] Publish first stable release to PyPI
 - [ ] Announce on GitHub, social media
 - [ ] Update installation instructions
@@ -362,12 +367,15 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 
 ## Follow-up Actions
 
-- [ ] Register PyPI package name
-- [ ] Configure Trusted Publishers
-- [ ] Implement publication workflow
-- [ ] Test publication to Test PyPI
-- [ ] Launch first PyPI release
-- [ ] Update all documentation
+- [x] Design PyPI publication workflow
+- [x] Update `pyproject.toml` with rich metadata
+- [x] Create GitHub Actions workflow for PyPI publication
+- [x] Document pip installation method
+- [ ] Register PyPI package name (manual prerequisite)
+- [ ] Configure Trusted Publishers (manual prerequisite)
+- [ ] Test publication to Test PyPI (requires account setup)
+- [ ] Launch first PyPI release (requires account setup)
+- [ ] Update all documentation with PyPI links
 
 ## References
 
@@ -399,5 +407,6 @@ wheel unpack hephaestus_toolkit-*.whl
 ## Status History
 
 - 2025-01-15: Proposed (documented in ADR)
-- Future: Accepted after name registration and Trusted Publishers setup
-- Future: Implemented in next release
+- 2025-01-16: Sprint 2 Workflow Complete - Automation implemented, pending manual PyPI account setup
+- Future: Sprint 3 Launch - After PyPI account registration and Trusted Publisher configuration
+- Future: Full Implementation - First stable release published to PyPI
