@@ -460,7 +460,6 @@ def test_plugin_run_edge_case_missing_tool():
     plugin = RuffCheckPlugin()
 
     # Mock subprocess to simulate missing tool
-    import subprocess
     from unittest.mock import patch
 
     with patch("subprocess.run", side_effect=FileNotFoundError("ruff not found")):
@@ -480,6 +479,3 @@ def test_plugin_config_edge_case_none_values():
     assert config.config is None
     assert config.module is None
     assert config.path is None
-
-
-

@@ -20,9 +20,9 @@ from pathlib import Path
 from typing import Any
 
 try:
-    import tomli as tomllib  # Python < 3.11
+    import tomli as tomllib  # type: ignore  # Python < 3.11
 except ImportError:
-    import tomllib  # type: ignore[import-not-found]
+    import tomllib
 
 __all__ = [
     "PluginMetadata",
@@ -311,7 +311,7 @@ def discover_plugins(
             RuffFormatPlugin,
         )
 
-        builtin_plugins = {
+        builtin_plugins: dict[str, type[QualityGatePlugin]] = {
             "ruff-check": RuffCheckPlugin,
             "ruff-format": RuffFormatPlugin,
             "mypy": MypyPlugin,
