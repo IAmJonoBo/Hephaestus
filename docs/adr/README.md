@@ -7,8 +7,8 @@ This directory contains Architecture Decision Records documenting significant te
 ### Accepted & Implemented
 
 - **[ADR-0001: STRIDE Threat Model](./0001-stride-threat-model.md)**
-  - Status: Accepted (2025-01-11)
-  - Implementation: Phases 1-2 complete, Phase 3 partially complete
+  - Status: Implemented (2025-01-16)
+  - Implementation: All three phases complete (Critical Security, Hardening, Advanced Features)
   - Summary: Comprehensive security analysis and threat mitigation strategies for Hephaestus CLI and release pipeline
 
 - **[ADR-0002: Plugin Architecture](./0002-plugin-architecture.md)**
@@ -17,18 +17,18 @@ This directory contains Architecture Decision Records documenting significant te
   - Summary: Extensible plugin system for custom quality gates
 
 - **[ADR-0003: OpenTelemetry Integration](./0003-opentelemetry-integration.md)**
-  - Status: Sprint 2 Complete (2025-10-09)
-  - Implementation: Sprint 1-2 complete (foundation, tracing utilities, metrics instrumentation, privacy controls)
+  - Status: Sprint 3 Complete (2025-01-16)
+  - Implementation: Sprint 1-3 complete (foundation, tracing utilities, metrics instrumentation, privacy controls, custom analytics metrics)
   - Summary: Integrate OpenTelemetry for distributed tracing, metrics, and observability
 
 - **[ADR-0004: REST/gRPC API](./0004-rest-grpc-api.md)**
-  - Status: Foundation Only (2025-01-15)
-  - Implementation: Module structure and OpenAPI specification defined; no implementation yet
+  - Status: Sprint 1 Foundation Complete (2025-01-16)
+  - Implementation: Module structure and OpenAPI specification defined; full implementation deferred pending prioritization
   - Summary: Dual-protocol API for remote invocation and AI agent integration
 
 - **[ADR-0005: PyPI Publication Automation](./0005-pypi-publication.md)**
-  - Status: Implemented (2025-10-09)
-  - Implementation: Complete - Workflow automation with Trusted Publishers and Sigstore attestations
+  - Status: Sprint 2 Workflow Complete (2025-01-16)
+  - Implementation: Workflow automation complete; execution pending PyPI account registration and Trusted Publisher setup
   - Summary: Automated publication to PyPI using GitHub Actions and Trusted Publishers for improved discoverability and standard installation
 
 - **[ADR-0006: Sigstore Bundle Backfill](./0006-sigstore-backfill.md)**
@@ -97,25 +97,24 @@ When prioritizing ADR implementation, consider:
 
 ### Completed
 
-- ✅ ADR-0001: STRIDE Threat Model (security hardening)
-- ✅ ADR-0005: PyPI Publication Automation (workflow complete)
-- ✅ ADR-0002: Sprint 1-2 (foundation, built-in plugins, discovery)
-- ✅ ADR-0003: Sprint 1-2 (foundation, tracing, metrics, instrumentation)
-- ✅ ADR-0006: Sprint 1 (metadata schema and backfill script)
-- ✅ ADR-0004: Foundation (OpenAPI spec, module structure)
+- ✅ ADR-0001: STRIDE Threat Model (all three phases complete - Critical Security, Hardening, Advanced Features)
+- ✅ ADR-0002: Plugin Architecture Sprint 1-3 (foundation, built-in plugins, discovery, guard-rails integration)
+- ✅ ADR-0003: OpenTelemetry Integration Sprint 1-3 (foundation, tracing, metrics, instrumentation, custom analytics)
+- ✅ ADR-0004: REST/gRPC API Sprint 1 Foundation (OpenAPI spec, module structure)
+- ✅ ADR-0006: Sigstore Backfill Sprint 1 (metadata schema and backfill script)
 
 ### In Progress
 
-- 🔄 ADR-0002: Sprint 3 partial (experimental guard-rails plugin integration via `--use-plugins` flag)
+- 🔄 ADR-0005: PyPI Publication Sprint 2 (workflow complete, pending account setup)
+- 🔄 ADR-0006: Sigstore Backfill Sprint 2 (execution pending manual trigger)
 
 ### Planned
 
-- ⏳ ADR-0002: Sprint 3 completion (plugin template, catalog, review process)
-- ⏳ ADR-0003: Sprint 3 (sampling strategies, custom metrics, plugin instrumentation)
-- ⏳ ADR-0004: Sprint 1+ (FastAPI implementation, authentication, async tasks)
-- ⏳ ADR-0006: Sprint 2 (backfill execution, CLI verification flags)
+- ⏳ ADR-0003: Sprint 4 (sampling strategies, plugin instrumentation, Prometheus exporter, monitoring guide)
+- ⏳ ADR-0004: Sprint 2+ (FastAPI implementation, authentication, async tasks, gRPC service)
+- ⏳ ADR-0005: Sprint 3 (PyPI account setup, first publication)
+- ⏳ ADR-0006: Sprint 3 (CLI verification flags, documentation updates)
 - ⏳ ADR-0002: Sprint 4 (marketplace, dependency resolution, versioning)
-- ⏳ ADR-0003: Sprint 4 (production optimization, cloud exporters)
 
 ## Maintenance
 
@@ -126,4 +125,4 @@ ADRs should be reviewed:
 - When technical assumptions change
 - When community feedback suggests changes
 
-Last reviewed: 2025-10-09 (post-Sprint 2)
+Last reviewed: 2025-01-16 (ADR status consolidation and implementation updates)

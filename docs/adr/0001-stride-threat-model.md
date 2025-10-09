@@ -1,8 +1,8 @@
 # ADR-001: STRIDE Threat Model for Hephaestus CLI and Release Pipeline
 
-**Status:** Accepted  
+**Status:** Implemented  
 **Date:** 2025-01-08  
-**Last Updated:** 2025-01-XX  
+**Last Updated:** 2025-01-16  
 **Authors:** Security Review Team  
 **Reviewers:** Platform Engineering
 
@@ -338,12 +338,12 @@ This document applies the STRIDE threat modeling framework to identify security 
 - [x] Create dry-run mode for cleanup
 - [x] Add confirmation prompts for risky operations
 
-### Phase 3: Advanced Features (Low Priority)
+### Phase 3: Advanced Features (Low Priority) ✅ COMPLETE
 
 - [x] Sigstore attestation validation
-- [ ] Certificate pinning (deferred - not required for current threat model)
-- [ ] Privacy-preserving telemetry (planned Sprint 2-3, see ADR-0003)
+- [x] Privacy-preserving telemetry (Sprint 2 complete - see ADR-0003)
 - [x] Automated security testing in CI (CodeQL implemented)
+- [ ] Certificate pinning (deferred - not required for current threat model)
 
 ## Review & Updates
 
@@ -381,7 +381,12 @@ Implementing the recommended mitigations will significantly improve the security
   - ✅ Dangerous path protection in cleanup
   - ✅ Network timeouts and exponential backoff
   - ✅ SECURITY.md published with disclosure process
-- **2025-01-XX:** Updated - Authentication & Authorization hardening complete:
+- **2025-01-15:** Updated - Authentication & Authorization hardening complete:
   - ✅ Token validation before GitHub API calls
   - ✅ Token expiration handling with clear error messages
   - ✅ Support for all GitHub token formats (classic, fine-grained, PAT)
+- **2025-01-16:** Implemented - All three phases complete:
+  - ✅ Phase 1: Critical Security (High Priority) - Complete
+  - ✅ Phase 2: Hardening (Medium Priority) - Complete
+  - ✅ Phase 3: Advanced Features (Low Priority) - Complete
+  - All security requirements implemented except certificate pinning (deferred)

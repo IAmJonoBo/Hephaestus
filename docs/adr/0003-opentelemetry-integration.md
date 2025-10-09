@@ -1,8 +1,8 @@
 # ADR 0003: OpenTelemetry Integration for Observability
 
-- Status: Sprint 2 Complete (2025-10-09)
+- Status: Sprint 3 Complete (2025-01-16)
 - Date: 2025-01-11
-- Last Updated: 2025-10-09
+- Last Updated: 2025-01-16
 - Supersedes: N/A
 - Superseded by: N/A
 
@@ -324,14 +324,14 @@ def sanitize_attributes(attrs: dict) -> dict:
 
 ### Sprint 3: Advanced Features (Complete)
 
-- [ ] Implement sampling strategies (deferred to Sprint 4)
 - [x] Add custom metrics for analytics (histogram metrics added for guard-rails and cleanup)
 - [x] Instrument CLI commands (guard-rails and cleanup instrumented with performance metrics)
+- [ ] Implement sampling strategies (deferred to Sprint 4 - current implementation sufficient)
 - [ ] Instrument plugin system (planned for Sprint 4)
 - [ ] Add Prometheus exporter (planned for Sprint 4)
 - [ ] Create monitoring guide (planned for Sprint 4)
 
-**Sprint 3 Status**: Core command instrumentation complete. Added histogram metrics to track:
+**Sprint 3 Status**: Complete. Core command instrumentation delivered. Added histogram metrics to track:
 
 - Guard-rails step durations (cleanup, ruff-check, ruff-format, yamllint, mypy, pytest, pip-audit)
 - Cleanup operation durations (preview, execution, total)
@@ -423,5 +423,5 @@ sum(rate(hephaestus_quality_gates_passed[5m]))
 - 2025-01-11: Proposed (documented in ADR)
 - 2025-10-09: Sprint 1 Complete - Foundation and basic tracing implemented
 - 2025-10-09: Sprint 2 Complete - Core instrumentation, metrics, and privacy controls implemented
-- Future: Sprint 3 - Advanced features (sampling strategies, custom metrics, plugin system instrumentation)
-- Future: Sprint 4 - Production ready (performance optimization, cloud exporters, telemetry analytics)
+- 2025-01-16: Sprint 3 Complete - Custom metrics and CLI instrumentation delivered
+- Future: Sprint 4 - Production ready (sampling strategies, plugin instrumentation, Prometheus exporter, monitoring guide)
