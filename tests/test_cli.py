@@ -183,7 +183,10 @@ def test_release_install_help_succeeds() -> None:
 
     assert result.exit_code == 0
     assert "Download the Hephaestus wheelhouse" in result.stdout
-    assert "--sigstore-identity" in result.stdout
+    # Check for sigstore-identity without ANSI codes by removing color codes
+    import re
+    clean_stdout = re.sub(r'\x1b\[[0-9;]*m', '', result.stdout)
+    assert "--sigstore-identity" in clean_stdout
 
 
 def test_qa_coverage_command_displays_gaps() -> None:
@@ -310,7 +313,9 @@ def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> 
         assert check is True
         executed.append(command)
 
-    monkeypatch.setattr(cli.subprocess, "run", _fake_run)
+    # Patch subprocess module globally since it's imported locally in the function
+    import subprocess
+    monkeypatch.setattr(subprocess, "run", _fake_run)
 
     result = runner.invoke(cli.app, ["guard-rails"])
 
@@ -318,18 +323,21 @@ def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> 
     assert cleanup_calls
     assert cleanup_calls[0][1]["deep_clean"] is True
     assert executed == [
-        ["ruff", "check", "."],
-        ["ruff", "format", "."],
+        ["uv", "run", "ruff", "check", "."],
+        ["uv", "run", "ruff", "check", "--select", "I", "--fix", "."],
+        ["uv", "run", "ruff", "format", "."],
         [
+            "uv",
+            "run",
             "yamllint",
             ".github/",
             ".pre-commit-config.yaml",
             "mkdocs.yml",
             "hephaestus-toolkit/",
         ],
-        ["mypy", "src", "tests"],
-        ["pytest"],
-        ["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"],
+        ["uv", "run", "mypy", "src", "tests"],
+        ["uv", "run", "pytest"],
+        ["uv", "run", "pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"],
     ]
     assert "Guard rails completed successfully" in result.stdout
 
@@ -349,12 +357,14 @@ def test_guard_rails_can_skip_format(monkeypatch: pytest.MonkeyPatch) -> None:
     def _fake_run(command: list[str], *, check: bool, timeout: int | None = None) -> None:
         executed.append(command)
 
-    monkeypatch.setattr(cli.subprocess, "run", _fake_run)
+    # Patch subprocess module globally since it's imported locally in the function
+    import subprocess
+    monkeypatch.setattr(subprocess, "run", _fake_run)
 
     result = runner.invoke(cli.app, ["guard-rails", "--no-format"])
 
     assert result.exit_code == 0
-    assert ["ruff", "format", "."] not in executed
+    assert ["uv", "run", "ruff", "format", "."] not in executed
 
 
 def test_guard_rails_plugin_mode_with_no_plugins(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -375,7 +385,9 @@ def test_guard_rails_plugin_mode_with_no_plugins(monkeypatch: pytest.MonkeyPatch
     def _fake_run(command: list[str], *, check: bool, timeout: int | None = None) -> None:
         executed.append(command)
 
-    monkeypatch.setattr(cli.subprocess, "run", _fake_run)
+    # Patch subprocess module globally since it's imported locally in the function
+    import subprocess
+    monkeypatch.setattr(subprocess, "run", _fake_run)
 
     result = runner.invoke(cli.app, ["guard-rails", "--use-plugins"])
 
@@ -384,7 +396,7 @@ def test_guard_rails_plugin_mode_with_no_plugins(monkeypatch: pytest.MonkeyPatch
     assert "No plugins loaded" in result.stdout
     assert "Falling back to standard pipeline" in result.stdout
     # Standard pipeline should have run
-    assert ["ruff", "check", "."] in executed
+    assert ["uv", "run", "ruff", "check", "."] in executed
 
 
 def test_guard_rails_plugin_mode_flag_available() -> None:
