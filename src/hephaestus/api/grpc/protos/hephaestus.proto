@@ -1,0 +1,137 @@
+syntax = "proto3";
+
+package hephaestus.v1;
+
+// Quality Service - Execute quality gates and checks
+service QualityService {
+  // Run guard-rails quality pipeline (blocking)
+  rpc RunGuardRails(GuardRailsRequest) returns (GuardRailsResponse);
+  
+  // Run guard-rails with streaming progress updates
+  rpc RunGuardRailsStream(GuardRailsRequest) returns (stream GuardRailsProgress);
+  
+  // Check for tool version drift
+  rpc CheckDrift(DriftRequest) returns (DriftResponse);
+}
+
+// Cleanup Service - Workspace cleanup operations
+service CleanupService {
+  // Execute cleanup operation
+  rpc Clean(CleanupRequest) returns (CleanupResponse);
+  
+  // Preview cleanup without executing
+  rpc PreviewCleanup(CleanupRequest) returns (CleanupPreview);
+}
+
+// Analytics Service - Code analytics and rankings
+service AnalyticsService {
+  // Get refactoring rankings
+  rpc GetRankings(RankingsRequest) returns (RankingsResponse);
+  
+  // Get code hotspots
+  rpc GetHotspots(HotspotsRequest) returns (HotspotsResponse);
+}
+
+// Guard Rails Messages
+message GuardRailsRequest {
+  bool no_format = 1;
+  string workspace = 2;
+  bool drift_check = 3;
+  map<string, string> env = 4;
+}
+
+message GuardRailsResponse {
+  bool success = 1;
+  repeated QualityGateResult gates = 2;
+  double duration = 3;
+  string task_id = 4;
+}
+
+message GuardRailsProgress {
+  string stage = 1;
+  int32 progress = 2;
+  string message = 3;
+  bool completed = 4;
+}
+
+message QualityGateResult {
+  string name = 1;
+  bool passed = 2;
+  string message = 3;
+  double duration = 4;
+  map<string, string> metadata = 5;
+}
+
+// Drift Detection Messages
+message DriftRequest {
+  string workspace = 1;
+}
+
+message DriftResponse {
+  bool has_drift = 1;
+  repeated ToolDrift drifts = 2;
+  repeated string remediation_commands = 3;
+}
+
+message ToolDrift {
+  string tool = 1;
+  string expected_version = 2;
+  string installed_version = 3;
+  string status = 4;
+}
+
+// Cleanup Messages
+message CleanupRequest {
+  string root = 1;
+  bool deep_clean = 2;
+  bool dry_run = 3;
+  repeated string patterns = 4;
+}
+
+message CleanupResponse {
+  int32 files_deleted = 1;
+  int64 size_freed = 2;
+  repeated string deleted_paths = 3;
+  map<string, int32> manifest = 4;
+}
+
+message CleanupPreview {
+  int32 files_to_delete = 1;
+  int64 size_to_free = 2;
+  repeated string paths = 3;
+  map<string, int32> preview_manifest = 4;
+}
+
+// Analytics Messages
+message RankingsRequest {
+  string strategy = 1;
+  int32 limit = 2;
+  string workspace = 3;
+}
+
+message RankingsResponse {
+  repeated FileRanking rankings = 1;
+  string strategy = 2;
+}
+
+message FileRanking {
+  string file = 1;
+  double score = 2;
+  map<string, double> metrics = 3;
+}
+
+message HotspotsRequest {
+  string workspace = 1;
+  int32 limit = 2;
+}
+
+message HotspotsResponse {
+  repeated Hotspot hotspots = 1;
+}
+
+message Hotspot {
+  string file = 1;
+  int32 change_frequency = 2;
+  int32 complexity = 3;
+  double risk_score = 4;
+}
