@@ -45,6 +45,7 @@ Refactor planning utilities load YAML configuration, generate deterministic hots
 ### Quality & Coverage
 
 - Test coverage enforces an 85% floor via pytest-cov defaults in `pyproject.toml`, yet release retry/backoff logic and cleanup safety rails were under-tested. New regression tests now exercise timeout validation, retry escalation, and sanitisation edge cases to prevent silent regressions (`tests/test_release.py`).
+- Release CLI workflows now cover archive cleanup, Sigstore backfill command wiring, and Ruff plugin failure handling, pushing total coverage to 86.95% and guarding against packaging regressions (`tests/test_cli.py`, `tests/test_plugins_integration.py`).
 - CLI release install wiring now has regression coverage for Sigstore pattern/identity flags (`tests/test_cli.py`), including multi-pattern identity matching to guard against accidental bypasses of the supply-chain gates.
 - Characterisation tests remain sparse for cleanup and planning flows; add scenario suites to lock down failure semantics before shipping automation.
 

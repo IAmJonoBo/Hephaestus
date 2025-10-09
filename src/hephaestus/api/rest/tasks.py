@@ -100,7 +100,10 @@ class TaskManager:
         self._tasks[task_id] = task
 
         # Start task in background with timeout
-        asyncio.create_task(self._execute_task(task_id, func, *args, timeout=timeout, **kwargs))
+        handle = asyncio.create_task(
+            self._execute_task(task_id, func, *args, timeout=timeout, **kwargs)
+        )
+        task.handle = handle
 
         logger.info("Created task", extra={"task_id": task_id, "task_name": name})
         return task_id

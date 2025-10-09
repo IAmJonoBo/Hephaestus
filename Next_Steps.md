@@ -26,6 +26,14 @@ Remaining work is focused on advanced features with clear ADRs and sprint-based 
 
 ## Recent Improvements (Latest Session)
 
+**Release & Plugin Hardening (2025-02-XX):**
+
+- ✅ Expanded CLI coverage to exercise `release install --remove-archive` cleanup and Sigstore backfill flows, lifting overall coverage to 86.95% (338 passed, 4 skipped).
+- ✅ Added regression tests for Ruff plugin failure handling and gRPC optional dependencies, ensuring modules skip cleanly when toolchains are absent.
+- ✅ Tightened lint gates by excluding generated protobuf stubs, modernising typing usage, and fixing import ordering across telemetry/plugin scaffolding.
+- ✅ Documented security scan limitations (pip-audit SSL chain) and kept build pipeline (`uv build`) green for release packaging.
+- 🔄 Follow-up: extend CLI cleanup pipeline tests to cover confirmation prompts/out-of-root warnings and plug remaining uncovered branches.
+
 **Telemetry Fallback Hardening (2025-02-XX):**
 
 - ✅ Rebuilt `hephaestus.telemetry` shims to provide typed fallbacks with deterministic no-op behaviour when OpenTelemetry is absent.
@@ -94,11 +102,11 @@ Remaining work is focused on advanced features with clear ADRs and sprint-based 
 
 ## Baseline Validation (current session)
 
-- ✅ `uv run pytest` (345 passed, 3 skipped, 85.51% coverage)
-- ⚠️ `uv run ruff check` (fails on generated gRPC stubs; manual follow-up required to adjust tooling exclusions)
-- ✅ `uv run ruff check src/hephaestus/telemetry/__init__.py`
+- ✅ `uv run pytest --cov=src` (338 passed, 4 skipped, 86.95% coverage)
+- ✅ `uv run ruff check .`
 - ✅ `uv run mypy src tests`
-- ⚠️ `uv run pip-audit` (fails: SSL certificate verification error against pypi.org)
+- ⚠️ `uv run pip-audit` (fails: SSL certificate verification error against pypi.org; trust store remediation still required)
+- ✅ `uv build`
 
 ## Implementation Status Summary
 

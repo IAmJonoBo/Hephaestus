@@ -11,12 +11,10 @@ This script:
 """
 
 import re
-import shutil
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
-def extract_title_from_content(content: str) -> Optional[str]:
+def extract_title_from_content(content: str) -> str | None:
     """Extract title from first H1 heading in markdown content."""
     match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
     return match.group(1).strip() if match else None
@@ -82,7 +80,7 @@ def convert_links(content: str, current_file_path: Path) -> str:
     return re.sub(r"\[([^\]]+)\]\(([^\)]+)\)", replace_link, content)
 
 
-def add_frontmatter(content: str, title: Optional[str], description: str) -> str:
+def add_frontmatter(content: str, title: str | None, description: str) -> str:
     """Add Starlight frontmatter to content."""
     # Check if frontmatter already exists
     if content.startswith("---"):

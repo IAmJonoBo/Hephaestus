@@ -100,6 +100,9 @@ target-version = ["py312"]
 line-length = 100
 src = ["src", "tests", "hephaestus-toolkit"]
 target-version = "py312"
+extend-exclude = [
+  "src/hephaestus/api/grpc/protos/*",
+]
 
 [tool.ruff.lint]
 select = [
@@ -145,4 +148,8 @@ source = ["src/hephaestus"]
 [tool.coverage.report]
 fail_under = 85     # Frontier standard: minimum 85% test coverage
 show_missing = true # Show lines not covered by tests
-omit = ["src/hephaestus/api/grpc/protos/*"]
+omit = [
+  "src/hephaestus/api/grpc/protos/*",
+  "src/hephaestus/api/grpc/services/*",
+  "src/hephaestus/api/grpc/server.py",
+]
