@@ -160,9 +160,11 @@ def test_download_wheelhouse_happy_path(tmp_path: Path, monkeypatch: pytest.Monk
     monkeypatch.setattr(release, "_download_asset", fake_download_asset)
 
     result = release.download_wheelhouse(
-        repository="IAmJonoBo/Hephaestus",
-        destination_dir=tmp_path / "downloads",
-        tag="v1.2.3",
+        release.WheelhouseDownloadOptions(
+            repository="IAmJonoBo/Hephaestus",
+            destination_dir=tmp_path / "downloads",
+            tag="v1.2.3",
+        )
     )
 
     assert result.asset.name == "hephaestus-1.2.3-wheelhouse.tar.gz"
@@ -541,9 +543,11 @@ def test_download_wheelhouse_without_extract(
     monkeypatch.setattr(release, "_download_asset", fake_download)
 
     result = release.download_wheelhouse(
-        repository="IAmJonoBo/Hephaestus",
-        destination_dir=tmp_path / "downloads",
-        extract=False,
+        release.WheelhouseDownloadOptions(
+            repository="IAmJonoBo/Hephaestus",
+            destination_dir=tmp_path / "downloads",
+            extract=False,
+        )
     )
 
     assert result.extracted_path is None
@@ -613,12 +617,14 @@ def test_download_wheelhouse_with_sigstore_attestation(
     monkeypatch.setattr(release, "_download_asset", fake_download_asset)
 
     result = release.download_wheelhouse(
-        repository="IAmJonoBo/Hephaestus",
-        destination_dir=tmp_path / "downloads",
-        tag="v1.2.3",
-        sigstore_bundle_pattern="*.sigstore",
-        sigstore_identities=[identity],
-        require_sigstore=True,
+        release.WheelhouseDownloadOptions(
+            repository="IAmJonoBo/Hephaestus",
+            destination_dir=tmp_path / "downloads",
+            tag="v1.2.3",
+            sigstore_bundle_pattern="*.sigstore",
+            sigstore_identities=[identity],
+            require_sigstore=True,
+        )
     )
 
     assert result.sigstore_path is not None
@@ -671,10 +677,12 @@ def test_download_wheelhouse_requires_sigstore(
 
     with pytest.raises(release.ReleaseError, match="Sigstore attestation required"):
         release.download_wheelhouse(
-            repository="IAmJonoBo/Hephaestus",
-            destination_dir=tmp_path / "downloads",
-            sigstore_bundle_pattern="*.sigstore",
-            require_sigstore=True,
+            release.WheelhouseDownloadOptions(
+                repository="IAmJonoBo/Hephaestus",
+                destination_dir=tmp_path / "downloads",
+                sigstore_bundle_pattern="*.sigstore",
+                require_sigstore=True,
+            )
         )
 
 
@@ -720,10 +728,12 @@ def test_download_wheelhouse_require_sigstore_without_pattern(
         match="Sigstore attestation required but no bundle pattern",
     ):
         release.download_wheelhouse(
-            repository="IAmJonoBo/Hephaestus",
-            destination_dir=tmp_path / "downloads",
-            sigstore_bundle_pattern=None,
-            require_sigstore=True,
+            release.WheelhouseDownloadOptions(
+                repository="IAmJonoBo/Hephaestus",
+                destination_dir=tmp_path / "downloads",
+                sigstore_bundle_pattern=None,
+                require_sigstore=True,
+            )
         )
 
 
@@ -733,10 +743,12 @@ def test_download_wheelhouse_rejects_allow_unsigned_with_require_sigstore() -> N
         match="Sigstore attestation cannot be required when allow_unsigned is enabled",
     ):
         release.download_wheelhouse(
-            repository="IAmJonoBo/Hephaestus",
-            destination_dir=Path.cwd(),
-            allow_unsigned=True,
-            require_sigstore=True,
+            release.WheelhouseDownloadOptions(
+                repository="IAmJonoBo/Hephaestus",
+                destination_dir=Path.cwd(),
+                allow_unsigned=True,
+                require_sigstore=True,
+            )
         )
 
 
@@ -955,10 +967,12 @@ def test_download_wheelhouse_propagates_timeout_and_retries(
     monkeypatch.setattr(release, "_download_asset", fake_download_asset)
 
     result = release.download_wheelhouse(
-        repository="IAmJonoBo/Hephaestus",
-        destination_dir=tmp_path / "downloads",
-        timeout=3.5,
-        max_retries=4,
+        release.WheelhouseDownloadOptions(
+            repository="IAmJonoBo/Hephaestus",
+            destination_dir=tmp_path / "downloads",
+            timeout=3.5,
+            max_retries=4,
+        )
     )
 
     assert result.archive_path.exists()
@@ -1013,8 +1027,10 @@ def test_download_wheelhouse_raises_when_manifest_missing(
 
     with pytest.raises(release.ReleaseError, match="checksum manifest"):
         release.download_wheelhouse(
-            repository="IAmJonoBo/Hephaestus",
-            destination_dir=tmp_path / "downloads",
+            release.WheelhouseDownloadOptions(
+                repository="IAmJonoBo/Hephaestus",
+                destination_dir=tmp_path / "downloads",
+            )
         )
 
 
@@ -1069,8 +1085,10 @@ def test_download_wheelhouse_raises_on_checksum_mismatch(
 
     with pytest.raises(release.ReleaseError, match="Checksum verification failed"):
         release.download_wheelhouse(
-            repository="IAmJonoBo/Hephaestus",
-            destination_dir=tmp_path / "downloads",
+            release.WheelhouseDownloadOptions(
+                repository="IAmJonoBo/Hephaestus",
+                destination_dir=tmp_path / "downloads",
+            )
         )
 
 
@@ -1113,9 +1131,11 @@ def test_download_wheelhouse_can_allow_unsigned(
     monkeypatch.setattr(release, "_download_asset", fake_download_asset)
 
     result = release.download_wheelhouse(
-        repository="IAmJonoBo/Hephaestus",
-        destination_dir=tmp_path / "downloads",
-        allow_unsigned=True,
+        release.WheelhouseDownloadOptions(
+            repository="IAmJonoBo/Hephaestus",
+            destination_dir=tmp_path / "downloads",
+            allow_unsigned=True,
+        )
     )
 
     assert result.archive_path.exists()
