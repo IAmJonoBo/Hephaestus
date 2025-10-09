@@ -1,6 +1,6 @@
 # ADR 0004: REST/gRPC API for Remote Invocation
 
-- Status: Sprint 1 Foundation Complete (2025-01-15)
+- Status: Sprint 2 Core Implementation Complete (2025-01-16)
 - Date: 2025-01-11
 - Last Updated: 2025-01-16
 - Supersedes: N/A
@@ -458,19 +458,21 @@ async def stream_task_progress(task_id: str):
 - [x] Design OpenAPI specification
 - [x] Define module structure
 - [x] Create API package and REST subpackage
-- [ ] Implement FastAPI application (deferred to Sprint 2)
-- [ ] Add core endpoints (guard-rails, cleanup) (deferred to Sprint 2)
-- [ ] Implement authentication (deferred to Sprint 2)
-- [ ] Write API tests (deferred to Sprint 2)
+- [x] Implement FastAPI application
+- [x] Add core endpoints (guard-rails, cleanup, analytics)
+- [x] Implement authentication (Bearer token)
+- [x] Write API tests (12 comprehensive async tests)
 
-**Sprint 1 Status**: Foundation complete. OpenAPI specification defined in `docs/api/openapi.yaml`, module structure created in `src/hephaestus/api/`. Full implementation deferred pending community feedback and prioritization.
+**Sprint 1 Status**: Complete. OpenAPI specification defined in `docs/api/openapi.yaml`, module structure created in `src/hephaestus/api/`, FastAPI application implemented with authentication and core endpoints.
 
-### Sprint 2: Async & Progress
+### Sprint 2: Async & Progress (Complete)
 
-- [ ] Implement async task management
-- [ ] Add progress streaming (SSE)
-- [ ] Add task status endpoints
-- [ ] Implement timeouts and limits
+- [x] Implement async task management
+- [x] Add progress streaming (Server-Sent Events)
+- [x] Add task status endpoints
+- [x] Implement timeouts and limits
+
+**Sprint 2 Status**: Complete. Full async task manager with status tracking, SSE streaming for progress updates, comprehensive error handling. All tests passing.
 
 ### Sprint 3: gRPC Service
 
@@ -576,5 +578,5 @@ curl http://localhost:8000/api/v1/tasks/TASK_ID \
 
 - 2025-01-11: Proposed (documented in ADR)
 - 2025-01-15: Sprint 1 Foundation Complete - OpenAPI spec and module structure defined
-- Future: Accepted/Implemented based on community feedback and prioritization
-- Future: Sprint 2-4 - Full implementation (FastAPI, gRPC, authentication, async tasks)
+- 2025-01-16: Sprint 2 Complete - FastAPI implementation with async task management, SSE streaming, authentication, and comprehensive tests
+- Future: Sprint 3-4 - gRPC implementation and production hardening
