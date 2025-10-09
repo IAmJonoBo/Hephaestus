@@ -282,9 +282,9 @@ This document applies the STRIDE threat modeling framework to identify security 
 
 ### Authentication & Authorization
 
-- [ ] Token validation before GitHub API calls
+- [x] Token validation before GitHub API calls
 - [x] Fine-grained token permissions documentation
-- [ ] Token expiration handling
+- [x] Token expiration handling
 
 ### Data Protection
 

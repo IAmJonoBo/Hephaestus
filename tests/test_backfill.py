@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
-import pytest
+from datetime import UTC, datetime
 
 from hephaestus.backfill import BackfillMetadata, BackfillVerificationStatus
 
 
 def test_backfill_metadata_creation():
     """Backfill metadata should be created with correct fields."""
-    original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=timezone.utc)
-    backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=timezone.utc)
+    original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=UTC)
+    backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=UTC)
 
     metadata = BackfillMetadata(
         version="v0.2.3",
@@ -35,8 +33,8 @@ def test_backfill_metadata_creation():
 
 def test_backfill_metadata_to_dict():
     """Backfill metadata should serialize to dictionary."""
-    original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=timezone.utc)
-    backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=timezone.utc)
+    original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=UTC)
+    backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=UTC)
 
     metadata = BackfillMetadata(
         version="v0.2.3",
@@ -62,8 +60,8 @@ def test_backfill_metadata_to_dict():
 
 def test_backfill_metadata_from_dict():
     """Backfill metadata should deserialize from dictionary."""
-    original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=timezone.utc)
-    backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=timezone.utc)
+    original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=UTC)
+    backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=UTC)
 
     data = {
         "version": "v0.2.3",
@@ -88,8 +86,8 @@ def test_backfill_metadata_from_dict():
 
 def test_backfill_metadata_roundtrip():
     """Backfill metadata should roundtrip through dict serialization."""
-    original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=timezone.utc)
-    backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=timezone.utc)
+    original_date = datetime(2025, 1, 10, 12, 0, 0, tzinfo=UTC)
+    backfill_date = datetime(2025, 1, 20, 15, 30, 0, tzinfo=UTC)
 
     metadata1 = BackfillMetadata(
         version="v0.2.3",

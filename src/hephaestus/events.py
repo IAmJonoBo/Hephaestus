@@ -42,6 +42,7 @@ __all__ = [
     "RESOURCE_FORK_SANITIZE_ERROR",
     "RESOURCE_FORK_SANITIZE_REMOVED",
     "RELEASE_METADATA_FETCH",
+    "RELEASE_TOKEN_VALIDATION",
     "RELEASE_ASSET_SELECTED",
     "RELEASE_ASSET_SANITISED",
     "RELEASE_MANIFEST_LOCATE",
@@ -403,6 +404,13 @@ RELEASE_METADATA_FETCH = _register(
     TelemetryEvent(
         "release.metadata.fetch",
         "Fetching release metadata from GitHub.",
+    )
+)
+
+RELEASE_TOKEN_VALIDATION = _register(
+    TelemetryEvent(
+        "release.token.validation",
+        "GitHub token validation warning.",
     )
 )
 

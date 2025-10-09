@@ -30,8 +30,7 @@ from typing import IO, cast
 from cryptography import x509
 from cryptography.x509.oid import ExtensionOID
 
-from hephaestus import events as telemetry
-from hephaestus import resource_forks
+from hephaestus import events as telemetry, resource_forks
 from hephaestus.logging import log_context
 
 __all__ = [
@@ -68,6 +67,11 @@ _BACKOFF_FACTOR = 2.0
 
 _CHECKSUM_LINE = re.compile(r"^(?P<digest>[0-9a-fA-F]{64})[ \t]+[*]?(?P<name>.+)$")
 
+# GitHub token patterns (classic and fine-grained)
+_GITHUB_TOKEN_PATTERNS = (
+    re.compile(r"^gh[ps]_[A-Za-z0-9]{36,255}$"),  # Fine-grained and classic tokens
+    re.compile(r"^github_pat_[A-Za-z0-9_]{82}$"),  # Personal access tokens (new format)
+)
 
 DEFAULT_TIMEOUT = 10.0
 DEFAULT_MAX_RETRIES = 3
@@ -280,6 +284,38 @@ def _open_with_retries(
     raise ReleaseError(f"Failed to complete {description} after {max_retries} attempts.")
 
 
+def _validate_github_token(token: str | None) -> None:
+    """Validate GitHub token format before use.
+    
+    Args:
+        token: GitHub token to validate (can be None for public repos)
+        
+    Raises:
+        ReleaseError: If token is provided but has invalid format
+    """
+    if token is None:
+        # Token is optional for public repos
+        return
+        
+    if not token.strip():
+        raise ReleaseError(
+            "GitHub token cannot be empty. "
+            "Provide a valid token or omit it for public repositories."
+        )
+    
+    # Check if token matches known GitHub token patterns
+    if not any(pattern.match(token) for pattern in _GITHUB_TOKEN_PATTERNS):
+        telemetry.emit_event(
+            logger,
+            telemetry.RELEASE_TOKEN_VALIDATION,
+            level=logging.WARNING,
+            message=(
+                "GitHub token format does not match expected patterns. "
+                "This may indicate an invalid or legacy token format."
+            ),
+        )
+
+
 def _build_request(
     url: str, token: str | None, accept: str = "application/vnd.github+json"
 ) -> urllib.request.Request:
@@ -311,6 +347,9 @@ def _fetch_release(
     if max_retries < 1:
         raise ReleaseError(f"Max retries must be at least 1, got {max_retries}")
 
+    # Validate token format before making API calls
+    _validate_github_token(token)
+
     if tag:
         url = f"{_GITHUB_API}/repos/{owner_repo}/releases/tags/{tag}"
     else:
@@ -328,6 +367,12 @@ def _fetch_release(
         ) as response:
             payload = response.read()
     except urllib.error.HTTPError as exc:  # pragma: no cover - network failures vary
+        if exc.code == 401:
+            raise ReleaseError(
+                "GitHub authentication failed (HTTP 401). "
+                "The provided token may be expired, invalid, or lack required permissions. "
+                "Please verify your GITHUB_TOKEN environment variable or --token parameter."
+            ) from exc
         if exc.code == 404:
             raise ReleaseError(
                 f"Release not found for repository {owner_repo!r} (tag={tag!r})."

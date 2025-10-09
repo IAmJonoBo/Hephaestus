@@ -7,9 +7,7 @@ from collections.abc import Iterator
 
 import pytest  # type: ignore[import-not-found]
 
-from hephaestus import events
-from hephaestus import logging as heph_logging
-from hephaestus import telemetry
+from hephaestus import events, logging as heph_logging, telemetry
 
 
 def _reset_logging() -> None:
