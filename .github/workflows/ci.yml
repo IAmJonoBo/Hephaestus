@@ -60,8 +60,10 @@ jobs:
       - name: Run ruff lint
         run: uv run python -m ruff check .
 
-      - name: Run ruff format check
-        run: uv run python -m ruff format --check .
+      - name: Run ruff isort + format check
+        run: |
+          uv run python -m ruff check --select I .
+          uv run python -m ruff format --check .
 
       - name: Run mypy
         run: uv run mypy src tests
@@ -232,6 +234,7 @@ jobs:
         run: |
           . .venv/bin/activate
           python -m ruff check .
+          python -m ruff check --select I .
           python -m ruff format --check .
           python -m mypy src tests
 

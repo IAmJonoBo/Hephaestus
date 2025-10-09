@@ -1249,8 +1249,28 @@ def _run_guard_rails_standard(no_format: bool) -> None:  # NOSONAR(S3776)
             attributes={"step": "ruff-check"},
         )
 
-        # Step 3: Format with ruff (unless skipped)
+        # Step 3: Sort imports and format with ruff (unless skipped)
         if not no_format:
+            console.print("[cyan]→ Running ruff isort...[/cyan]")
+            subprocess.run(
+                [
+                    "uv",
+                    "run",
+                    "ruff",
+                    "check",
+                    "--select",
+                    "I",
+                    "--fix",
+                    ".",
+                ],
+                check=True,
+            )
+            record_histogram(
+                GUARD_RAILS_STEP_DURATION,
+                time.perf_counter() - start_time,
+                attributes={"step": "ruff-isort"},
+            )
+
             console.print("[cyan]→ Running ruff format...[/cyan]")
             subprocess.run(["uv", "run", "ruff", "format", "."], check=True)
             record_histogram(

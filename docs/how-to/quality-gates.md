@@ -70,13 +70,20 @@ Check code style:
 uv run ruff check .
 ```
 
-Auto-fix issues:
+Auto-sort imports:
+
+```bash
+uv run ruff check --select I --fix .
+```
+
+Auto-fix other lint issues:
 
 ```bash
 uv run ruff check --fix .
 ```
 
-Ruff's fixer also normalizes import ordering, so no separate isort pass is required.
+Ruff's import sorter (`--select I`) is chained into every formatting run; keep it handy before running
+`ruff format` (below) to avoid import drift.
 
 ### Formatting
 
@@ -89,6 +96,7 @@ uv run ruff format --check .
 Apply formatting:
 
 ```bash
+uv run ruff check --select I --fix .
 uv run ruff format .
 ```
 

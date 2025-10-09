@@ -375,7 +375,7 @@ fi
 echo "Next steps:"
 echo "  • Run quality checks: uv run hephaestus guard-rails"
 echo "  • Run tests: uv run pytest"
-echo "  • Format code: uv run ruff format ."
+echo "  • Format code: uv run ruff check --select I --fix . && uv run ruff format ."
 echo "  • Check linting: uv run ruff check ."
 echo "  • Type check: uv run mypy src tests"
 echo ""

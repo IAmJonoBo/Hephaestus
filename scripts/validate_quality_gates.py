@@ -48,6 +48,13 @@ QUALITY_GATES = [
         category="linting",
     ),
     QualityGate(
+        name="Ruff Isort Check",
+        command=["ruff", "check", "--select", "I", "."],
+        required=True,
+        description="Ensure imports stay sorted via Ruff isort rules",
+        category="linting",
+    ),
+    QualityGate(
         name="Ruff Format Check",
         command=["ruff", "format", "--check", "."],
         required=True,

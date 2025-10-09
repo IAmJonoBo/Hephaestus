@@ -174,7 +174,7 @@ git push
 Run comprehensive quality and security pipeline in one command:
 
 ```bash
-# Full pipeline: cleanup → lint → format → typecheck → test → audit
+# Full pipeline: cleanup → lint → import-sort → format → typecheck → test → audit
 hephaestus guard-rails
 
 # Skip auto-formatting to review changes first
@@ -188,10 +188,11 @@ hephaestus guard-rails --drift
 
 1. Deep cleanup of build artifacts
 2. Lint code with ruff (auto-fix enabled)
-3. Format code with ruff format
-4. Type-check with mypy (strict mode)
-5. Run pytest with coverage ≥85%
-6. Security audit with pip-audit
+3. Auto-sort imports with ruff isort (`ruff check --select I --fix`)
+4. Format code with ruff format
+5. Type-check with mypy (strict mode)
+6. Run pytest with coverage ≥85%
+7. Security audit with pip-audit
 
 #### cleanup
 
@@ -453,7 +454,7 @@ Hephaestus enforces frontier-level quality through automated gates:
 ### Code Quality
 
 - **Linting**: Ruff with strict configuration (E, F, I, UP, B, C4 rules)
-- **Formatting**: Ruff format with 100-character line length
+- **Formatting**: Ruff isort + Ruff format with 100-character line length
 - **Type Safety**: Mypy strict mode with full coverage of src and tests
 - **Architecture**: Nested decorator linting prevents command registration bugs
 
