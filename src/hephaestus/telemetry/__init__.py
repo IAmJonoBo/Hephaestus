@@ -43,7 +43,7 @@ except ImportError:
 
         return decorator
 
-    def trace_operation(name: str, **kwargs):  # type: ignore[no-untyped-def]
+    def trace_operation(**kwargs):  # type: ignore[no-untyped-def]
         from contextlib import nullcontext
 
         return nullcontext()

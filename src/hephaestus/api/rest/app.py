@@ -12,8 +12,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, cast
 
 try:
     from fastapi import FastAPI, HTTPException, Security
@@ -42,7 +43,7 @@ security = HTTPBearer(auto_error=False)
 
 
 def verify_api_key(
-    credentials: HTTPAuthorizationCredentials | None = Security(security),
+    credentials: HTTPAuthorizationCredentials | None = None,
 ) -> str:
     """Verify API key from Authorization header.
 
@@ -55,6 +56,9 @@ def verify_api_key(
     Raises:
         HTTPException: If API key is missing or invalid
     """
+    if credentials is None:
+        credentials = Security(security)
+
     if credentials is None:
         raise HTTPException(status_code=401, detail="Missing API key")
 
@@ -73,11 +77,13 @@ task_manager = TaskManager()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> Any:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifecycle."""
     logger.info("Starting Hephaestus API server")
-    yield
-    logger.info("Shutting down Hephaestus API server")
+    try:
+        yield
+    finally:
+        logger.info("Shutting down Hephaestus API server")
 
 
 # Create FastAPI application
@@ -140,10 +146,13 @@ async def run_guard_rails(
             raise HTTPException(status_code=500, detail=status.error)
 
         result = status.result
+        if not isinstance(result, dict):
+            raise HTTPException(status_code=500, detail="Invalid task result")
+        data = cast(dict[str, Any], result)
         return GuardRailsResponse(
-            success=result.get("success", False),
-            gates=result.get("gates", []),
-            duration=result.get("duration", 0.0),
+            success=data.get("success", False),
+            gates=data.get("gates", []),
+            duration=data.get("duration", 0.0),
             task_id=task_id,
         )
 
@@ -186,10 +195,13 @@ async def cleanup(
             raise HTTPException(status_code=500, detail=status.error)
 
         result = status.result
+        if not isinstance(result, dict):
+            raise HTTPException(status_code=500, detail="Invalid task result")
+        data = cast(dict[str, Any], result)
         return CleanupResponse(
-            files_deleted=result.get("files_deleted", 0),
-            size_freed=result.get("size_freed", 0),
-            manifest=result.get("manifest", {}),
+            files_deleted=data.get("files_deleted", 0),
+            size_freed=data.get("size_freed", 0),
+            manifest=data.get("manifest", {}),
         )
 
     except Exception as e:
@@ -220,7 +232,7 @@ async def get_rankings(
 
     try:
         request = RankingsRequest(strategy=strategy, limit=limit)
-        result = await _execute_rankings(request)
+        result = _execute_rankings(request)
 
         return RankingsResponse(
             rankings=result.get("rankings", []),
@@ -261,7 +273,7 @@ async def get_task_status(
             error=status.error,
         )
     except KeyError:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=404, detail="Task not found") from None
 
 
 @app.get("/api/v1/tasks/{task_id}/stream")
@@ -283,7 +295,7 @@ async def stream_task_progress(
     """
     _ = api_key
 
-    async def event_generator() -> Any:
+    async def event_generator() -> AsyncIterator[bytes]:
         """Generate server-sent events for task progress."""
         import json
 
@@ -298,7 +310,8 @@ async def stream_task_progress(
                     "error": status.error if status.status == TaskStatus.FAILED else None,
                 }
 
-                yield f"data: {json.dumps(event_data)}\n\n"
+                json_str = json.dumps(event_data)
+                yield f"data: {json_str}\n\n".encode()
 
                 if status.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
                     break
@@ -307,13 +320,13 @@ async def stream_task_progress(
 
         except KeyError:
             error_data = {"error": "Task not found"}
-            yield f"data: {json.dumps(error_data)}\n\n"
+            yield f"data: {json.dumps(error_data)}\n\n".encode()
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 # Task execution functions
-async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
+def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
     """Execute guard-rails quality pipeline.
 
     Args:
@@ -323,8 +336,6 @@ async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
         Execution results
     """
     # Import here to avoid circular dependency
-    from hephaestus import cleanup as cleanup_module
-    from hephaestus.cleanup import CleanupOptions
 
     # Simulate guard-rails execution
     # In production, this would call actual Hephaestus commands
@@ -360,7 +371,7 @@ async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
     }
 
 
-async def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
+def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
     """Execute cleanup operation.
 
     Args:
@@ -382,7 +393,7 @@ async def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
     }
 
 
-async def _execute_rankings(request: RankingsRequest) -> dict[str, Any]:
+def _execute_rankings(request: RankingsRequest) -> dict[str, Any]:
     """Execute analytics rankings.
 
     Args:

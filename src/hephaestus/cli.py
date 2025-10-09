@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-import subprocess
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Annotated, cast
@@ -147,7 +146,7 @@ class ReleaseInstallOptions:
 
 
 @release_app.command("install")
-def release_install(
+def release_install(  # NOSONAR
     repository: Annotated[
         str,
         typer.Option(
@@ -289,7 +288,8 @@ def release_install(
             show_default=False,
         ),
     ] = None,
-) -> None:  # noqa: PLR0913
+    # noqa: PLR0913  # NOSONAR(S107) - CLI surface requires explicit options
+) -> None:
     """Download the Hephaestus wheelhouse and install it into the current environment."""
 
     options = ReleaseInstallOptions(
@@ -313,7 +313,7 @@ def release_install(
         sigstore_identity=list(sigstore_identity) if sigstore_identity else None,
     )
 
-    destination = (
+    destination_path = (
         options.destination.expanduser()
         if options.destination
         else release_module.DEFAULT_DOWNLOAD_DIRECTORY
@@ -332,7 +332,7 @@ def release_install(
             message="Starting release install",
             repository=options.repository,
             tag=options.tag or "latest",
-            destination=str(destination),
+            destination=str(destination_path),
             allow_unsigned=options.allow_unsigned,
             asset_pattern=options.asset_pattern,
             manifest_pattern=options.manifest_pattern,
@@ -346,7 +346,7 @@ def release_install(
         )
         download = release_module.download_wheelhouse(
             repository=options.repository,
-            destination_dir=destination,
+            destination_dir=destination_path,
             tag=options.tag,
             asset_pattern=options.asset_pattern,
             manifest_pattern=options.manifest_pattern,
@@ -393,6 +393,151 @@ def release_install(
             asset=download.asset.name,
             allow_unsigned=options.allow_unsigned,
         )
+
+
+# --- Cleanup pipeline extraction ---
+
+
+def _run_cleanup_pipeline(  # NOSONAR(S3776)
+    options: cleanup_module.CleanupOptions,
+    assume_yes: bool,
+    dry_run: bool,
+    deep_clean: bool,
+) -> None:
+    """Preview, confirm, execute, and summarise cleanup with telemetry."""
+    import time
+
+    # Preview
+    start_time = time.perf_counter()
+    normalized = options.normalize()
+    search_roots = cleanup_module.gather_search_roots(normalized)
+
+    preview_start = time.perf_counter()
+    preview_result = cleanup_module.run_cleanup(
+        replace(options, dry_run=True),
+        on_remove=None,
+        on_skip=None,
+    )
+    record_histogram(
+        "hephaestus.cleanup.preview.duration",
+        time.perf_counter() - preview_start,
+        attributes={"dry_run": True},
+    )
+
+    # Show preview
+    if preview_result.preview_paths:
+        preview_table = Table(title="Cleanup Preview")
+        preview_table.add_column("Action", style="cyan")
+        preview_table.add_column("Path", style="magenta")
+        for path in preview_result.preview_paths[:10]:
+            preview_table.add_row("remove", str(path))
+        remaining = len(preview_result.preview_paths) - min(10, len(preview_result.preview_paths))
+        if remaining > 0:
+            preview_table.add_row("…", f"+{remaining} more paths")
+        console.print(preview_table)
+    else:
+        console.print("[blue]No files would be removed by cleanup.[/blue]")
+
+    if preview_result.skipped_roots:
+        skipped_table = Table(title="Skipped Roots (Preview)")
+        skipped_table.add_column("Path", style="yellow")
+        skipped_table.add_column("Reason", style="white")
+        for path, reason in preview_result.skipped_roots:
+            skipped_table.add_row(str(path), reason)
+        console.print(skipped_table)
+
+    if dry_run:
+        console.print("[blue]Dry-run complete; no changes were made.[/blue]")
+        return
+
+    # Confirmation for out-of-root operations
+    outside_root = [path for path in search_roots if not _is_within_root(path, normalized.root)]
+    if outside_root and not assume_yes:
+        warning_table = Table(title="Confirmation Required")
+        warning_table.add_column("Target", style="yellow")
+        for path in outside_root:
+            warning_table.add_row(str(path))
+        console.print(warning_table)
+        console.print(
+            "[red]Cleanup will touch paths outside the workspace root. Type CONFIRM to proceed.[/red]"
+        )
+        confirmation = typer.prompt("Confirmation", default="")
+        if confirmation.strip().upper() != "CONFIRM":
+            console.print("[blue]Cleanup aborted before removing any files.[/blue]")
+            return
+
+    # Execute
+    removal_log: list[Path] = []
+
+    def _on_remove(path: Path) -> None:
+        removal_log.append(path)
+        console.print(f"[green]- removed[/green] {path}")
+
+    def _on_skip(path: Path, reason: str) -> None:
+        console.print(f"[yellow]! skipped[/yellow] {path} ({reason})")
+
+    cleanup_start = time.perf_counter()
+    result = cleanup_module.run_cleanup(options, on_remove=_on_remove, on_skip=_on_skip)
+    cleanup_duration = time.perf_counter() - cleanup_start
+
+    record_histogram(
+        "hephaestus.cleanup.execution.duration",
+        cleanup_duration,
+        attributes={"dry_run": False, "success": len(result.errors) == 0},
+    )
+    record_histogram(
+        "hephaestus.cleanup.files_removed",
+        len(result.removed_paths),
+        attributes={"deep_clean": deep_clean},
+    )
+
+    if result.errors:
+        telemetry.emit_event(
+            logger,
+            telemetry.CLI_CLEANUP_FAILED,
+            level=logging.ERROR,
+            message="Cleanup encountered errors",
+            errors=[{"path": str(path), "reason": message} for path, message in result.errors],
+        )
+        error_table = Table(title="Cleanup Errors")
+        error_table.add_column("Path", style="red")
+        error_table.add_column("Reason", style="white")
+        for path, message in result.errors:
+            error_table.add_row(str(path), message)
+        console.print(error_table)
+        raise typer.Exit(code=1)
+
+    summary = Table(title="Cleanup Summary")
+    summary.add_column("Metric", style="cyan")
+    summary.add_column("Value", justify="right", style="magenta")
+    summary.add_row("Search roots", str(len(result.search_roots)))
+    summary.add_row("Removed paths", str(len(result.removed_paths)))
+    summary.add_row("Skipped roots", str(len(result.skipped_roots)))
+    if result.audit_manifest:
+        summary.add_row("Audit manifest", str(result.audit_manifest))
+    console.print(summary)
+
+    if not removal_log:
+        console.print("[blue]No files required removal; workspace already clean.[/blue]")
+    else:
+        console.print("[green]Cleanup completed successfully.[/green]")
+
+    telemetry.emit_event(
+        logger,
+        telemetry.CLI_CLEANUP_COMPLETE,
+        message="Cleanup command finished",
+        removed=len(result.removed_paths),
+        skipped=len(result.skipped_roots),
+        errors=len(result.errors),
+        audit_manifest=str(result.audit_manifest) if result.audit_manifest else None,
+    )
+
+    total_duration = time.perf_counter() - start_time
+    record_histogram(
+        "hephaestus.cleanup.total.duration",
+        total_duration,
+        attributes={"deep_clean": deep_clean, "dry_run": dry_run},
+    )
 
 
 @release_app.command("backfill")
@@ -897,7 +1042,6 @@ def cleanup(
         max_depth=max_depth,
     )
 
-    removal_log: list[Path] = []
     operation_id = telemetry.generate_operation_id()
     with telemetry.operation_context(
         "cli.cleanup",
@@ -905,7 +1049,6 @@ def cleanup(
         command="cleanup",
         root=str(root) if root else None,
     ):
-        import time
 
         telemetry.emit_event(
             logger,
@@ -923,134 +1066,291 @@ def cleanup(
             audit_manifest=str(audit_manifest) if audit_manifest else None,
         )
 
+        _run_cleanup_pipeline(
+            options, assume_yes=assume_yes, dry_run=dry_run, deep_clean=deep_clean
+        )
+
+
+# --- Guard rails helpers ---
+
+
+def _run_drift_detection() -> None:
+    """Detect tool version drift and exit with status if drift is found."""
+    console.print("[cyan]Checking for tool version drift...[/cyan]")
+    with trace_operation("drift-detection", check_drift=True):
+        try:
+            tool_versions = drift_module.detect_drift()
+
+            drift_table = Table(title="Tool Version Drift")
+            drift_table.add_column("Tool", style="cyan")
+            drift_table.add_column("Expected", style="yellow")
+            drift_table.add_column("Actual", style="green")
+            drift_table.add_column("Status", style="white")
+
+            drifted = []
+            for tool in tool_versions:
+                if tool.is_missing:
+                    status = "[red]Missing[/red]"
+                    drifted.append(tool)
+                elif tool.has_drift:
+                    status = "[yellow]Drift[/yellow]"
+                    drifted.append(tool)
+                else:
+                    status = "[green]OK[/green]"
+
+                drift_table.add_row(
+                    tool.name,
+                    tool.expected or "N/A",
+                    tool.actual or "Not installed",
+                    status,
+                )
+
+            console.print(drift_table)
+
+            if drifted:
+                console.print("\n[yellow]Tool version drift detected![/yellow]")
+                commands = drift_module.generate_remediation_commands(drifted)
+
+                console.print("\n[cyan]Remediation commands:[/cyan]")
+                for cmd in commands:
+                    if cmd.startswith("#"):
+                        console.print(f"[dim]{cmd}[/dim]")
+                    else:
+                        console.print(f"  {cmd}")
+
+                telemetry.emit_event(
+                    logger,
+                    telemetry.CLI_GUARD_RAILS_DRIFT,
+                    message="Tool version drift detected",
+                    drifted_tools=[t.name for t in drifted],
+                )
+                raise typer.Exit(code=1)
+            else:
+                console.print("\n[green]✓ All tools are up to date.[/green]")
+                telemetry.emit_event(
+                    logger,
+                    telemetry.CLI_GUARD_RAILS_DRIFT_OK,
+                    message="No tool version drift detected",
+                )
+        except drift_module.DriftDetectionError as exc:
+            console.print(f"[red]✗ Drift detection failed: {exc}[/red]")
+            raise typer.Exit(code=1) from exc
+
+
+def _run_guard_rails_plugin_mode(no_format: bool) -> bool:  # NOSONAR(S3776)
+    """Run experimental plugin-based pipeline. Returns True if completed, False to fall back."""
+    console.print("[cyan]Running guard rails using plugin system (experimental)...[/cyan]")
+    from hephaestus.plugins import discover_plugins
+
+    try:
+        import time
+
         start_time = time.perf_counter()
-        normalized = options.normalize()
-        search_roots = cleanup_module.gather_search_roots(normalized)
-
-        preview_start = time.perf_counter()
-        preview_result = cleanup_module.run_cleanup(
-            replace(options, dry_run=True),
-            on_remove=None,
-            on_skip=None,
-        )
+        cleanup(deep_clean=True)
         record_histogram(
-            "hephaestus.cleanup.preview.duration",
-            time.perf_counter() - preview_start,
-            attributes={"dry_run": True},
+            "hephaestus.guard_rails.cleanup.duration",
+            time.perf_counter() - start_time,
+            attributes={"step": "cleanup", "plugin_mode": "true"},
         )
 
-        if preview_result.preview_paths:
-            preview_table = Table(title="Cleanup Preview")
-            preview_table.add_column("Action", style="cyan")
-            preview_table.add_column("Path", style="magenta")
-            for path in preview_result.preview_paths[:10]:
-                preview_table.add_row("remove", str(path))
-            remaining = len(preview_result.preview_paths) - min(
-                10, len(preview_result.preview_paths)
-            )
-            if remaining > 0:
-                preview_table.add_row("…", f"+{remaining} more paths")
-            console.print(preview_table)
-        else:
-            console.print("[blue]No files would be removed by cleanup.[/blue]")
+        plugin_registry = discover_plugins()
+        plugins = plugin_registry.all_plugins()
 
-        if preview_result.skipped_roots:
-            skipped_table = Table(title="Skipped Roots (Preview)")
-            skipped_table.add_column("Path", style="yellow")
-            skipped_table.add_column("Reason", style="white")
-            for path, reason in preview_result.skipped_roots:
-                skipped_table.add_row(str(path), reason)
-            console.print(skipped_table)
-
-        if dry_run:
-            console.print("[blue]Dry-run complete; no changes were made.[/blue]")
-            return
-
-        outside_root = [path for path in search_roots if not _is_within_root(path, normalized.root)]
-        if outside_root and not assume_yes:
-            warning_table = Table(title="Confirmation Required")
-            warning_table.add_column("Target", style="yellow")
-            for path in outside_root:
-                warning_table.add_row(str(path))
-            console.print(warning_table)
+        if not plugins:
             console.print(
-                "[red]Cleanup will touch paths outside the workspace root. Type CONFIRM to proceed.[/red]"
+                "[yellow]Warning: No plugins loaded. Falling back to standard pipeline.[/yellow]"
             )
-            confirmation = typer.prompt("Confirmation", default="")
-            if confirmation.strip().upper() != "CONFIRM":
-                console.print("[blue]Cleanup aborted before removing any files.[/blue]")
-                return
+            return False
 
-        def _on_remove(path: Path) -> None:
-            removal_log.append(path)
-            console.print(f"[green]- removed[/green] {path}")
+        console.print(f"[cyan]Loaded {len(plugins)} quality gate plugins[/cyan]")
 
-        def _on_skip(path: Path, reason: str) -> None:
-            console.print(f"[yellow]! skipped[/yellow] {path} ({reason})")
+        failed_plugins: list[str] = []
+        for plugin in plugins:
+            if no_format and plugin.metadata.name == "ruff-format":
+                console.print(f"[dim]Skipping {plugin.metadata.name} (--no-format)[/dim]")
+                continue
 
-        cleanup_start = time.perf_counter()
-        result = cleanup_module.run_cleanup(options, on_remove=_on_remove, on_skip=_on_skip)
-        cleanup_duration = time.perf_counter() - cleanup_start
+            console.print(
+                f"[cyan]→ Running {plugin.metadata.name} ({plugin.metadata.description})...[/cyan]"
+            )
+            start_time = time.perf_counter()
 
-        record_histogram(
-            "hephaestus.cleanup.execution.duration",
-            cleanup_duration,
-            attributes={"dry_run": False, "success": len(result.errors) == 0},
-        )
-        record_histogram(
-            "hephaestus.cleanup.files_removed",
-            len(result.removed_paths),
-            attributes={"deep_clean": deep_clean},
-        )
+            try:
+                result = plugin.run({})
+                record_histogram(
+                    "hephaestus.guard_rails.plugin.duration",
+                    time.perf_counter() - start_time,
+                    attributes={
+                        "plugin": plugin.metadata.name,
+                        "success": str(result.success).lower(),
+                    },
+                )
 
-        if result.errors:
+                if not result.success:
+                    console.print(f"[red]✗ {plugin.metadata.name}: {result.message}[/red]")
+                    failed_plugins.append(plugin.metadata.name)
+                    if result.details and "stdout" in result.details:
+                        console.print(result.details["stdout"])
+                else:
+                    console.print(f"[green]✓ {plugin.metadata.name}: {result.message}[/green]")
+            except Exception as exc:  # noqa: BLE001 - keep wide to isolate plugin crashes
+                console.print(f"[red]✗ {plugin.metadata.name} crashed: {exc}[/red]")
+                failed_plugins.append(plugin.metadata.name)
+
+        if failed_plugins:
+            console.print(
+                f"\n[red]✗ Guard rails failed. {len(failed_plugins)} plugin(s) failed:[/red]"
+            )
+            for plugin_name in failed_plugins:
+                console.print(f"  - {plugin_name}")
             telemetry.emit_event(
                 logger,
-                telemetry.CLI_CLEANUP_FAILED,
-                level=logging.ERROR,
-                message="Cleanup encountered errors",
-                errors=[{"path": str(path), "reason": message} for path, message in result.errors],
+                telemetry.CLI_GUARD_RAILS_FAILED,
+                message="Guard rails failed in plugin mode",
+                failed_plugins=failed_plugins,
             )
-            error_table = Table(title="Cleanup Errors")
-            error_table.add_column("Path", style="red")
-            error_table.add_column("Reason", style="white")
-            for path, message in result.errors:
-                error_table.add_row(str(path), message)
-            console.print(error_table)
             raise typer.Exit(code=1)
 
-        summary = Table(title="Cleanup Summary")
-        summary.add_column("Metric", style="cyan")
-        summary.add_column("Value", justify="right", style="magenta")
-        summary.add_row("Search roots", str(len(result.search_roots)))
-        summary.add_row("Removed paths", str(len(result.removed_paths)))
-        summary.add_row("Skipped roots", str(len(result.skipped_roots)))
-        if result.audit_manifest:
-            summary.add_row("Audit manifest", str(result.audit_manifest))
-        console.print(summary)
-
-        if not removal_log:
-            console.print("[blue]No files required removal; workspace already clean.[/blue]")
-        else:
-            console.print("[green]Cleanup completed successfully.[/green]")
-
+        console.print("\n[green]✓ Guard rails completed successfully (plugin mode).[/green]")
         telemetry.emit_event(
             logger,
-            telemetry.CLI_CLEANUP_COMPLETE,
-            message="Cleanup command finished",
-            removed=len(result.removed_paths),
-            skipped=len(result.skipped_roots),
-            errors=len(result.errors),
-            audit_manifest=str(result.audit_manifest) if result.audit_manifest else None,
+            telemetry.CLI_GUARD_RAILS_SUCCESS,
+            message="Guard rails completed successfully in plugin mode",
+        )
+        return True
+    except Exception as exc:  # noqa: BLE001 - convert any plugin infra errors to fallback
+        console.print(f"[red]✗ Plugin system error: {exc}[/red]")
+        console.print("[yellow]Falling back to standard pipeline...[/yellow]")
+        return False
+
+
+def _run_guard_rails_standard(no_format: bool) -> None:  # NOSONAR(S3776)
+    """Run the default guard-rails pipeline with metrics and error handling."""
+    import subprocess
+    import time
+
+    GUARD_RAILS_STEP_DURATION = "hephaestus.guard_rails.step.duration"
+    start_time = time.perf_counter()
+    try:
+        # Step 1: Deep clean workspace
+        cleanup(deep_clean=True)
+        record_histogram(
+            "hephaestus.guard_rails.cleanup.duration",
+            time.perf_counter() - start_time,
+            attributes={"step": "cleanup"},
         )
 
-        # Record overall cleanup metrics
-        total_duration = time.perf_counter() - start_time
+        # Step 2: Lint with ruff
+        console.print("\n[cyan]→ Running ruff check...[/cyan]")
+        subprocess.run(["uv", "run", "ruff", "check", "."], check=True)
         record_histogram(
-            "hephaestus.cleanup.total.duration",
-            total_duration,
-            attributes={"deep_clean": deep_clean, "dry_run": dry_run},
+            GUARD_RAILS_STEP_DURATION,
+            time.perf_counter() - start_time,
+            attributes={"step": "ruff-check"},
         )
+
+        # Step 3: Format with ruff (unless skipped)
+        if not no_format:
+            console.print("[cyan]→ Running ruff format...[/cyan]")
+            subprocess.run(["uv", "run", "ruff", "format", "."], check=True)
+            record_histogram(
+                GUARD_RAILS_STEP_DURATION,
+                time.perf_counter() - start_time,
+                attributes={"step": "ruff-format"},
+            )
+
+        # Step 4: Yamllint
+        console.print("[cyan]→ Running yamllint...[/cyan]")
+        subprocess.run(
+            [
+                "yamllint",
+                ".github/",
+                ".pre-commit-config.yaml",
+                "mkdocs.yml",
+                "hephaestus-toolkit/",
+            ],
+            check=True,
+        )
+        record_histogram(
+            GUARD_RAILS_STEP_DURATION,
+            time.perf_counter() - start_time,
+            attributes={"step": "yamllint"},
+        )
+
+        # Step 5: Mypy
+        console.print("[cyan]→ Running mypy...[/cyan]")
+        subprocess.run(["uv", "run", "mypy", "src", "tests"], check=True)
+        record_histogram(
+            GUARD_RAILS_STEP_DURATION,
+            time.perf_counter() - start_time,
+            attributes={"step": "mypy"},
+        )
+
+        # Step 6: Pytest
+        console.print("[cyan]→ Running pytest...[/cyan]")
+        subprocess.run(["uv", "run", "pytest"], check=True)
+        record_histogram(
+            GUARD_RAILS_STEP_DURATION,
+            time.perf_counter() - start_time,
+            attributes={"step": "pytest"},
+        )
+
+        # Step 7: pip-audit
+        console.print("[cyan]→ Running pip-audit...[/cyan]")
+        subprocess.run(
+            [
+                "uv",
+                "run",
+                "pip-audit",
+                "--strict",
+                "--ignore-vuln",
+                "GHSA-4xh5-x5gv-qwph",
+            ],
+            check=True,
+        )
+        record_histogram(
+            GUARD_RAILS_STEP_DURATION,
+            time.perf_counter() - start_time,
+            attributes={"step": "pip-audit"},
+        )
+
+        console.print("\n[green]✓ Guard rails completed successfully.[/green]")
+        telemetry.emit_event(
+            logger,
+            telemetry.CLI_GUARD_RAILS_SUCCESS,
+            message="Guard rails completed successfully",
+        )
+
+    except subprocess.TimeoutExpired as exc:
+        record_histogram(
+            GUARD_RAILS_STEP_DURATION,
+            time.perf_counter() - start_time,
+            attributes={"step": "pip-audit", "timeout": True},
+        )
+        console.print(f"\n[red]✗ Guard rails timed out: {exc.cmd[0]}[/red]")
+        console.print(f"[yellow]Timeout: {exc.timeout}s[/yellow]")
+        telemetry.emit_event(
+            logger,
+            telemetry.CLI_GUARD_RAILS_FAILED,
+            level=logging.ERROR,
+            message="Guard rails timed out",
+            step=exc.cmd[0],
+            returncode=124,  # Standard timeout exit code
+        )
+        raise typer.Exit(code=124) from exc
+
+    except subprocess.CalledProcessError as exc:
+        console.print(f"\n[red]✗ Guard rails failed at: {exc.cmd[0]}[/red]")
+        console.print(f"[yellow]Exit code: {exc.returncode}[/yellow]")
+        telemetry.emit_event(
+            logger,
+            telemetry.CLI_GUARD_RAILS_FAILED,
+            level=logging.ERROR,
+            message="Guard rails failed",
+            step=exc.cmd[0],
+            returncode=exc.returncode,
+        )
+        raise typer.Exit(code=exc.returncode) from exc
 
 
 @app.command()
@@ -1095,8 +1395,6 @@ def guard_rails(
 ) -> None:
     """Run the full guard-rail pipeline: cleanup, lint, format, typecheck, test, and audit."""
 
-    GUARD_RAILS_STEP_DURATION = "hephaestus.guard_rails.step.duration"
-
     operation_id = telemetry.generate_operation_id()
     with telemetry.operation_context(
         "cli.guard-rails",
@@ -1105,177 +1403,6 @@ def guard_rails(
         skip_format=no_format,
         check_drift=drift,
     ):
-        # Drift detection mode
-        if drift:
-            console.print("[cyan]Checking for tool version drift...[/cyan]")
-            with trace_operation("drift-detection", check_drift=True):
-                try:
-                    tool_versions = drift_module.detect_drift()
-
-                    drift_table = Table(title="Tool Version Drift")
-                    drift_table.add_column("Tool", style="cyan")
-                    drift_table.add_column("Expected", style="yellow")
-                    drift_table.add_column("Actual", style="green")
-                    drift_table.add_column("Status", style="white")
-
-                    drifted = []
-                    for tool in tool_versions:
-                        if tool.is_missing:
-                            status = "[red]Missing[/red]"
-                            drifted.append(tool)
-                        elif tool.has_drift:
-                            status = "[yellow]Drift[/yellow]"
-                            drifted.append(tool)
-                        else:
-                            status = "[green]OK[/green]"
-
-                        drift_table.add_row(
-                            tool.name,
-                            tool.expected or "N/A",
-                            tool.actual or "Not installed",
-                            status,
-                        )
-
-                    console.print(drift_table)
-
-                    if drifted:
-                        console.print("\n[yellow]Tool version drift detected![/yellow]")
-                        commands = drift_module.generate_remediation_commands(drifted)
-
-                        console.print("\n[cyan]Remediation commands:[/cyan]")
-                        for cmd in commands:
-                            if cmd.startswith("#"):
-                                console.print(f"[dim]{cmd}[/dim]")
-                            else:
-                                console.print(f"  {cmd}")
-
-                        telemetry.emit_event(
-                            logger,
-                            telemetry.CLI_GUARD_RAILS_DRIFT,
-                            message="Tool version drift detected",
-                            drifted_tools=[t.name for t in drifted],
-                        )
-                        raise typer.Exit(code=1)
-                    else:
-                        console.print("\n[green]✓ All tools are up to date.[/green]")
-                        telemetry.emit_event(
-                            logger,
-                            telemetry.CLI_GUARD_RAILS_DRIFT_OK,
-                            message="No tool version drift detected",
-                        )
-                        return
-                except drift_module.DriftDetectionError as exc:
-                    console.print(f"[red]✗ Drift detection failed: {exc}[/red]")
-                    raise typer.Exit(code=1) from exc
-
-        # Plugin-based pipeline (experimental - ADR-002 Sprint 3)
-        if use_plugins:
-            console.print("[cyan]Running guard rails using plugin system (experimental)...[/cyan]")
-            from hephaestus.plugins import discover_plugins
-
-            try:
-                # Step 1: Deep clean workspace (not yet a plugin)
-                import time
-
-                start_time = time.perf_counter()
-                cleanup(deep_clean=True)
-                record_histogram(
-                    "hephaestus.guard_rails.cleanup.duration",
-                    time.perf_counter() - start_time,
-                    attributes={"step": "cleanup", "plugin_mode": "true"},
-                )
-
-                # Step 2: Load and execute plugins
-                plugin_registry = discover_plugins()
-                plugins = plugin_registry.all_plugins()
-
-                if not plugins:
-                    console.print(
-                        "[yellow]Warning: No plugins loaded. "
-                        "Falling back to standard pipeline.[/yellow]"
-                    )
-                    use_plugins = False
-                else:
-                    console.print(f"[cyan]Loaded {len(plugins)} quality gate plugins[/cyan]")
-
-                    # Execute each plugin
-                    failed_plugins = []
-                    for plugin in plugins:
-                        # Skip format plugin if --no-format is set
-                        if no_format and plugin.metadata.name == "ruff-format":
-                            console.print(
-                                f"[dim]Skipping {plugin.metadata.name} (--no-format)[/dim]"
-                            )
-                            continue
-
-                        console.print(
-                            f"[cyan]→ Running {plugin.metadata.name} "
-                            f"({plugin.metadata.description})...[/cyan]"
-                        )
-                        start_time = time.perf_counter()
-
-                        try:
-                            result = plugin.run({})
-                            record_histogram(
-                                "hephaestus.guard_rails.plugin.duration",
-                                time.perf_counter() - start_time,
-                                attributes={
-                                    "plugin": plugin.metadata.name,
-                                    "success": str(result.success).lower(),
-                                },
-                            )
-
-                            if not result.success:
-                                console.print(
-                                    f"[red]✗ {plugin.metadata.name}: {result.message}[/red]"
-                                )
-                                failed_plugins.append(plugin.metadata.name)
-                                if result.details and "stdout" in result.details:
-                                    console.print(result.details["stdout"])
-                            else:
-                                console.print(
-                                    f"[green]✓ {plugin.metadata.name}: {result.message}[/green]"
-                                )
-                        except Exception as exc:
-                            console.print(f"[red]✗ {plugin.metadata.name} crashed: {exc}[/red]")
-                            failed_plugins.append(plugin.metadata.name)
-
-                    if failed_plugins:
-                        console.print(
-                            f"\n[red]✗ Guard rails failed. {len(failed_plugins)} "
-                            f"plugin(s) failed:[/red]"
-                        )
-                        for plugin_name in failed_plugins:
-                            console.print(f"  - {plugin_name}")
-                        telemetry.emit_event(
-                            logger,
-                            telemetry.CLI_GUARD_RAILS_FAILED,
-                            message="Guard rails failed in plugin mode",
-                            failed_plugins=failed_plugins,
-                        )
-                        raise typer.Exit(code=1)
-
-                    console.print(
-                        "\n[green]✓ Guard rails completed successfully (plugin mode).[/green]"
-                    )
-                    telemetry.emit_event(
-                        logger,
-                        telemetry.CLI_GUARD_RAILS_SUCCESS,
-                        message="Guard rails completed successfully in plugin mode",
-                    )
-                    return
-
-            except Exception as exc:
-                console.print(f"[red]✗ Plugin system error: {exc}[/red]")
-                console.print("[yellow]Falling back to standard pipeline...[/yellow]")
-                use_plugins = False
-
-        # Standard guard-rails pipeline
-        if not use_plugins:
-            console.print("[cyan]Running guard rails...[/cyan]")
-
-        import time  # Ensure time is imported before usage
-
         telemetry.emit_event(
             logger,
             telemetry.CLI_GUARD_RAILS_START,
@@ -1283,117 +1410,11 @@ def guard_rails(
             skip_format=no_format,
         )
 
-        start_time = time.perf_counter()
-        try:
-            # Step 1: Deep clean workspace
-            cleanup(deep_clean=True)
-            record_histogram(
-                "hephaestus.guard_rails.cleanup.duration",
-                time.perf_counter() - start_time,
-                attributes={"step": "cleanup"},
-            )
+        if drift:
+            _run_drift_detection()
+            return
 
-            # Step 2: Lint with ruff
-            console.print("\n[cyan]→ Running ruff check...[/cyan]")
-            subprocess.run(["uv", "run", "ruff", "check", "."], check=True)
-            record_histogram(
-                GUARD_RAILS_STEP_DURATION,
-                time.perf_counter() - start_time,
-                attributes={"step": "ruff-check"},
-            )
+        if use_plugins and _run_guard_rails_plugin_mode(no_format):
+            return
 
-            # Step 3: Format with ruff (unless skipped)
-            if not no_format:
-                console.print("[cyan]→ Running ruff format...[/cyan]")
-                subprocess.run(["uv", "run", "ruff", "format", "."], check=True)
-                record_histogram(
-                    GUARD_RAILS_STEP_DURATION,
-                    time.perf_counter() - start_time,
-                    attributes={"step": "ruff-format"},
-                )
-
-            # Step 4: Yamllint
-            console.print("[cyan]→ Running yamllint...[/cyan]")
-            subprocess.run(
-                [
-                    "yamllint",
-                    ".github/",
-                    ".pre-commit-config.yaml",
-                    "mkdocs.yml",
-                    "hephaestus-toolkit/",
-                ],
-                check=True,
-            )
-            record_histogram(
-                GUARD_RAILS_STEP_DURATION,
-                time.perf_counter() - start_time,
-                attributes={"step": "yamllint"},
-            )
-
-            # Step 5: Mypy
-            console.print("[cyan]→ Running mypy...[/cyan]")
-            subprocess.run(["uv", "run", "mypy", "src", "tests"], check=True)
-            record_histogram(
-                GUARD_RAILS_STEP_DURATION,
-                time.perf_counter() - start_time,
-                attributes={"step": "mypy"},
-            )
-
-            # Step 6: Pytest
-            console.print("[cyan]→ Running pytest...[/cyan]")
-            subprocess.run(["uv", "run", "pytest"], check=True)
-            record_histogram(
-                GUARD_RAILS_STEP_DURATION,
-                time.perf_counter() - start_time,
-                attributes={"step": "pytest"},
-            )
-
-            # Step 7: pip-audit
-            console.print("[cyan]→ Running pip-audit...[/cyan]")
-            subprocess.run(
-                ["uv", "run", "pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"],
-                check=True,
-            )
-            record_histogram(
-                GUARD_RAILS_STEP_DURATION,
-                time.perf_counter() - start_time,
-                attributes={"step": "pip-audit"},
-            )
-
-            console.print("\n[green]✓ Guard rails completed successfully.[/green]")
-            telemetry.emit_event(
-                logger,
-                telemetry.CLI_GUARD_RAILS_SUCCESS,
-                message="Guard rails completed successfully",
-            )
-
-        except subprocess.TimeoutExpired as exc:
-            record_histogram(
-                GUARD_RAILS_STEP_DURATION,
-                time.perf_counter() - start_time,
-                attributes={"step": "pip-audit", "timeout": True},
-            )
-            console.print(f"\n[red]✗ Guard rails timed out: {exc.cmd[0]}[/red]")
-            console.print(f"[yellow]Timeout: {exc.timeout}s[/yellow]")
-            telemetry.emit_event(
-                logger,
-                telemetry.CLI_GUARD_RAILS_FAILED,
-                level=logging.ERROR,
-                message="Guard rails timed out",
-                step=exc.cmd[0],
-                returncode=124,  # Standard timeout exit code
-            )
-            raise typer.Exit(code=124) from exc
-
-        except subprocess.CalledProcessError as exc:
-            console.print(f"\n[red]✗ Guard rails failed at: {exc.cmd[0]}[/red]")
-            console.print(f"[yellow]Exit code: {exc.returncode}[/yellow]")
-            telemetry.emit_event(
-                logger,
-                telemetry.CLI_GUARD_RAILS_FAILED,
-                level=logging.ERROR,
-                message="Guard rails failed",
-                step=exc.cmd[0],
-                returncode=exc.returncode,
-            )
-            raise typer.Exit(code=exc.returncode) from exc
+        _run_guard_rails_standard(no_format)

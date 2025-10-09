@@ -15,12 +15,12 @@ jobs:
     # environment block removed due to invalid value
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          python-version: "3.12"
 
       - name: Install build dependencies
         run: |
@@ -45,7 +45,7 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
 
       - name: Publish to PyPI (stable)
-        if: "!github.event.release.prerelease"
+        if: ${{ github.event.release.prerelease == false }}
         uses: pypa/gh-action-pypi-publish@release/v1
 
       - name: Attach Sigstore bundles to release

@@ -537,6 +537,7 @@ api = [
 ]
 dev = [
     { name = "black" },
+    { name = "fastapi" },
     { name = "mkdocs" },
     { name = "mkdocs-material" },
     { name = "mypy" },
@@ -569,6 +570,7 @@ requires-dist = [
     { name = "coverage", extras = ["toml"], marker = "extra == 'qa'", specifier = ">=7.4" },
     { name = "cryptography", specifier = ">=43.0.3" },
     { name = "fastapi", marker = "extra == 'api'", specifier = ">=0.115.0" },
+    { name = "fastapi", marker = "extra == 'dev'", specifier = ">=0.118.0" },
     { name = "httpx", marker = "extra == 'qa'", specifier = ">=0.28.1" },
     { name = "libcst", specifier = ">=1.8.5" },
     { name = "mkdocs", marker = "extra == 'dev'", specifier = ">=1.6.1" },
