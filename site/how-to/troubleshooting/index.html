@@ -1,0 +1,3124 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Hephaestus developer experience toolkit">
+      
+      
+      
+        <link rel="canonical" href="https://hephaestus.example.com/how-to/troubleshooting/">
+      
+      
+        <link rel="prev" href="../testing/">
+      
+      
+        <link rel="next" href="../observability/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.21">
+    
+    
+      
+        <title>Troubleshooting - Hephaestus Toolkit</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.2a3383ac.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#troubleshooting-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Hephaestus Toolkit" class="md-header__button md-logo" aria-label="Hephaestus Toolkit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Hephaestus Toolkit
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Troubleshooting
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/IAmJonoBo/Hephaestus" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Hephaestus
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/getting-started/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../install-wheelhouse/" class="md-tabs__link">
+          
+  
+  
+  How-to guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../explanation/architecture/" class="md-tabs__link">
+          
+  
+  
+  Explanation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/cli/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../adr/" class="md-tabs__link">
+          
+  
+  
+  Appendix
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Hephaestus Toolkit" class="md-nav__button md-logo" aria-label="Hephaestus Toolkit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Hephaestus Toolkit
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/IAmJonoBo/Hephaestus" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Hephaestus
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tutorials
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    How-to guides
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            How-to guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../install-wheelhouse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Install from a Wheelhouse
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editor-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Configure Your Editor
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operating-safely/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Operating Safely
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quality-gates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quality Gate Validation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ci-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    CI/CD Setup & Dependency Management
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-agent-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    AI Agent Integration
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Process
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Testing Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick Diagnostics
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installation-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installation Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hephaestus-command-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      "hephaestus: command not found"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-not-found-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Module not found" errors
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uv-command-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      "uv: command not found"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macos-appledoubleresource-fork-installation-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      macOS AppleDouble/Resource Fork Installation Errors
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#guard-rails-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Guard-Rails Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Guard-Rails Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#guard-rails-fails-immediately" class="md-nav__link">
+    <span class="md-ellipsis">
+      Guard-rails fails immediately
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pip-audit-failed-in-guard-rails" class="md-nav__link">
+    <span class="md-ellipsis">
+      "pip-audit failed" in guard-rails
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests-fail-during-guard-rails" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tests fail during guard-rails
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-checking-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      Type checking fails
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cleanup-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cleanup Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cleanup Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#refusing-to-clean-dangerous-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Refusing to clean dangerous path"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cleanup-asks-for-confirmation-repeatedly" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cleanup asks for confirmation repeatedly
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#files-not-being-deleted" class="md-nav__link">
+    <span class="md-ellipsis">
+      Files not being deleted
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#drift-detection-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Drift Detection Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Drift Detection Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tool-version-drift-detected" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Tool version drift detected"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tool-not-installed" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Tool not installed"
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#release-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Release Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Release Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#failed-to-download-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Failed to download release"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checksum-verification-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Checksum verification failed"
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#analytics-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Analytics Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Analytics Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#no-analytics-data-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      "No analytics data found"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#invalid-analytics-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Invalid analytics format"
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schema-export-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Schema Export Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Schema Export Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schema-export-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Schema export fails"
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#environment-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Environment Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Environment Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#works-on-my-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Works on my machine"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#virtual-environment-conflicts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Virtual environment conflicts
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cache-corruption" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cache corruption
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Performance Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#guard-rails-is-slow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Guard-rails is slow
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests-are-slow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tests are slow
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cicd-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      CI/CD Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CI/CD Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ci-fails-but-local-passes" class="md-nav__link">
+    <span class="md-ellipsis">
+      CI fails but local passes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#coverage-drops-in-ci" class="md-nav__link">
+    <span class="md-ellipsis">
+      Coverage drops in CI
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-more-help" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting More Help
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Getting More Help">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#enable-debug-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      Enable Debug Logging
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collect-diagnostic-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      Collect Diagnostic Information
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#check-known-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Check Known Issues
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report-a-bug" class="md-nav__link">
+    <span class="md-ellipsis">
+      Report a Bug
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Security Issues
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick Reference
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagnostic-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Diagnostic Commands
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reset-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reset Commands
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common Fixes
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Related Documentation
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Observability (OpenTelemetry)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugin-development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Plugin Development
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Explanation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Explanation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Evergreen Lifecycle Playbook
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/frontier-standards/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Frontier Standards Charter
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/frontier-red-team-gap-analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Frontier Red Team & Gap Analysis
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Reference
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    CLI Reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    REST API Reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/telemetry-events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Telemetry Events
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli-completions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    CLI Autocompletion
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pre-release-checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Pre-Release Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../refactoring-toolkit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Refactoring Toolkit Map
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Appendix
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Appendix
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0000-template/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR Template
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0001-stride-threat-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR 0001 - STRIDE Threat Model
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0002-plugin-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR 0002 - Plugin Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0003-opentelemetry-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR 0003 - OpenTelemetry Integration
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0004-rest-grpc-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR 0004 - REST/gRPC API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0005-pypi-publication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR 0005 - PyPI Publication
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0006-sigstore-backfill/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR 0006 - Sigstore Backfill
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick Diagnostics
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installation-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installation Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hephaestus-command-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      "hephaestus: command not found"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-not-found-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Module not found" errors
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uv-command-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      "uv: command not found"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macos-appledoubleresource-fork-installation-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      macOS AppleDouble/Resource Fork Installation Errors
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#guard-rails-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Guard-Rails Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Guard-Rails Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#guard-rails-fails-immediately" class="md-nav__link">
+    <span class="md-ellipsis">
+      Guard-rails fails immediately
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pip-audit-failed-in-guard-rails" class="md-nav__link">
+    <span class="md-ellipsis">
+      "pip-audit failed" in guard-rails
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests-fail-during-guard-rails" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tests fail during guard-rails
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-checking-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      Type checking fails
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cleanup-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cleanup Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cleanup Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#refusing-to-clean-dangerous-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Refusing to clean dangerous path"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cleanup-asks-for-confirmation-repeatedly" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cleanup asks for confirmation repeatedly
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#files-not-being-deleted" class="md-nav__link">
+    <span class="md-ellipsis">
+      Files not being deleted
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#drift-detection-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Drift Detection Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Drift Detection Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tool-version-drift-detected" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Tool version drift detected"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tool-not-installed" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Tool not installed"
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#release-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Release Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Release Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#failed-to-download-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Failed to download release"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checksum-verification-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Checksum verification failed"
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#analytics-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Analytics Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Analytics Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#no-analytics-data-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      "No analytics data found"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#invalid-analytics-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Invalid analytics format"
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schema-export-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Schema Export Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Schema Export Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schema-export-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Schema export fails"
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#environment-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Environment Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Environment Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#works-on-my-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Works on my machine"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#virtual-environment-conflicts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Virtual environment conflicts
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cache-corruption" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cache corruption
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Performance Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#guard-rails-is-slow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Guard-rails is slow
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests-are-slow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tests are slow
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cicd-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      CI/CD Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CI/CD Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ci-fails-but-local-passes" class="md-nav__link">
+    <span class="md-ellipsis">
+      CI fails but local passes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#coverage-drops-in-ci" class="md-nav__link">
+    <span class="md-ellipsis">
+      Coverage drops in CI
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-more-help" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting More Help
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Getting More Help">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#enable-debug-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      Enable Debug Logging
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collect-diagnostic-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      Collect Diagnostic Information
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#check-known-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Check Known Issues
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report-a-bug" class="md-nav__link">
+    <span class="md-ellipsis">
+      Report a Bug
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Security Issues
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick Reference
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diagnostic-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Diagnostic Commands
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reset-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reset Commands
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common Fixes
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Related Documentation
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="troubleshooting-guide">Troubleshooting Guide<a class="headerlink" href="#troubleshooting-guide" title="Permanent link">&para;</a></h1>
+<p>This guide helps you diagnose and fix common issues with Hephaestus.</p>
+<h2 id="quick-diagnostics">Quick Diagnostics<a class="headerlink" href="#quick-diagnostics" title="Permanent link">&para;</a></h2>
+<p>Start with these commands to identify issues:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check version</span>
+hephaestus<span class="w"> </span>--version
+
+<span class="c1"># Verify environment</span>
+hephaestus<span class="w"> </span>guard-rails<span class="w"> </span>--drift
+
+<span class="c1"># Run full quality checks</span>
+hephaestus<span class="w"> </span>guard-rails
+
+<span class="c1"># Check Python version</span>
+python3<span class="w"> </span>--version<span class="w">  </span><span class="c1"># Should be 3.12+</span>
+
+<span class="c1"># List installed packages</span>
+pip<span class="w"> </span>list<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">&quot;(hephaestus|ruff|mypy|pytest)&quot;</span>
+</code></pre></div>
+<h2 id="common-issues">Common Issues<a class="headerlink" href="#common-issues" title="Permanent link">&para;</a></h2>
+<h3 id="installation-issues">Installation Issues<a class="headerlink" href="#installation-issues" title="Permanent link">&para;</a></h3>
+<h4 id="hephaestus-command-not-found">"hephaestus: command not found"<a class="headerlink" href="#hephaestus-command-not-found" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> Command not found when running <code>hephaestus</code></p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li>Package not installed</li>
+<li>Installation directory not in PATH</li>
+<li>Virtual environment not activated</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check if installed</span>
+pip<span class="w"> </span>show<span class="w"> </span>hephaestus
+
+<span class="c1"># If not installed, install it</span>
+pip<span class="w"> </span>install<span class="w"> </span>hephaestus
+<span class="c1"># or: pip install -e &quot;.[dev,qa]&quot;  # from source</span>
+
+<span class="c1"># If installed but not in PATH, try:</span>
+python<span class="w"> </span>-m<span class="w"> </span>hephaestus<span class="w"> </span>--help
+
+<span class="c1"># Activate virtual environment if using one</span>
+<span class="nb">source</span><span class="w"> </span>.venv/bin/activate<span class="w">  </span><span class="c1"># Linux/macOS</span>
+<span class="c1"># or: .venv\Scripts\activate  # Windows</span>
+</code></pre></div>
+<h4 id="module-not-found-errors">"Module not found" errors<a class="headerlink" href="#module-not-found-errors" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> <code>ModuleNotFoundError: No module named 'X'</code></p>
+<p><strong>Cause:</strong> Missing dependencies</p>
+<p><strong>Solution:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Reinstall with all extras</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,qa]&quot;</span>
+
+<span class="c1"># Or sync with uv</span>
+uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev<span class="w"> </span>--extra<span class="w"> </span>qa
+
+<span class="c1"># Verify installation</span>
+pip<span class="w"> </span>list
+</code></pre></div>
+<h4 id="uv-command-not-found">"uv: command not found"<a class="headerlink" href="#uv-command-not-found" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> <code>bash: uv: command not found</code></p>
+<p><strong>Cause:</strong> uv package manager not installed</p>
+<p><strong>Solutions:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Install uv</span>
+curl<span class="w"> </span>-LsSf<span class="w"> </span>https://astral.sh/uv/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
+
+<span class="c1"># Or use pip</span>
+pip<span class="w"> </span>install<span class="w"> </span>uv
+
+<span class="c1"># Or use the repo without uv</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,qa]&quot;</span>
+python<span class="w"> </span>-m<span class="w"> </span>hephaestus<span class="w"> </span>--help
+</code></pre></div>
+<h4 id="macos-appledoubleresource-fork-installation-errors">macOS AppleDouble/Resource Fork Installation Errors<a class="headerlink" href="#macos-appledoubleresource-fork-installation-errors" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> Installation fails with errors like:</p>
+<div class="highlight"><pre><span></span><code>error: Failed to install: ruff-0.14.0-py3-none-macosx_11_0_arm64.whl (ruff==0.14.0)
+Caused by: RECORD file doesn&#39;t match wheel contents: Could not find entry for ruff-0.14.0.data/scripts/._ruff
+</code></pre></div>
+<p>or:</p>
+<div class="highlight"><pre><span></span><code>warning: Failed to clone files; falling back to full copy
+error: Failed to install: bandit-1.8.6-py3-none-any.whl (bandit==1.8.6)
+Caused by: failed to copy file from ... to ...: No such file or directory
+</code></pre></div>
+<p><strong>Cause:</strong> macOS creates AppleDouble files (prefixed with <code>._</code>) in the UV cache and virtual environment, which are not listed in wheel RECORD files. This happens when:</p>
+<ul>
+<li>Files are copied across filesystems (e.g., network drives, external drives)</li>
+<li>The repository is on a non-xattr filesystem (exFAT, NTFS, FAT32)</li>
+<li>The cache contains corrupted or stale metadata</li>
+<li>Reflink operations fail on non-APFS filesystems</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<p>The <code>scripts/setup-dev-env.sh</code> script now automatically handles this on macOS, including:</p>
+<ul>
+<li>Detecting non-xattr filesystems (exFAT, NTFS, FAT32, etc.)</li>
+<li>Automatically relocating the virtual environment to an APFS-backed location (<code>$HOME/.uvenvs/&lt;repo&gt;</code>)</li>
+<li>Stripping extended attributes from UV cache and environment before sync</li>
+<li>Creating a symlink from <code>.venv</code> to the relocated environment</li>
+</ul>
+<p>If you still encounter issues:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. Set environment variables to prevent the issue</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">UV_LINK_MODE</span><span class="o">=</span>copy
+<span class="nb">export</span><span class="w"> </span><span class="nv">COPYFILE_DISABLE</span><span class="o">=</span><span class="m">1</span>
+
+<span class="c1"># 2. Strip extended attributes from UV cache</span>
+xattr<span class="w"> </span>-rc<span class="w"> </span>~/.cache/uv
+
+<span class="c1"># 3. Clear UV cache completely</span>
+rm<span class="w"> </span>-rf<span class="w"> </span>~/.cache/uv
+
+<span class="c1"># 4. Remove virtual environment (if it&#39;s a symlink, remove the target too)</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span>-L<span class="w"> </span>.venv<span class="w"> </span><span class="o">]]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span>rm<span class="w"> </span>-rf<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>readlink<span class="w"> </span>.venv<span class="k">)</span><span class="s2">&quot;</span>
+<span class="w">    </span>rm<span class="w"> </span>.venv
+<span class="k">else</span>
+<span class="w">    </span>rm<span class="w"> </span>-rf<span class="w"> </span>.venv
+<span class="k">fi</span>
+
+<span class="c1"># 5. Run the cleanup script to remove all macOS metadata</span>
+./cleanup-macos-cruft.sh
+
+<span class="c1"># 6. Re-run setup</span>
+./scripts/setup-dev-env.sh
+
+<span class="c1"># Alternatively, if the issue persists, try:</span>
+uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev<span class="w"> </span>--extra<span class="w"> </span>qa<span class="w"> </span>--reinstall
+</code></pre></div>
+<p><strong>Working on External/USB Drives (exFAT, NTFS, FAT32):</strong></p>
+<p>If your repository is on an external drive or USB stick formatted as exFAT, NTFS, or FAT32, the setup script will automatically:</p>
+<ol>
+<li>Detect the non-xattr filesystem</li>
+<li>Set <code>UV_PROJECT_ENVIRONMENT=$HOME/.uvenvs/&lt;repo-name&gt;</code></li>
+<li>Create the virtual environment on your internal APFS disk</li>
+<li>Create a symlink: <code>.venv -&gt; $HOME/.uvenvs/&lt;repo-name&gt;</code></li>
+<li>Strip extended attributes before syncing dependencies</li>
+</ol>
+<p>You can manually configure this behavior:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># For any repository on exFAT/NTFS/FAT32</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$HOME</span><span class="s2">/.uvenvs/</span><span class="k">$(</span>basename<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">))</span><span class="s2">&quot;</span>
+./scripts/setup-dev-env.sh
+
+<span class="c1"># The .venv symlink will be created automatically</span>
+</code></pre></div>
+<p><strong>Prevention:</strong></p>
+<p>Always run development commands with the environment variables set:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">UV_LINK_MODE</span><span class="o">=</span>copy
+<span class="nb">export</span><span class="w"> </span><span class="nv">COPYFILE_DISABLE</span><span class="o">=</span><span class="m">1</span>
+</code></pre></div>
+<p>Or add these to your <code>~/.bashrc</code> or <code>~/.zshrc</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Prevent macOS resource fork issues</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">UV_LINK_MODE</span><span class="o">=</span>copy
+<span class="nb">export</span><span class="w"> </span><span class="nv">COPYFILE_DISABLE</span><span class="o">=</span><span class="m">1</span>
+</code></pre></div>
+<p>For repositories on external drives, set:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Add to ~/.bashrc or ~/.zshrc</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">UV_PROJECT_ENVIRONMENT</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$HOME</span><span class="s2">/.uvenvs/</span><span class="k">$(</span>basename<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">))</span><span class="s2">&quot;</span>
+</code></pre></div>
+<h3 id="guard-rails-issues">Guard-Rails Issues<a class="headerlink" href="#guard-rails-issues" title="Permanent link">&para;</a></h3>
+<h4 id="guard-rails-fails-immediately">Guard-rails fails immediately<a class="headerlink" href="#guard-rails-fails-immediately" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> <code>hephaestus guard-rails</code> fails without running checks</p>
+<p><strong>Diagnostic:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Run with verbose output</span>
+hephaestus<span class="w"> </span>guard-rails<span class="w"> </span>-v
+
+<span class="c1"># Check individual components</span>
+pytest
+ruff<span class="w"> </span>check<span class="w"> </span>.
+mypy<span class="w"> </span>src<span class="w"> </span>tests
+</code></pre></div>
+<p><strong>Common causes:</strong></p>
+<ul>
+<li>Syntax errors in code</li>
+<li>Missing dependencies</li>
+<li>Corrupted cache files</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Clean caches</span>
+hephaestus<span class="w"> </span>cleanup<span class="w"> </span>--deep-clean
+
+<span class="c1"># Reinstall dependencies</span>
+pip<span class="w"> </span>install<span class="w"> </span>--force-reinstall<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,qa]&quot;</span>
+
+<span class="c1"># Fix syntax errors shown in output</span>
+</code></pre></div>
+<h4 id="pip-audit-failed-in-guard-rails">"pip-audit failed" in guard-rails<a class="headerlink" href="#pip-audit-failed-in-guard-rails" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> <code>pip-audit --strict</code> fails</p>
+<p><strong>Causes:</strong></p>
+<ul>
+<li>SSL certificate issues (common in containers)</li>
+<li>Known vulnerabilities in dependencies</li>
+<li>Network connectivity issues</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<p>This is often non-blocking and expected in containerized environments:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Run pip-audit separately to see details</span>
+pip-audit<span class="w"> </span>--strict<span class="w"> </span>--ignore-vuln<span class="w"> </span>GHSA-4xh5-x5gv-qwph
+
+<span class="c1"># If SSL issues, this is expected in containers</span>
+<span class="c1"># Guard-rails will continue with other checks</span>
+
+<span class="c1"># For actual vulnerabilities, update dependencies</span>
+pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>&lt;package&gt;
+</code></pre></div>
+<h4 id="tests-fail-during-guard-rails">Tests fail during guard-rails<a class="headerlink" href="#tests-fail-during-guard-rails" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> pytest fails with errors</p>
+<p><strong>Diagnostic:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Run tests with verbose output</span>
+pytest<span class="w"> </span>-v
+
+<span class="c1"># Run specific failing test</span>
+pytest<span class="w"> </span>tests/test_file.py::test_name<span class="w"> </span>-v
+
+<span class="c1"># Check test dependencies</span>
+pytest<span class="w"> </span>--version
+python<span class="w"> </span>--version
+</code></pre></div>
+<p><strong>Solutions:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check for tool drift</span>
+hephaestus<span class="w"> </span>guard-rails<span class="w"> </span>--drift
+
+<span class="c1"># Sync dependencies</span>
+uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev<span class="w"> </span>--extra<span class="w"> </span>qa
+
+<span class="c1"># Clean and retry</span>
+hephaestus<span class="w"> </span>cleanup<span class="w"> </span>--deep-clean
+pytest
+</code></pre></div>
+<h4 id="type-checking-fails">Type checking fails<a class="headerlink" href="#type-checking-fails" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> <code>mypy src tests</code> shows errors</p>
+<p><strong>Diagnostic:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Run mypy with verbose output</span>
+mypy<span class="w"> </span>src<span class="w"> </span>tests<span class="w"> </span>--show-error-codes
+
+<span class="c1"># Check specific file</span>
+mypy<span class="w"> </span>src/hephaestus/file.py
+</code></pre></div>
+<p><strong>Solutions:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Install type stubs</span>
+pip<span class="w"> </span>install<span class="w"> </span>types-PyYAML<span class="w"> </span>types-requests
+
+<span class="c1"># Check mypy configuration</span>
+cat<span class="w"> </span>pyproject.toml<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-A<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="s2">&quot;\[tool.mypy\]&quot;</span>
+
+<span class="c1"># Fix reported type errors in code</span>
+</code></pre></div>
+<h3 id="cleanup-issues">Cleanup Issues<a class="headerlink" href="#cleanup-issues" title="Permanent link">&para;</a></h3>
+<h4 id="refusing-to-clean-dangerous-path">"Refusing to clean dangerous path"<a class="headerlink" href="#refusing-to-clean-dangerous-path" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> Cleanup refuses to proceed</p>
+<p><strong>Cause:</strong> Safety feature protecting system paths</p>
+<p><strong>This is expected behavior!</strong> Cleanup protects these paths:</p>
+<ul>
+<li><code>/</code>, <code>/home</code>, <code>/usr</code>, <code>/etc</code>, <code>/var</code></li>
+<li><code>/bin</code>, <code>/sbin</code>, <code>/lib</code>, <code>/opt</code></li>
+<li><code>/boot</code>, <code>/root</code>, <code>/sys</code>, <code>/proc</code>, <code>/dev</code></li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Use a safe project directory</span>
+<span class="nb">cd</span><span class="w"> </span>/path/to/your/project
+hephaestus<span class="w"> </span>cleanup
+
+<span class="c1"># Or specify safe root explicitly</span>
+hephaestus<span class="w"> </span>cleanup<span class="w"> </span>--root<span class="w"> </span>/home/user/myproject
+</code></pre></div>
+<h4 id="cleanup-asks-for-confirmation-repeatedly">Cleanup asks for confirmation repeatedly<a class="headerlink" href="#cleanup-asks-for-confirmation-repeatedly" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> Cleanup prompts "Type CONFIRM to proceed"</p>
+<p><strong>Cause:</strong> Trying to clean paths outside detected root</p>
+<p><strong>Solutions:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Clean from git repository root (auto-detected)</span>
+<span class="nb">cd</span><span class="w"> </span>/path/to/repo
+hephaestus<span class="w"> </span>cleanup
+
+<span class="c1"># Auto-confirm (skip prompts)</span>
+hephaestus<span class="w"> </span>cleanup<span class="w"> </span>--yes
+
+<span class="c1"># See preview first</span>
+hephaestus<span class="w"> </span>cleanup<span class="w"> </span>--dry-run
+</code></pre></div>
+<h4 id="files-not-being-deleted">Files not being deleted<a class="headerlink" href="#files-not-being-deleted" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> Cleanup runs but files remain</p>
+<p><strong>Diagnostic:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Use dry-run to see what would be deleted</span>
+hephaestus<span class="w"> </span>cleanup<span class="w"> </span>--dry-run
+
+<span class="c1"># Check if files are in excluded paths</span>
+hephaestus<span class="w"> </span>cleanup<span class="w"> </span>--deep-clean
+</code></pre></div>
+<p><strong>Possible causes:</strong></p>
+<ul>
+<li>Files are in <code>.git/</code> (excluded by default)</li>
+<li>Files are in <code>.venv/site-packages</code> (protected)</li>
+<li>Permission errors</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Include git directory (dangerous!)</span>
+hephaestus<span class="w"> </span>cleanup<span class="w"> </span>--include-git
+
+<span class="c1"># Check file permissions</span>
+ls<span class="w"> </span>-la<span class="w"> </span>/path/to/file
+
+<span class="c1"># Run with verbose output to see skip reasons</span>
+<span class="c1"># (Future enhancement)</span>
+</code></pre></div>
+<h3 id="drift-detection-issues">Drift Detection Issues<a class="headerlink" href="#drift-detection-issues" title="Permanent link">&para;</a></h3>
+<h4 id="tool-version-drift-detected">"Tool version drift detected"<a class="headerlink" href="#tool-version-drift-detected" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> <code>hephaestus guard-rails --drift</code> shows mismatches</p>
+<p><strong>This is informational, not an error!</strong></p>
+<p><strong>Solution:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Follow the remediation commands shown</span>
+uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev<span class="w"> </span>--extra<span class="w"> </span>qa
+
+<span class="c1"># Or update individual tools</span>
+pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span><span class="nv">ruff</span><span class="o">==</span>X.Y.Z
+
+<span class="c1"># Verify fix</span>
+hephaestus<span class="w"> </span>guard-rails<span class="w"> </span>--drift
+</code></pre></div>
+<h4 id="tool-not-installed">"Tool not installed"<a class="headerlink" href="#tool-not-installed" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> Drift detection shows missing tools</p>
+<p><strong>Solution:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Install all dev tools</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,qa]&quot;</span>
+
+<span class="c1"># Verify installation</span>
+which<span class="w"> </span>ruff<span class="w"> </span>mypy<span class="w"> </span>pytest
+</code></pre></div>
+<h3 id="release-issues">Release Issues<a class="headerlink" href="#release-issues" title="Permanent link">&para;</a></h3>
+<h4 id="failed-to-download-release">"Failed to download release"<a class="headerlink" href="#failed-to-download-release" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> <code>hephaestus release install</code> fails</p>
+<p><strong>Diagnostic:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check network connectivity</span>
+curl<span class="w"> </span>-I<span class="w"> </span>https://api.github.com
+
+<span class="c1"># Check if release exists</span>
+gh<span class="w"> </span>release<span class="w"> </span>view<span class="w"> </span>v0.2.0<span class="w"> </span>--repo<span class="w"> </span>IAmJonoBo/Hephaestus
+
+<span class="c1"># Try with verbose output</span>
+hephaestus<span class="w"> </span>release<span class="w"> </span>install<span class="w"> </span>--repository<span class="w"> </span>IAmJonoBo/Hephaestus<span class="w"> </span>--tag<span class="w"> </span>v0.2.0<span class="w"> </span>-v
+</code></pre></div>
+<p><strong>Solutions:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check GitHub API rate limits</span>
+curl<span class="w"> </span>https://api.github.com/rate_limit
+
+<span class="c1"># If rate limited, wait or authenticate</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">GITHUB_TOKEN</span><span class="o">=</span>your_token
+
+<span class="c1"># Try different tag/version</span>
+hephaestus<span class="w"> </span>release<span class="w"> </span>install<span class="w"> </span>--repository<span class="w"> </span>IAmJonoBo/Hephaestus<span class="w"> </span>--tag<span class="w"> </span>v0.1.0
+</code></pre></div>
+<h4 id="checksum-verification-failed">"Checksum verification failed"<a class="headerlink" href="#checksum-verification-failed" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> Release install fails checksum validation</p>
+<p><strong>Cause:</strong> Corrupted download or tampered file</p>
+<p><strong>Solutions:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Try downloading again</span>
+hephaestus<span class="w"> </span>release<span class="w"> </span>install<span class="w"> </span>--repository<span class="w"> </span>IAmJonoBo/Hephaestus<span class="w"> </span>--tag<span class="w"> </span>v0.2.0
+
+<span class="c1"># Check release assets are intact</span>
+gh<span class="w"> </span>release<span class="w"> </span>view<span class="w"> </span>v0.2.0<span class="w"> </span>--repo<span class="w"> </span>IAmJonoBo/Hephaestus<span class="w"> </span>--json<span class="w"> </span>assets
+
+<span class="c1"># Skip checksum (not recommended, only for testing)</span>
+hephaestus<span class="w"> </span>release<span class="w"> </span>install<span class="w"> </span>--no-verify-checksum
+</code></pre></div>
+<h3 id="analytics-issues">Analytics Issues<a class="headerlink" href="#analytics-issues" title="Permanent link">&para;</a></h3>
+<h4 id="no-analytics-data-found">"No analytics data found"<a class="headerlink" href="#no-analytics-data-found" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> <code>hephaestus tools refactor rankings</code> shows error</p>
+<p><strong>Cause:</strong> Analytics sources not configured</p>
+<p><strong>Solution:</strong></p>
+<p>Configure in <code>pyproject.toml</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">[tool.hephaestus.analytics]</span>
+<span class="n">churn_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;analytics/churn.json&quot;</span>
+<span class="n">coverage_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;coverage.xml&quot;</span>
+<span class="n">embeddings_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;analytics/embeddings.json&quot;</span>
+</code></pre></div>
+<p>Or use external config:</p>
+<div class="highlight"><pre><span></span><code>hephaestus<span class="w"> </span>tools<span class="w"> </span>refactor<span class="w"> </span>rankings<span class="w"> </span>--config<span class="w"> </span>/path/to/config.yaml
+</code></pre></div>
+<h4 id="invalid-analytics-format">"Invalid analytics format"<a class="headerlink" href="#invalid-analytics-format" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> Rankings fail with parsing errors</p>
+<p><strong>Cause:</strong> Analytics files in wrong format</p>
+<p><strong>Solution:</strong></p>
+<p>Ensure analytics files match expected format:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// churn.json</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;modules&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;src/module.py&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;churn&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+
+<span class="c1">// embeddings.json</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;embeddings&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;src/module.py&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;embedding&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.1</span><span class="p">,</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">]}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Coverage file should be standard <code>coverage.xml</code> format from pytest-cov.</p>
+<h3 id="schema-export-issues">Schema Export Issues<a class="headerlink" href="#schema-export-issues" title="Permanent link">&para;</a></h3>
+<h4 id="schema-export-fails">"Schema export fails"<a class="headerlink" href="#schema-export-fails" title="Permanent link">&para;</a></h4>
+<p><strong>Symptom:</strong> <code>hephaestus schema</code> shows errors</p>
+<p><strong>Diagnostic:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Run with verbose output</span>
+hephaestus<span class="w"> </span>schema<span class="w"> </span>-v
+
+<span class="c1"># Check if all commands are registered</span>
+hephaestus<span class="w"> </span>--help
+</code></pre></div>
+<p><strong>Solution:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Reinstall package</span>
+pip<span class="w"> </span>install<span class="w"> </span>--force-reinstall<span class="w"> </span>-e<span class="w"> </span>.
+
+<span class="c1"># Verify schema structure</span>
+hephaestus<span class="w"> </span>schema<span class="w"> </span><span class="p">|</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>json.tool
+</code></pre></div>
+<h2 id="environment-issues">Environment Issues<a class="headerlink" href="#environment-issues" title="Permanent link">&para;</a></h2>
+<h3 id="works-on-my-machine">"Works on my machine"<a class="headerlink" href="#works-on-my-machine" title="Permanent link">&para;</a></h3>
+<p><strong>Symptom:</strong> Tests pass locally but fail in CI, or vice versa</p>
+<p><strong>Diagnostic:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Compare environments</span>
+python<span class="w"> </span>--version
+pip<span class="w"> </span>list
+
+<span class="c1"># Check for tool drift</span>
+hephaestus<span class="w"> </span>guard-rails<span class="w"> </span>--drift
+
+<span class="c1"># Run tests with randomization</span>
+pytest<span class="w"> </span>--random-order
+</code></pre></div>
+<p><strong>Solutions:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Sync to exact versions</span>
+uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev<span class="w"> </span>--extra<span class="w"> </span>qa
+
+<span class="c1"># Clean all caches</span>
+hephaestus<span class="w"> </span>cleanup<span class="w"> </span>--deep-clean
+rm<span class="w"> </span>-rf<span class="w"> </span>.pytest_cache<span class="w"> </span>.mypy_cache<span class="w"> </span>.ruff_cache
+
+<span class="c1"># Verify Python version matches CI</span>
+<span class="c1"># CI uses Python 3.12 and 3.13</span>
+</code></pre></div>
+<h3 id="virtual-environment-conflicts">Virtual environment conflicts<a class="headerlink" href="#virtual-environment-conflicts" title="Permanent link">&para;</a></h3>
+<p><strong>Symptom:</strong> Strange import errors or version conflicts</p>
+<p><strong>Solution:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Delete and recreate venv</span>
+deactivate<span class="w">  </span><span class="c1"># if activated</span>
+rm<span class="w"> </span>-rf<span class="w"> </span>.venv
+python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+<span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,qa]&quot;</span>
+</code></pre></div>
+<h3 id="cache-corruption">Cache corruption<a class="headerlink" href="#cache-corruption" title="Permanent link">&para;</a></h3>
+<p><strong>Symptom:</strong> Inexplicable errors that persist</p>
+<p><strong>Solution:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Clean all caches</span>
+hephaestus<span class="w"> </span>cleanup<span class="w"> </span>--deep-clean
+
+<span class="c1"># Clean Python bytecode</span>
+find<span class="w"> </span>.<span class="w"> </span>-type<span class="w"> </span>d<span class="w"> </span>-name<span class="w"> </span>__pycache__<span class="w"> </span>-exec<span class="w"> </span>rm<span class="w"> </span>-rf<span class="w"> </span><span class="o">{}</span><span class="w"> </span>+
+find<span class="w"> </span>.<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span>-name<span class="w"> </span><span class="s2">&quot;*.pyc&quot;</span><span class="w"> </span>-delete
+
+<span class="c1"># Clean tool caches</span>
+rm<span class="w"> </span>-rf<span class="w"> </span>.pytest_cache<span class="w"> </span>.mypy_cache<span class="w"> </span>.ruff_cache
+
+<span class="c1"># Rebuild</span>
+pip<span class="w"> </span>install<span class="w"> </span>--force-reinstall<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,qa]&quot;</span>
+</code></pre></div>
+<h2 id="performance-issues">Performance Issues<a class="headerlink" href="#performance-issues" title="Permanent link">&para;</a></h2>
+<h3 id="guard-rails-is-slow">Guard-rails is slow<a class="headerlink" href="#guard-rails-is-slow" title="Permanent link">&para;</a></h3>
+<p><strong>Expected behavior:</strong> Guard-rails runs many checks and may take 1-5 minutes.</p>
+<p><strong>To speed up:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Skip formatting (saves time)</span>
+hephaestus<span class="w"> </span>guard-rails<span class="w"> </span>--no-format
+
+<span class="c1"># Run individual checks</span>
+pytest<span class="w">  </span><span class="c1"># Just tests</span>
+ruff<span class="w"> </span>check<span class="w"> </span>.<span class="w">  </span><span class="c1"># Just linting</span>
+</code></pre></div>
+<h3 id="tests-are-slow">Tests are slow<a class="headerlink" href="#tests-are-slow" title="Permanent link">&para;</a></h3>
+<p><strong>Solution:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Run in parallel (if you have pytest-xdist)</span>
+pytest<span class="w"> </span>-n<span class="w"> </span>auto
+
+<span class="c1"># Run only fast tests</span>
+pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not slow&quot;</span>
+
+<span class="c1"># Skip integration tests</span>
+pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not integration&quot;</span>
+</code></pre></div>
+<h2 id="cicd-issues">CI/CD Issues<a class="headerlink" href="#cicd-issues" title="Permanent link">&para;</a></h2>
+<h3 id="ci-fails-but-local-passes">CI fails but local passes<a class="headerlink" href="#ci-fails-but-local-passes" title="Permanent link">&para;</a></h3>
+<p><strong>Diagnostic:</strong></p>
+<ol>
+<li>Check CI logs for specific error</li>
+<li>Compare Python versions</li>
+<li>Check for network-dependent tests</li>
+<li>Check for timing-dependent tests</li>
+</ol>
+<p><strong>Solutions:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Replicate CI environment locally</span>
+python3.12<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv-ci
+<span class="nb">source</span><span class="w"> </span>.venv-ci/bin/activate
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,qa]&quot;</span>
+pytest
+
+<span class="c1"># Check for test order dependencies</span>
+pytest<span class="w"> </span>--random-order<span class="w"> </span>--random-order-seed<span class="o">=</span><span class="m">12345</span>
+
+<span class="c1"># Check for timing issues</span>
+pytest<span class="w"> </span>-v<span class="w">  </span><span class="c1"># Look for flaky tests</span>
+</code></pre></div>
+<h3 id="coverage-drops-in-ci">Coverage drops in CI<a class="headerlink" href="#coverage-drops-in-ci" title="Permanent link">&para;</a></h3>
+<p><strong>Cause:</strong> Tests not running or new uncovered code</p>
+<p><strong>Solution:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check which tests ran</span>
+pytest<span class="w"> </span>--collect-only
+
+<span class="c1"># Generate coverage report locally</span>
+pytest<span class="w"> </span>--cov<span class="o">=</span>src/hephaestus<span class="w"> </span>--cov-report<span class="o">=</span>html
+open<span class="w"> </span>htmlcov/index.html
+
+<span class="c1"># Add tests for uncovered code</span>
+</code></pre></div>
+<h2 id="getting-more-help">Getting More Help<a class="headerlink" href="#getting-more-help" title="Permanent link">&para;</a></h2>
+<h3 id="enable-debug-logging">Enable Debug Logging<a class="headerlink" href="#enable-debug-logging" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Set log level</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">HEPHAESTUS_LOG_LEVEL</span><span class="o">=</span>DEBUG
+
+<span class="c1"># Use JSON logging for parsing</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">HEPHAESTUS_LOG_FORMAT</span><span class="o">=</span>json
+
+<span class="c1"># Run command</span>
+hephaestus<span class="w"> </span>guard-rails
+</code></pre></div>
+<h3 id="collect-diagnostic-information">Collect Diagnostic Information<a class="headerlink" href="#collect-diagnostic-information" title="Permanent link">&para;</a></h3>
+<p>When reporting issues, include:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Version information</span>
+hephaestus<span class="w"> </span>--version
+python<span class="w"> </span>--version
+pip<span class="w"> </span>--version
+
+<span class="c1"># Environment information</span>
+pip<span class="w"> </span>list
+hephaestus<span class="w"> </span>guard-rails<span class="w"> </span>--drift
+
+<span class="c1"># Error output</span>
+hephaestus<span class="w"> </span>guard-rails<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span>error.log
+</code></pre></div>
+<h3 id="check-known-issues">Check Known Issues<a class="headerlink" href="#check-known-issues" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Review <a href="https://github.com/IAmJonoBo/Hephaestus/issues">GitHub Issues</a></li>
+<li>Check <a href="../../CHANGELOG.md">CHANGELOG.md</a> for recent changes</li>
+<li>Review <a href="../../Next_Steps.md">Next_Steps.md</a> for known limitations</li>
+</ul>
+<h3 id="report-a-bug">Report a Bug<a class="headerlink" href="#report-a-bug" title="Permanent link">&para;</a></h3>
+<p>If you've found a bug:</p>
+<ol>
+<li>Check if it's already reported</li>
+<li>Collect diagnostic information</li>
+<li>Create a minimal reproducible example</li>
+<li>Open a GitHub issue with:</li>
+<li>Description of the problem</li>
+<li>Steps to reproduce</li>
+<li>Expected behavior</li>
+<li>Actual behavior</li>
+<li>Environment details</li>
+<li>Error messages/logs</li>
+</ol>
+<h3 id="security-issues">Security Issues<a class="headerlink" href="#security-issues" title="Permanent link">&para;</a></h3>
+<p>For security vulnerabilities, <strong>do not open a public issue</strong>. Instead:</p>
+<ul>
+<li>Follow <a href="../../SECURITY.md">SECURITY.md</a> disclosure process</li>
+<li>Email: opensource@hephaestus.dev</li>
+<li>Include details and impact assessment</li>
+</ul>
+<h2 id="quick-reference">Quick Reference<a class="headerlink" href="#quick-reference" title="Permanent link">&para;</a></h2>
+<h3 id="diagnostic-commands">Diagnostic Commands<a class="headerlink" href="#diagnostic-commands" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check everything</span>
+hephaestus<span class="w"> </span>guard-rails
+hephaestus<span class="w"> </span>guard-rails<span class="w"> </span>--drift
+
+<span class="c1"># Individual checks</span>
+pytest<span class="w">                                          </span><span class="c1"># Tests</span>
+ruff<span class="w"> </span>check<span class="w"> </span>.<span class="w">                                    </span><span class="c1"># Linting</span>
+ruff<span class="w"> </span>format<span class="w"> </span>--check<span class="w"> </span>.<span class="w">                           </span><span class="c1"># Formatting</span>
+mypy<span class="w"> </span>src<span class="w"> </span>tests<span class="w">                                  </span><span class="c1"># Type checking</span>
+python3<span class="w"> </span>scripts/lint_nested_decorators.py<span class="w">       </span><span class="c1"># Architecture</span>
+pip-audit<span class="w"> </span>--strict<span class="w">                              </span><span class="c1"># Security</span>
+</code></pre></div>
+<h3 id="reset-commands">Reset Commands<a class="headerlink" href="#reset-commands" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Clean workspace</span>
+hephaestus<span class="w"> </span>cleanup<span class="w"> </span>--deep-clean
+
+<span class="c1"># Reset virtual environment</span>
+deactivate
+rm<span class="w"> </span>-rf<span class="w"> </span>.venv
+python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+<span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,qa]&quot;</span>
+
+<span class="c1"># Clear all caches</span>
+rm<span class="w"> </span>-rf<span class="w"> </span>.pytest_cache<span class="w"> </span>.mypy_cache<span class="w"> </span>.ruff_cache<span class="w"> </span>__pycache__
+</code></pre></div>
+<h3 id="common-fixes">Common Fixes<a class="headerlink" href="#common-fixes" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Fix imports</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,qa]&quot;</span>
+
+<span class="c1"># Fix drift</span>
+uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev<span class="w"> </span>--extra<span class="w"> </span>qa
+
+<span class="c1"># Fix permissions</span>
+chmod<span class="w"> </span>+x<span class="w"> </span>scripts/*.sh
+
+<span class="c1"># Fix line endings (if Windows)</span>
+dos2unix<span class="w"> </span>scripts/*.sh
+</code></pre></div>
+<h2 id="related-documentation">Related Documentation<a class="headerlink" href="#related-documentation" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../quality-gates/">Quality Gates Guide</a></li>
+<li><a href="../operating-safely/">Operating Safely Guide</a></li>
+<li><a href="../testing/">Testing Guide</a></li>
+<li><a href="../release-process/">Release Process Guide</a></li>
+<li><a href="../../CONTRIBUTING.md">Contributing Guide</a></li>
+</ul>
+<hr />
+<p><strong>Still stuck?</strong> Open a <a href="https://github.com/IAmJonoBo/Hephaestus/discussions">GitHub Discussion</a> or issue!</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/IAmJonoBo/Hephaestus" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.0.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.instant", "content.code.copy"], "search": "../../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+    
+  </body>
+</html>

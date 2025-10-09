@@ -1,0 +1,1944 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Hephaestus developer experience toolkit">
+      
+      
+      
+        <link rel="canonical" href="https://hephaestus.example.com/lifecycle/">
+      
+      
+        <link rel="prev" href="../explanation/architecture/">
+      
+      
+        <link rel="next" href="../explanation/frontier-standards/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.21">
+    
+    
+      
+        <title>Evergreen Lifecycle Playbook - Hephaestus Toolkit</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.2a3383ac.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#evergreen-lifecycle-playbook" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Hephaestus Toolkit" class="md-header__button md-logo" aria-label="Hephaestus Toolkit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Hephaestus Toolkit
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Evergreen Lifecycle Playbook
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/IAmJonoBo/Hephaestus" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Hephaestus
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../tutorials/getting-started/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../how-to/install-wheelhouse/" class="md-tabs__link">
+          
+  
+  
+  How-to guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../explanation/architecture/" class="md-tabs__link">
+          
+  
+  
+  Explanation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../reference/cli/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../adr/" class="md-tabs__link">
+          
+  
+  
+  Appendix
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Hephaestus Toolkit" class="md-nav__button md-logo" aria-label="Hephaestus Toolkit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Hephaestus Toolkit
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/IAmJonoBo/Hephaestus" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Hephaestus
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tutorials
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    How-to guides
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            How-to guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/install-wheelhouse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Install from a Wheelhouse
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/editor-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Configure Your Editor
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/operating-safely/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Operating Safely
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/quality-gates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quality Gate Validation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/ci-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    CI/CD Setup & Dependency Management
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/ai-agent-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    AI Agent Integration
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/release-process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Process
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Testing Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Observability (OpenTelemetry)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/plugin-development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Plugin Development
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Explanation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Explanation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../explanation/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Evergreen Lifecycle Playbook
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Evergreen Lifecycle Playbook
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview Matrix
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stage Details
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage Details">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Discovery
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-planning" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Planning
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Development
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Testing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-security-quality-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Security &amp; Quality Gates
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Release
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Deployment
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      8. Operations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-feedback-continuous-improvement" class="md-nav__link">
+    <span class="md-ellipsis">
+      9. Feedback &amp; Continuous Improvement
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quickstart-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quickstart Commands
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completed-enhancements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Completed Enhancements
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#future-enhancements-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      Future Enhancements (Roadmap)
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../explanation/frontier-standards/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Frontier Standards Charter
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../explanation/frontier-red-team-gap-analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Frontier Red Team & Gap Analysis
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Reference
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    CLI Reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    REST API Reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/telemetry-events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Telemetry Events
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli-completions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    CLI Autocompletion
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pre-release-checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Pre-Release Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../refactoring-toolkit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Refactoring Toolkit Map
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Appendix
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Appendix
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0000-template/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR Template
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0001-stride-threat-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR 0001 - STRIDE Threat Model
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0002-plugin-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR 0002 - Plugin Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0003-opentelemetry-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR 0003 - OpenTelemetry Integration
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0004-rest-grpc-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR 0004 - REST/gRPC API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0005-pypi-publication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR 0005 - PyPI Publication
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0006-sigstore-backfill/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ADR 0006 - Sigstore Backfill
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview Matrix
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stage Details
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage Details">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Discovery
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-planning" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Planning
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Development
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Testing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-security-quality-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Security &amp; Quality Gates
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Release
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Deployment
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      8. Operations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-feedback-continuous-improvement" class="md-nav__link">
+    <span class="md-ellipsis">
+      9. Feedback &amp; Continuous Improvement
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quickstart-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quickstart Commands
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completed-enhancements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Completed Enhancements
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#future-enhancements-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      Future Enhancements (Roadmap)
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="evergreen-lifecycle-playbook">Evergreen Lifecycle Playbook<a class="headerlink" href="#evergreen-lifecycle-playbook" title="Permanent link">&para;</a></h1>
+<p>This guide maps the Hephaestus toolkit to the full software development lifecycle and highlights the
+upgrades we now ship to keep the project evergreen from discovery through long-term operations. Each
+phase lists the core intent, the tooling we rely on, and practical tips for maximising developer
+experience (DX), user experience (UX), and code quality (CQ).</p>
+<h2 id="overview-matrix">Overview Matrix<a class="headerlink" href="#overview-matrix" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Purpose</th>
+<th>Tooling &amp; Techniques</th>
+<th>Outcomes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Discovery</td>
+<td>Capture product and technical context</td>
+<td>Architecture Decision Records (ADRs), <code>hephaestus plan</code></td>
+<td>Shared understanding of the refactor mission</td>
+</tr>
+<tr>
+<td>Planning</td>
+<td>Align scope, owners, and guard rails</td>
+<td>Rich-rendered execution plans, Diátaxis documentation, roadmap issues</td>
+<td>Clear backlog and review cadence</td>
+</tr>
+<tr>
+<td>Development</td>
+<td>Implement changes with fast feedback</td>
+<td><code>pre-commit</code>, Ruff, Black, PyUpgrade, Typer CLI workflows, type-driven toolbox, automated <code>hephaestus cleanup</code> hook</td>
+<td>Consistent codebase with ergonomic CLI flows</td>
+</tr>
+<tr>
+<td>Testing</td>
+<td>Safeguard behaviour and coverage</td>
+<td>Pytest with coverage gating, cleanup pre-flight for CI, characterization harness templates</td>
+<td>Confident refactors with measurable coverage</td>
+</tr>
+<tr>
+<td>Security &amp; Quality Gates</td>
+<td>Catch regressions early</td>
+<td>Mypy, Pip Audit, QA profiles, coverage thresholds, repo cleanup sweeps</td>
+<td>Automated quality floor with actionable reports</td>
+</tr>
+<tr>
+<td>Release</td>
+<td>Publish and document change</td>
+<td>Automated Release Tagging workflow, semantic version policy, deep-clean stage</td>
+<td>Repeatable, traceable releases</td>
+</tr>
+<tr>
+<td>Deployment</td>
+<td>Package and ship artefacts</td>
+<td><code>uv</code> environments, pip-installable package, cleanup script</td>
+<td>Predictable install and clean substrate</td>
+</tr>
+<tr>
+<td>Operations</td>
+<td>Observe, upgrade, and respond</td>
+<td>TurboRepo Release Monitor, Dependabot, Ops README</td>
+<td>Proactive dependency hygiene and response triggers</td>
+</tr>
+<tr>
+<td>Feedback</td>
+<td>Bake learnings back in</td>
+<td>Issue templates, ADR rollups, docs updates</td>
+<td>Continuous improvement loop</td>
+</tr>
+</tbody>
+</table>
+<h2 id="stage-details">Stage Details<a class="headerlink" href="#stage-details" title="Permanent link">&para;</a></h2>
+<h3 id="1-discovery">1. Discovery<a class="headerlink" href="#1-discovery" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>ADRs</strong>: Capture the why behind large decisions using the <code>docs/adr</code> directory (start with
+  <code>adr-template.md</code>). The template keeps reviews light-weight while providing auditability.</li>
+<li><strong>Toolkit Plan Command</strong>: <code>uv run hephaestus plan</code> produces vibrant terminals that help workshop
+  the phases, highlight blocked work, and onboard new collaborators quickly.</li>
+</ul>
+<h3 id="2-planning">2. Planning<a class="headerlink" href="#2-planning" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Diátaxis-Aligned Docs</strong>: The refactoring playbooks and the new lifecycle guide document both
+  tutorials and explanations so teams can move from theory to execution rapidly.</li>
+<li><strong>Backlog Hygiene</strong>: Use GitHub Project boards or Issues linked from plan steps. The optional
+  <code>ops/roadmap.md</code> template (see below) can be copied per initiative.</li>
+</ul>
+<h3 id="3-development">3. Development<a class="headerlink" href="#3-development" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Pre-Commit</strong>: Install the hooks one time with <code>uv run pre-commit install</code> to ensure Ruff, Black,
+  PyUpgrade, Mypy, and Pip Audit run before every commit.</li>
+<li><strong>Cleanup Guard Rail</strong>: The pre-commit configuration now runs <code>uv run hephaestus cleanup</code> on commit
+  and push stages so macOS metadata never lands in history.</li>
+<li><strong>Type-Driven Helpers</strong>: The toolbox exposes typed dataclasses (<code>Hotspot</code>, <code>CoverageGap</code>,
+  <code>RefactorOpportunity</code>) so IDEs and editors surface completions automatically.</li>
+<li><strong>CLI Ergonomics</strong>: New README coverage showcases how to drive hotspot triage, QA profile
+  inspection, and execution plans straight from the command line.</li>
+</ul>
+<h3 id="4-testing">4. Testing<a class="headerlink" href="#4-testing" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Coverage Gates</strong>: Pytest defaults now emit XML + terminal reports and fail when coverage drops
+  below 85%.</li>
+<li><strong>CI Pre-Flight Cleanup</strong>: The main CI workflow executes <code>uv run hephaestus cleanup</code> immediately
+  after syncing dependencies so linting, typing, and tests always start from a pristine tree.</li>
+<li><strong>Characterisation Harnesses</strong>: The toolkit scripts provide scaffolding for protecting behaviour
+  during refactors—extend them with targeted regression tests as you modernise modules.</li>
+<li><strong>Matrix CI</strong>: Tests execute across Python 3.12 and 3.13 ensuring future compatibility.</li>
+</ul>
+<h3 id="5-security-quality-gates">5. Security &amp; Quality Gates<a class="headerlink" href="#5-security-quality-gates" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Static Typing</strong>: <code>uv run mypy</code> guards the toolbox and CLI for contract drift; the CI workflow
+  fails fast on new typing issues.</li>
+<li><strong>Security Audits</strong>: Pip Audit runs on every mainline CI sweep (and locally via pre-commit) so
+  vulnerable dependencies never linger.</li>
+<li><strong>Coverage + QA Profiles</strong>: Tight coupling between toolkit settings and QA profiles keeps rollouts
+  honest about the guard rails they promise.</li>
+</ul>
+<h3 id="6-release">6. Release<a class="headerlink" href="#6-release" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Automated Release Tagging</strong>: Pushes to <code>main</code> automatically tag new versions based on
+  <code>pyproject.toml</code> and publish GitHub Releases with changelog-ready artefacts.</li>
+<li><strong>Wheelhouse Distribution</strong>: The <code>Build Wheelhouse</code> workflow assembles wheels and sdists via
+  <code>uv build</code>, stores them as a downloadable GitHub Actions artefact, and attaches the bundle to each
+  GitHub Release so consumers can install without a PyPI publish.</li>
+<li><strong>Wheelhouse Consumption</strong>: Run <code>uv run hephaestus release install --tag &lt;tag&gt;</code> from any project to
+  download the matching release archive, install its wheels into the active environment, and keep the
+  toolkit versions aligned even before PyPI publication.</li>
+<li><strong>Deep-Clean Stage</strong>: The release workflow installs <code>uv</code> and performs <code>uv run hephaestus cleanup --deep-clean</code>
+  before version detection so archives and tags never include workspace cruft.</li>
+<li><strong>Semantic Version Discipline</strong>: Bump the <code>version</code> field using semver semantics—patch for safety
+  fixes, minor for new features, major for breaking changes.</li>
+<li><strong>Pre-Release Checklist</strong>: Run through <code>docs/pre-release-checklist.md</code> before pushing the final
+  changes to confirm automation parity, forcing a local cleanup sweep and re-running guard rails.</li>
+</ul>
+<h3 id="7-deployment">7. Deployment<a class="headerlink" href="#7-deployment" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>uv</code> Environments</strong>: A locked dependency graph (<code>uv.lock</code>) plus the CI sync step make runtime
+  parity trivial.</li>
+<li><strong>Packaging</strong>: The project remains pip-installable (<code>pip install hephaestus</code>) and ready for PyPI
+  or internal indices; consider enabling the publishing workflow in <code>.github/workflows</code> when the
+  first release candidate is ready.</li>
+<li><strong>Cleanup Script</strong>: <code>./cleanup-macos-cruft.sh --deep-clean</code> keeps artefacts out of release
+  archives and ensures reproducible builds, and the automation hooks ensure those commands run
+  automatically during CI, releases, and pre-commit flows.</li>
+</ul>
+<h3 id="8-operations">8. Operations<a class="headerlink" href="#8-operations" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>TurboRepo Monitor</strong>: Nightly checks compare the pinned version with upstream and open issues if
+  an upgrade is available.</li>
+<li><strong>Dependabot</strong>: Weekly dependency nudges cover both Python packages and GitHub Actions.</li>
+<li><strong>Operational Docs</strong>: <code>ops/README.md</code> documents the release observation flow. Extend with runbooks
+  for environment-specific steps as deployment needs grow.</li>
+</ul>
+<h3 id="9-feedback-continuous-improvement">9. Feedback &amp; Continuous Improvement<a class="headerlink" href="#9-feedback-continuous-improvement" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Issue Templates &amp; Labels</strong>: Combine ADR updates with labelled issues (<code>dx</code>, <code>ux</code>, <code>quality</code>) to
+  track improvement work explicitly.</li>
+<li><strong>Metrics Dashboards</strong>: Export coverage artefacts and hotspot scans to dashboards for trend
+  analysis and to celebrate improvements with the wider org.</li>
+</ul>
+<h2 id="quickstart-commands">Quickstart Commands<a class="headerlink" href="#quickstart-commands" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev<span class="w"> </span>--extra<span class="w"> </span>qa
+uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>install
+uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
+uv<span class="w"> </span>run<span class="w"> </span>hephaestus<span class="w"> </span>guard-rails
+uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>.
+uv<span class="w"> </span>run<span class="w"> </span>mypy<span class="w"> </span>src<span class="w"> </span>tests
+uv<span class="w"> </span>run<span class="w"> </span>pytest
+uv<span class="w"> </span>run<span class="w"> </span>pip-audit<span class="w"> </span>--strict
+</code></pre></div>
+<h2 id="completed-enhancements">Completed Enhancements<a class="headerlink" href="#completed-enhancements" title="Permanent link">&para;</a></h2>
+<p>The following enhancements have been successfully delivered:</p>
+<ol>
+<li>✅ <strong>Docs Site</strong>: MkDocs Material site is fully operational with Diátaxis-structured documentation,
+   comprehensive navigation, and search capabilities. Run <code>uv run mkdocs serve</code> for local preview.</li>
+<li>✅ <strong>CodeQL Security Scans</strong>: GitHub's CodeQL workflow runs on every push, pull request, and weekly
+   schedule, providing deep static analysis beyond pip-audit.</li>
+<li>✅ <strong>Structured Logging</strong>: JSON/text logging with run IDs and telemetry events across all CLI
+   operations (ADR-0003 foundation complete).</li>
+</ol>
+<h2 id="future-enhancements-roadmap">Future Enhancements (Roadmap)<a class="headerlink" href="#future-enhancements-roadmap" title="Permanent link">&para;</a></h2>
+<p>The following enhancements are planned for future releases:</p>
+<ol>
+<li><strong>OpenTelemetry Spans</strong> (Sprint 2-3): Full distributed tracing with span instrumentation across CLI
+   commands for observability and performance monitoring. See <a href="../adr/0003-opentelemetry-integration/">ADR-0003</a>
+   for implementation plan.</li>
+<li><strong>Plugin Architecture</strong> (Sprint 2-4): Extensible quality gate system allowing custom checks and
+   third-party integrations. See <a href="../adr/0002-plugin-architecture/">ADR-0002</a> for design details.</li>
+<li><strong>REST/gRPC API</strong> (Sprint 2-4): Remote invocation capabilities for AI agents, CI/CD orchestration,
+   and centralized dashboards. See <a href="../adr/0004-rest-grpc-api/">ADR-0004</a> for architecture.</li>
+<li><strong>Publish to PyPI</strong> (Sprint 2): Wire the release workflow to publish tagged versions directly to PyPI with
+   automated release notes using <code>git-cliff</code>.</li>
+</ol>
+<p>Staying evergreen is a journey. This playbook keeps the loop tight so engineering teams can refactor
+confidently, deliver delightful experiences, and maintain uncompromising quality.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/IAmJonoBo/Hephaestus" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.0.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.instant", "content.code.copy"], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+    
+  </body>
+</html>
