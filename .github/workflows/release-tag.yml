@@ -37,14 +37,17 @@ jobs:
           data = toml.loads(pathlib.Path('pyproject.toml').read_text())
           version = data['project']['version']
           print(f"version={version}")
-          pathlib.Path(os.environ['GITHUB_OUTPUT']).write_text(f"version={version}\n", encoding='utf-8')
+          pathlib.Path(os.environ['GITHUB_OUTPUT']).write_text(
+              f"version={version}\n", encoding='utf-8'
+          )
           PY
 
       - name: Check for existing tag
         id: tag_check
         run: |
           git fetch --tags --force
-          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+          if git rev-parse \
+            "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
             echo "exists=true" >> "${GITHUB_OUTPUT}"
           else
             echo "exists=false" >> "${GITHUB_OUTPUT}"
@@ -54,8 +57,10 @@ jobs:
         if: steps.tag_check.outputs.exists == 'false'
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.version.outputs.version }}" \
+            -m "Release v${{ steps.version.outputs.version }}"
           git push origin "v${{ steps.version.outputs.version }}"
 
       - name: Publish GitHub Release

@@ -20,10 +20,15 @@ jobs:
       - name: Verify workspace is free of macOS artefacts
         run: |
           set -euo pipefail
-          offending=$(git ls-files --cached --others --exclude-standard | \
-            grep -E '(^|/)(\.DS_Store|\.Apple(Double|Desktop|DB)|\.DocumentRevisions-V100|\.LSOverride|\.Spotlight-V100|\.Trashes|\.fseventsd|\.TemporaryItems|\.apdisk|\._[^/]+)$' || true)
+          pattern='(^|/)(\.DS_Store|\.Apple(Double|Desktop|DB)|'
+          pattern+='\.DocumentRevisions-V100|\.LSOverride|'
+          pattern+='\.Spotlight-V100|\.Trashes|\.fseventsd|'
+          pattern+='\.TemporaryItems|\.apdisk|\._[^/]+)$'
+          offending=$(git ls-files --cached --others \
+            --exclude-standard | grep -E "$pattern" || true)
           if [ -n "$offending" ]; then
-            echo "Found macOS metadata files in repository history or working tree:"
+            echo "Found macOS metadata files in repository history " \
+              "or working tree:"
             echo "$offending"
             exit 1
           fi

@@ -201,4 +201,4 @@ def test_telemetry_attribute_access() -> None:
 def test_telemetry_missing_attribute() -> None:
     """Telemetry module should raise AttributeError for missing attributes."""
     with pytest.raises(AttributeError, match="has no attribute 'nonexistent'"):
-        _ = telemetry.nonexistent  # type: ignore[attr-defined]
+        _ = telemetry.nonexistent

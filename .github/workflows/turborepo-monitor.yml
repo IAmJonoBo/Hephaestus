@@ -25,7 +25,9 @@ jobs:
           manifest = pathlib.Path('ops/turborepo-release.json')
           data = json.loads(manifest.read_text())
           tag = data['tracked_tag']
-          pathlib.Path(os.environ['GITHUB_OUTPUT']).write_text(f"tag={tag}\n", encoding='utf-8')
+          pathlib.Path(os.environ['GITHUB_OUTPUT']).write_text(
+              f"tag={tag}\n", encoding='utf-8'
+          )
           PY
 
       - name: Fetch latest TurboRepo release
@@ -68,16 +70,23 @@ jobs:
             const tracked = '${{ steps.tracked.outputs.tag }}';
             const htmlUrl = '${{ steps.latest.outputs.html_url }}';
             const title = `Track TurboRepo release ${latest}`;
-            const existing = await github.paginate(github.rest.issues.listForRepo, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open'
-            });
+            const existing = await github.paginate(
+              github.rest.issues.listForRepo,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open'
+              }
+            );
             if (!existing.find(issue => issue.title === title)) {
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 title,
-                body: `Latest TurboRepo release is **${latest}** (${htmlUrl}). Repository is currently tracking **${tracked}** in ops/turborepo-release.json. Update the toolkit or config as needed, then bump the tracked tag.`
+                body: `Latest TurboRepo release is **${latest}** ` +
+                  `(${htmlUrl}). Repository is currently tracking ` +
+                  `**${tracked}** in ops/turborepo-release.json. ` +
+                  `Update the toolkit or config as needed, then bump ` +
+                  `the tracked tag.`
               });
             }
