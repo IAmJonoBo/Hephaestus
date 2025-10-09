@@ -58,9 +58,7 @@ def test_rest_api_models() -> None:
     assert rankings_req.limit == 10
 
     # Test response models
-    guard_rails_resp = GuardRailsResponse(
-        success=True, gates=[], duration=5.0, task_id="test-123"
-    )
+    guard_rails_resp = GuardRailsResponse(success=True, gates=[], duration=5.0, task_id="test-123")
     assert guard_rails_resp.success is True
 
     cleanup_resp = CleanupResponse(files_deleted=10, size_freed=1024, manifest={})
@@ -69,9 +67,7 @@ def test_rest_api_models() -> None:
     rankings_resp = RankingsResponse(rankings=[], strategy="risk_weighted")
     assert rankings_resp.strategy == "risk_weighted"
 
-    task_status_resp = TaskStatusResponse(
-        task_id="test-123", status="completed", progress=1.0
-    )
+    task_status_resp = TaskStatusResponse(task_id="test-123", status="completed", progress=1.0)
     assert task_status_resp.progress == 1.0
 
 

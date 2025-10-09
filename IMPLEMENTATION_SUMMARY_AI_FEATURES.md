@@ -7,28 +7,35 @@ This implementation delivers a complete AI integration stack for Hephaestus, ful
 ## What Was Implemented
 
 ### 1. Schema Export Hardening
+
 **Files Changed:**
+
 - `src/hephaestus/cli.py` - Added `ensure_ascii=False` for proper JSON encoding
 - `tests/test_schema.py` - Added test for special characters
 
 **Features:**
+
 - ✅ Fixed JSON encoding issues with special characters (newlines, tabs, quotes)
 - ✅ Proper Unicode handling
 - ✅ Comprehensive test coverage (8 tests)
 
 **Testing:**
+
 ```bash
 hephaestus schema --output schemas.json
 ```
 
 ### 2. REST API Implementation (ADR-0004 Sprint 2)
+
 **Files Created:**
+
 - `src/hephaestus/api/rest/app.py` - FastAPI application (375 lines)
 - `src/hephaestus/api/rest/models.py` - Pydantic models (102 lines)
 - `src/hephaestus/api/rest/tasks.py` - Async task manager (184 lines)
 - `tests/test_api.py` - Comprehensive API tests (251 lines)
 
 **Features:**
+
 - ✅ FastAPI application with lifecycle management
 - ✅ Authentication: Bearer token security
 - ✅ Async task management with status tracking
@@ -37,6 +44,7 @@ hephaestus schema --output schemas.json
 - ✅ Error handling for 401/500 responses
 
 **Endpoints:**
+
 - `GET /` - API root
 - `GET /health` - Health check
 - `POST /api/v1/quality/guard-rails` - Execute quality pipeline
@@ -46,6 +54,7 @@ hephaestus schema --output schemas.json
 - `GET /api/v1/tasks/{task_id}/stream` - Stream task progress (SSE)
 
 **Testing:**
+
 ```bash
 # Install dependencies
 uv sync --extra api
@@ -61,28 +70,35 @@ curl -H "Authorization: Bearer test-key" \
 ```
 
 ### 3. Integration Tests (Light Hardening)
+
 **Files Created:**
+
 - `tests/test_telemetry_integration.py` - Telemetry integration tests (158 lines)
 - `tests/test_plugins_integration.py` - Plugin integration tests (230 lines)
 
 **Features:**
+
 - ✅ Telemetry: 10 tests for enabled/disabled states, no-op fallbacks
 - ✅ Plugins: 9 tests for lifecycle, validation, discovery, ordering
 - ✅ Edge cases: missing tools, invalid configs, no config files
 - ✅ All integration tests passing
 
 **Testing:**
+
 ```bash
 # Run integration tests
 uv run pytest tests/test_telemetry_integration.py tests/test_plugins_integration.py -v
 ```
 
 ### 4. Documentation Updates
+
 **Files Updated:**
+
 - `docs/how-to/ai-agent-integration.md` - Added REST API section (150+ lines)
 - `docs/adr/0004-rest-grpc-api.md` - Updated status to Sprint 2 Complete
 
 **Content:**
+
 - ✅ REST API integration examples (Python, curl)
 - ✅ Streaming progress updates
 - ✅ Error handling patterns
@@ -92,6 +108,7 @@ uv run pytest tests/test_telemetry_integration.py tests/test_plugins_integration
 ## Test Coverage
 
 ### Summary
+
 - **Total Tests**: 76 (all passing)
 - **Schema Tests**: 8/8 ✅
 - **API Tests**: 12/12 ✅
@@ -101,6 +118,7 @@ uv run pytest tests/test_telemetry_integration.py tests/test_plugins_integration
 - **Plugin Integration**: 9/9 ✅
 
 ### Running Tests
+
 ```bash
 # All tests
 uv run pytest tests/test_schema.py tests/test_api.py \
@@ -112,6 +130,7 @@ uv run pytest tests/test_schema.py tests/test_api.py \
 ## Dependencies Added
 
 **pyproject.toml Changes:**
+
 - Added `pytest-asyncio>=0.25.0` to qa dependencies
 - Added `httpx>=0.28.1` to qa dependencies
 - API dependencies already configured: `fastapi>=0.115.0`, `uvicorn[standard]>=0.32.0`
@@ -119,21 +138,27 @@ uv run pytest tests/test_schema.py tests/test_api.py \
 ## Architecture Decisions
 
 ### ADR-0002: Plugin Architecture
+
 **Status**: Sprint 3 Complete ✅
+
 - Built-in plugins functional
 - Discovery mechanism working
 - Configuration loading implemented
 - Integration tests passing
 
 ### ADR-0003: OpenTelemetry
+
 **Status**: Sprint 3 Complete ✅
+
 - Optional telemetry support
 - No-op fallbacks working
 - Integration tests covering enabled/disabled states
 - Graceful degradation verified
 
 ### ADR-0004: REST/gRPC API
+
 **Status**: Sprint 2 Complete ✅
+
 - FastAPI implementation complete
 - Core endpoints operational
 - Async task management functional
@@ -144,6 +169,7 @@ uv run pytest tests/test_schema.py tests/test_api.py \
 ## Usage Examples
 
 ### 1. CLI Schema Export
+
 ```bash
 # Export command schemas for AI agents
 hephaestus schema --output schemas.json
@@ -153,6 +179,7 @@ python -m json.tool schemas.json > /dev/null && echo "Valid JSON"
 ```
 
 ### 2. REST API - Guard Rails
+
 ```python
 import httpx
 
@@ -162,7 +189,7 @@ async with httpx.AsyncClient() as client:
         headers={"Authorization": "Bearer api-key"},
         json={"no_format": False, "drift_check": True}
     )
-    
+
     result = response.json()
     print(f"Success: {result['success']}")
     for gate in result['gates']:
@@ -170,6 +197,7 @@ async with httpx.AsyncClient() as client:
 ```
 
 ### 3. REST API - Streaming Progress
+
 ```python
 import httpx
 import json
@@ -178,7 +206,7 @@ async with httpx.AsyncClient() as client:
     # Start operation
     response = await client.post(url, headers=headers, json=data)
     task_id = response.json()['task_id']
-    
+
     # Stream progress
     async with client.stream(
         "GET",
@@ -192,6 +220,7 @@ async with httpx.AsyncClient() as client:
 ```
 
 ### 4. Plugin Discovery
+
 ```python
 from hephaestus.plugins import discover_plugins, PluginRegistry
 
@@ -205,6 +234,7 @@ for plugin in registry.all_plugins():
 ```
 
 ### 5. Telemetry Integration
+
 ```python
 import os
 from hephaestus.telemetry import get_tracer, record_histogram
@@ -222,12 +252,14 @@ with tracer.start_as_current_span("operation") as span:
 ## Integration Points
 
 ### For AI Agents
+
 1. **CLI Integration**: Use `hephaestus schema` to get command metadata
 2. **REST API**: Use HTTP endpoints for remote invocation
 3. **Streaming**: Use SSE for long-running operations
 4. **Authentication**: Use Bearer tokens for API access
 
 ### For Developers
+
 1. **Plugin System**: Create custom quality gates
 2. **Telemetry**: Add observability to custom plugins
 3. **API Extensions**: Add new endpoints to REST API
@@ -236,6 +268,7 @@ with tracer.start_as_current_span("operation") as span:
 ## Migration Guide
 
 ### From CLI to API
+
 ```bash
 # Before (CLI)
 hephaestus guard-rails --no-format
@@ -247,6 +280,7 @@ curl -X POST http://localhost:8000/api/v1/quality/guard-rails \
 ```
 
 ### Adding Custom Plugins
+
 ```python
 from hephaestus.plugins import QualityGatePlugin, PluginMetadata, PluginResult
 
@@ -261,10 +295,10 @@ class MyPlugin(QualityGatePlugin):
             category="custom",
             requires=[],
         )
-    
+
     def validate_config(self, config: dict) -> bool:
         return True
-    
+
     def run(self, config: dict) -> PluginResult:
         return PluginResult(success=True, message="Check passed")
 ```
@@ -272,12 +306,14 @@ class MyPlugin(QualityGatePlugin):
 ## Future Work
 
 ### Sprint 3: gRPC Implementation
+
 - Protocol buffers definition
 - gRPC service implementation
 - Streaming RPCs
 - gRPC client examples
 
 ### Sprint 4: Production Hardening
+
 - Comprehensive security audit
 - Rate limiting
 - API versioning
@@ -287,6 +323,7 @@ class MyPlugin(QualityGatePlugin):
 ## Verification
 
 ### Quick Smoke Test
+
 ```bash
 # 1. Schema export works
 uv run hephaestus schema --output /tmp/test.json
@@ -303,6 +340,7 @@ uv run pytest tests/test_telemetry_integration.py tests/test_plugins_integration
 ```
 
 ### Expected Output
+
 ```
 ✅ Schema export
 ✅ API loads

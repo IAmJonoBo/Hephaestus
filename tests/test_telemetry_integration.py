@@ -135,7 +135,11 @@ def test_telemetry_with_otel_installed() -> None:
     """Test telemetry functionality when OpenTelemetry is installed."""
     pytest.importorskip("opentelemetry")
 
-    from hephaestus.telemetry import configure_telemetry, get_tracer, is_telemetry_enabled
+    from hephaestus.telemetry import (
+        configure_telemetry,
+        get_tracer,
+        is_telemetry_enabled,
+    )
 
     os.environ["HEPHAESTUS_TELEMETRY_ENABLED"] = "true"
     try:

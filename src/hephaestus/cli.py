@@ -148,30 +148,45 @@ class ReleaseInstallOptions:
 
 @release_app.command("install")
 def release_install(
-    options: Annotated[
-        ReleaseInstallOptions,
+    repository: Annotated[
+        str,
         typer.Option(
             "--repository",
             "-r",
             help="GitHub repository in owner/name form to fetch wheelhouses from.",
             show_default=True,
         ),
+    ] = release_module.DEFAULT_REPOSITORY,
+    tag: Annotated[
+        str | None,
         typer.Option("--tag", "-t", help="Release tag to download (defaults to latest)."),
+    ] = None,
+    asset_pattern: Annotated[
+        str,
         typer.Option(
             "--asset-pattern",
             help="Glob used to select the wheelhouse asset.",
             show_default=True,
         ),
+    ] = release_module.DEFAULT_ASSET_PATTERN,
+    manifest_pattern: Annotated[
+        str,
         typer.Option(
             "--manifest-pattern",
             help="Glob used to locate the checksum manifest for verification.",
             show_default=True,
         ),
+    ] = release_module.DEFAULT_MANIFEST_PATTERN,
+    sigstore_pattern: Annotated[
+        str | None,
         typer.Option(
             "--sigstore-pattern",
             help="Glob used to locate Sigstore bundles for attestation verification.",
             show_default=True,
         ),
+    ] = release_module.DEFAULT_SIGSTORE_BUNDLE_PATTERN,
+    destination: Annotated[
+        Path | None,
         typer.Option(
             "--destination",
             "-d",
@@ -183,52 +198,88 @@ def release_install(
             readable=True,
             resolve_path=True,
         ),
+    ] = None,
+    token: Annotated[
+        str | None,
         typer.Option(
             "--token",
             envvar="GITHUB_TOKEN",
             help="GitHub token (falls back to the GITHUB_TOKEN environment variable).",
         ),
+    ] = None,
+    timeout: Annotated[
+        float,
         typer.Option(
             "--timeout",
             min=0.1,
             help="Network timeout in seconds for release API calls and downloads.",
             show_default=True,
         ),
+    ] = release_module.DEFAULT_TIMEOUT,
+    max_retries: Annotated[
+        int,
         typer.Option(
             "--max-retries",
             min=1,
             help="Maximum retry attempts for release API calls and downloads.",
             show_default=True,
         ),
+    ] = release_module.DEFAULT_MAX_RETRIES,
+    python_executable: Annotated[
+        str | None,
         typer.Option("--python", help="Python executable used to invoke pip."),
+    ] = None,
+    pip_arg: Annotated[
+        list[str] | None,
         typer.Option(
             "--pip-arg",
             help="Additional arguments forwarded to pip install.",
             metavar="ARG",
             show_default=False,
         ),
+    ] = None,
+    no_upgrade: Annotated[
+        bool,
         typer.Option("--no-upgrade", help="Do not pass --upgrade to pip.", show_default=False),
+    ] = False,
+    overwrite: Annotated[
+        bool,
         typer.Option(
             "--overwrite", help="Overwrite existing archives if present.", show_default=False
         ),
+    ] = False,
+    cleanup: Annotated[
+        bool,
         typer.Option(
             "--cleanup", help="Remove the extracted wheelhouse after install.", show_default=False
         ),
+    ] = False,
+    remove_archive: Annotated[
+        bool,
         typer.Option(
             "--remove-archive",
             help="Delete the downloaded archive once installation succeeds.",
             show_default=False,
         ),
+    ] = False,
+    allow_unsigned: Annotated[
+        bool,
         typer.Option(
             "--allow-unsigned",
             help="Skip checksum verification (not recommended).",
             show_default=False,
         ),
+    ] = False,
+    require_sigstore: Annotated[
+        bool,
         typer.Option(
             "--require-sigstore",
             help="Fail if a Sigstore attestation bundle is not published.",
             show_default=False,
         ),
+    ] = False,
+    sigstore_identity: Annotated[
+        list[str] | None,
         typer.Option(
             "--sigstore-identity",
             help=(
@@ -237,9 +288,30 @@ def release_install(
             ),
             show_default=False,
         ),
-    ],
-) -> None:
+    ] = None,
+) -> None:  # noqa: PLR0913
     """Download the Hephaestus wheelhouse and install it into the current environment."""
+
+    options = ReleaseInstallOptions(
+        repository=repository,
+        tag=tag,
+        asset_pattern=asset_pattern,
+        manifest_pattern=manifest_pattern,
+        sigstore_pattern=sigstore_pattern,
+        destination=destination,
+        token=token,
+        timeout=timeout,
+        max_retries=max_retries,
+        python_executable=python_executable,
+        pip_args=list(pip_arg) if pip_arg else None,
+        no_upgrade=no_upgrade,
+        overwrite=overwrite,
+        cleanup=cleanup,
+        remove_archive=remove_archive,
+        allow_unsigned=allow_unsigned,
+        require_sigstore=require_sigstore,
+        sigstore_identity=list(sigstore_identity) if sigstore_identity else None,
+    )
 
     destination = (
         options.destination.expanduser()

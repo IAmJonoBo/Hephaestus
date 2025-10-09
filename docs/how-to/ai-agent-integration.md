@@ -363,11 +363,11 @@ async with httpx.AsyncClient() as client:
         headers=headers,
         json={"no_format": False, "drift_check": True}
     )
-    
+
     result = response.json()
     print(f"Success: {result['success']}")
     print(f"Duration: {result['duration']}s")
-    
+
     for gate in result['gates']:
         status = "✓" if gate['passed'] else "✗"
         print(f"{status} {gate['name']}")
@@ -384,7 +384,7 @@ async with httpx.AsyncClient() as client:
         headers={"Authorization": "Bearer your-api-key"},
         json={"deep_clean": True, "dry_run": True}
     )
-    
+
     result = response.json()
     print(f"Would delete {result['files_deleted']} files")
     print(f"Would free {result['size_freed']} bytes")
@@ -401,7 +401,7 @@ async with httpx.AsyncClient() as client:
         headers={"Authorization": "Bearer your-api-key"},
         params={"strategy": "coverage_first", "limit": 10}
     )
-    
+
     result = response.json()
     for item in result['rankings']:
         print(f"#{item['rank']} {item['path']} - Score: {item['score']}")
@@ -422,7 +422,7 @@ async with httpx.AsyncClient() as client:
         json={"no_format": False}
     )
     task_id = response.json()['task_id']
-    
+
     # Stream progress updates
     async with client.stream(
         "GET",
@@ -460,4 +460,3 @@ Full OpenAPI specification available at:
 - Interactive docs: `http://localhost:8000/docs`
 - OpenAPI JSON: `http://localhost:8000/openapi.json`
 - OpenAPI YAML: `docs/api/openapi.yaml`
-

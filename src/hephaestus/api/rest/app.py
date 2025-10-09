@@ -126,9 +126,7 @@ async def run_guard_rails(
 
     try:
         # Start async task for guard-rails execution
-        task_id = await task_manager.create_task(
-            "guard-rails", _execute_guard_rails, request
-        )
+        task_id = await task_manager.create_task("guard-rails", _execute_guard_rails, request)
 
         # For now, wait for completion (blocking)
         # In future, return task_id for async polling

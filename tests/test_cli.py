@@ -174,6 +174,18 @@ def test_release_install_forwards_sigstore_options(
     assert install_kwargs["cleanup"] is False
 
 
+def test_release_install_help_succeeds() -> None:
+    """Ensure release install help renders despite complex option wiring."""
+
+    _, cli = _load_modules()
+
+    result = runner.invoke(cli.app, ["release", "install", "--help"])
+
+    assert result.exit_code == 0
+    assert "Download the Hephaestus wheelhouse" in result.stdout
+    assert "--sigstore-identity" in result.stdout
+
+
 def test_qa_coverage_command_displays_gaps() -> None:
     _, cli = _load_modules()
     result = runner.invoke(cli.app, ["tools", "qa", "coverage"])

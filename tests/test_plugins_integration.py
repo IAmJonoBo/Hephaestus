@@ -89,8 +89,7 @@ def test_plugin_execution_with_missing_tool() -> None:
     # Check for various failure messages
     message_lower = result.message.lower()
     assert any(
-        keyword in message_lower
-        for keyword in ["not found", "failed", "not installed", "error"]
+        keyword in message_lower for keyword in ["not found", "failed", "not installed", "error"]
     )
 
 
