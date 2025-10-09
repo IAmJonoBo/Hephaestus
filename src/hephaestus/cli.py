@@ -25,6 +25,7 @@ from hephaestus import (
     toolbox,
 )
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
+from hephaestus.telemetry import trace_command, trace_operation
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
 tools_app = typer.Typer(name="tools", help="Toolkit command groups.", no_args_is_help=True)
@@ -654,6 +655,7 @@ def schema(
 
 
 @app.command()
+@trace_command("cleanup")
 def cleanup(
     root: Annotated[
         Path | None,
@@ -895,6 +897,7 @@ def plan() -> None:
 
 
 @app.command("guard-rails")
+@trace_command("guard-rails")
 def guard_rails(
     no_format: Annotated[
         bool,
@@ -920,64 +923,65 @@ def guard_rails(
         # Drift detection mode
         if drift:
             console.print("[cyan]Checking for tool version drift...[/cyan]")
-            try:
-                tool_versions = drift_module.detect_drift()
+            with trace_operation("drift-detection", check_drift=True):
+                try:
+                    tool_versions = drift_module.detect_drift()
 
-                drift_table = Table(title="Tool Version Drift")
-                drift_table.add_column("Tool", style="cyan")
-                drift_table.add_column("Expected", style="yellow")
-                drift_table.add_column("Actual", style="green")
-                drift_table.add_column("Status", style="white")
+                    drift_table = Table(title="Tool Version Drift")
+                    drift_table.add_column("Tool", style="cyan")
+                    drift_table.add_column("Expected", style="yellow")
+                    drift_table.add_column("Actual", style="green")
+                    drift_table.add_column("Status", style="white")
 
-                drifted = []
-                for tool in tool_versions:
-                    if tool.is_missing:
-                        status = "[red]Missing[/red]"
-                        drifted.append(tool)
-                    elif tool.has_drift:
-                        status = "[yellow]Drift[/yellow]"
-                        drifted.append(tool)
-                    else:
-                        status = "[green]OK[/green]"
-
-                    drift_table.add_row(
-                        tool.name,
-                        tool.expected or "N/A",
-                        tool.actual or "Not installed",
-                        status,
-                    )
-
-                console.print(drift_table)
-
-                if drifted:
-                    console.print("\n[yellow]Tool version drift detected![/yellow]")
-                    commands = drift_module.generate_remediation_commands(drifted)
-
-                    console.print("\n[cyan]Remediation commands:[/cyan]")
-                    for cmd in commands:
-                        if cmd.startswith("#"):
-                            console.print(f"[dim]{cmd}[/dim]")
+                    drifted = []
+                    for tool in tool_versions:
+                        if tool.is_missing:
+                            status = "[red]Missing[/red]"
+                            drifted.append(tool)
+                        elif tool.has_drift:
+                            status = "[yellow]Drift[/yellow]"
+                            drifted.append(tool)
                         else:
-                            console.print(f"  {cmd}")
+                            status = "[green]OK[/green]"
 
-                    telemetry.emit_event(
-                        logger,
-                        telemetry.CLI_GUARD_RAILS_DRIFT,
-                        message="Tool version drift detected",
-                        drifted_tools=[t.name for t in drifted],
-                    )
-                    raise typer.Exit(code=1)
-                else:
-                    console.print("\n[green]✓ All tools are up to date.[/green]")
-                    telemetry.emit_event(
-                        logger,
-                        telemetry.CLI_GUARD_RAILS_DRIFT_OK,
-                        message="No tool version drift detected",
-                    )
-                return
-            except drift_module.DriftDetectionError as exc:
-                console.print(f"[red]✗ Drift detection failed: {exc}[/red]")
-                raise typer.Exit(code=1) from exc
+                        drift_table.add_row(
+                            tool.name,
+                            tool.expected or "N/A",
+                            tool.actual or "Not installed",
+                            status,
+                        )
+
+                    console.print(drift_table)
+
+                    if drifted:
+                        console.print("\n[yellow]Tool version drift detected![/yellow]")
+                        commands = drift_module.generate_remediation_commands(drifted)
+
+                        console.print("\n[cyan]Remediation commands:[/cyan]")
+                        for cmd in commands:
+                            if cmd.startswith("#"):
+                                console.print(f"[dim]{cmd}[/dim]")
+                            else:
+                                console.print(f"  {cmd}")
+
+                        telemetry.emit_event(
+                            logger,
+                            telemetry.CLI_GUARD_RAILS_DRIFT,
+                            message="Tool version drift detected",
+                            drifted_tools=[t.name for t in drifted],
+                        )
+                        raise typer.Exit(code=1)
+                    else:
+                        console.print("\n[green]✓ All tools are up to date.[/green]")
+                        telemetry.emit_event(
+                            logger,
+                            telemetry.CLI_GUARD_RAILS_DRIFT_OK,
+                            message="No tool version drift detected",
+                        )
+                        return
+                except drift_module.DriftDetectionError as exc:
+                    console.print(f"[red]✗ Drift detection failed: {exc}[/red]")
+                    raise typer.Exit(code=1) from exc
 
         # Standard guard-rails pipeline
         console.print("[cyan]Running guard rails...[/cyan]")

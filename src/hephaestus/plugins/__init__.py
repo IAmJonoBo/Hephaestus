@@ -362,6 +362,10 @@ def _load_external_plugin(config: PluginConfig, registry_instance: PluginRegistr
     if not config.enabled:
         return
 
+    # Edge case: neither module nor path specified
+    if not config.module and not config.path:
+        raise ValueError(f"Plugin {config.name} has neither 'module' nor 'path' specified")
+
     plugin_class = None
 
     # Try loading from module
@@ -383,6 +387,11 @@ def _load_external_plugin(config: PluginConfig, registry_instance: PluginRegistr
 
     # Try loading from file path
     elif config.path:
+        # Edge case: path doesn't exist
+        path_obj = Path(config.path)
+        if not path_obj.exists():
+            raise ValueError(f"Plugin path does not exist: {config.path}")
+
         try:
             import importlib.util
             import sys

@@ -363,3 +363,123 @@ key = "value"
     configs = load_plugin_config(config_file)
     assert configs == []
 
+
+def test_load_plugin_config_edge_case_invalid_external_format(tmp_path: Path):
+    """load_plugin_config should handle invalid external plugin format."""
+    config_file = tmp_path / "plugins.toml"
+    config_file.write_text(
+        """
+[[external]]
+# Missing required 'name' field - should be treated as invalid
+enabled = true
+"""
+    )
+
+    configs = load_plugin_config(config_file)
+    # Should still parse but have empty name
+    assert len(configs) == 1
+    assert configs[0].name == ""
+
+
+def test_discover_plugins_edge_case_duplicate_registrations(tmp_path: Path):
+    """discover_plugins should not fail on duplicate plugin registrations."""
+    config_file = tmp_path / "plugins.toml"
+    config_file.write_text(
+        """
+[builtin]
+ruff-check = true
+"""
+    )
+
+    registry_instance = PluginRegistry()
+    # Register once
+    discover_plugins(config_file, registry_instance)
+    # Try to register again - should not duplicate
+    discover_plugins(config_file, registry_instance)
+
+    # Should only have one instance
+    plugins = [p for p in registry_instance.all_plugins() if p.metadata.name == "ruff-check"]
+    assert len(plugins) == 1
+
+
+def test_load_plugin_config_edge_case_builtin_with_empty_config(tmp_path: Path):
+    """load_plugin_config should handle built-in plugins with various config formats."""
+    config_file = tmp_path / "plugins.toml"
+    config_file.write_text(
+        """
+[builtin]
+ruff-check = {}
+mypy = { enabled = true }
+pytest = { enabled = false, config = {} }
+"""
+    )
+
+    configs = load_plugin_config(config_file)
+    assert len(configs) == 3
+
+    # ruff-check with empty dict
+    ruff = next(c for c in configs if c.name == "ruff-check")
+    assert ruff.enabled is True
+    assert ruff.config == {}
+
+    # mypy with explicit enabled
+    mypy = next(c for c in configs if c.name == "mypy")
+    assert mypy.enabled is True
+
+    # pytest disabled with empty config
+    pytest_config = next(c for c in configs if c.name == "pytest")
+    assert pytest_config.enabled is False
+    assert pytest_config.config == {}
+
+
+def test_plugin_validation_edge_cases():
+    """Test plugin validation with various config edge cases."""
+    from hephaestus.plugins.builtin import RuffCheckPlugin
+
+    plugin = RuffCheckPlugin()
+
+    # Valid config - empty dict
+    assert plugin.validate_config({})
+
+    # Valid config - with paths
+    assert plugin.validate_config({"paths": ["src", "tests"]})
+
+    # Invalid config - paths not a list
+    with pytest.raises(ValueError, match="'paths' must be a list"):
+        plugin.validate_config({"paths": "src"})
+
+    # Invalid config - args not a list
+    with pytest.raises(ValueError, match="'args' must be a list"):
+        plugin.validate_config({"args": "--fix"})
+
+
+def test_plugin_run_edge_case_missing_tool():
+    """Test plugin run behavior when tool is not installed."""
+    from hephaestus.plugins.builtin import RuffCheckPlugin
+
+    plugin = RuffCheckPlugin()
+
+    # Mock subprocess to simulate missing tool
+    import subprocess
+    from unittest.mock import patch
+
+    with patch("subprocess.run", side_effect=FileNotFoundError("ruff not found")):
+        result = plugin.run({})
+
+    assert result.success is False
+    assert "not installed" in result.message.lower()
+    assert result.exit_code == 127
+
+
+def test_plugin_config_edge_case_none_values():
+    """Test PluginConfig with None values for optional fields."""
+    config = PluginConfig(name="test", enabled=True, config=None, module=None, path=None)
+
+    assert config.name == "test"
+    assert config.enabled is True
+    assert config.config is None
+    assert config.module is None
+    assert config.path is None
+
+
+
