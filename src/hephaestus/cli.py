@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 from dataclasses import replace
 from pathlib import Path
@@ -25,6 +26,7 @@ from hephaestus import (
     toolbox,
 )
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
+from hephaestus.telemetry import trace_command, trace_operation
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
 tools_app = typer.Typer(name="tools", help="Toolkit command groups.", no_args_is_help=True)
@@ -337,6 +339,83 @@ def release_install(
             asset=download.asset.name,
             allow_unsigned=allow_unsigned,
         )
+
+
+@release_app.command("backfill")
+@trace_command("release-backfill")
+def release_backfill(
+    version: Annotated[
+        str | None,
+        typer.Option(
+            "--version",
+            "-v",
+            help="Specific version to backfill (default: all historical versions)",
+        ),
+    ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Perform all steps except uploads (for testing)",
+        ),
+    ] = False,
+) -> None:
+    """Backfill Sigstore bundles for historical releases (ADR-0006).
+
+    This command generates Sigstore attestations for historical releases that
+    predate Sigstore integration. It downloads existing wheelhouse archives,
+    verifies checksums, generates attestations, and uploads .sigstore bundles.
+
+    Requires GITHUB_TOKEN environment variable with repo write access.
+    """
+    import subprocess
+
+    console.print("[cyan]Starting Sigstore bundle backfill...[/cyan]")
+
+    # Check for GITHUB_TOKEN
+    token = os.environ.get("GITHUB_TOKEN")
+    if not token:
+        console.print("[red]✗ GITHUB_TOKEN environment variable not set[/red]")
+        console.print("\nSet your GitHub token:")
+        console.print("  export GITHUB_TOKEN=<your-token>")
+        raise typer.Exit(code=1)
+
+    # Build command
+    import sys
+
+    script_path = Path(__file__).parent.parent.parent / "scripts" / "backfill_sigstore_bundles.py"
+
+    cmd = [sys.executable, str(script_path)]
+
+    if version:
+        cmd.extend(["--version", version])
+
+    if dry_run:
+        cmd.append("--dry-run")
+        console.print("[yellow]DRY RUN MODE - No actual uploads will be performed[/yellow]")
+
+    # Execute backfill script
+    console.print(f"\nExecuting: {' '.join(cmd)}\n")
+
+    try:
+        result = subprocess.run(
+            cmd,
+            check=False,
+            env=os.environ.copy(),
+        )
+
+        if result.returncode == 0:
+            console.print("\n[green]✓ Backfill completed successfully![/green]")
+        else:
+            console.print("\n[red]✗ Backfill failed - see output above[/red]")
+            raise typer.Exit(code=result.returncode)
+
+    except FileNotFoundError as exc:
+        console.print(f"[red]✗ Backfill script not found: {script_path}[/red]")
+        raise typer.Exit(code=1) from exc
+    except Exception as exc:
+        console.print(f"[red]✗ Unexpected error: {exc}[/red]")
+        raise typer.Exit(code=1) from exc
 
 
 @refactor_app.command("hotspots")
@@ -654,6 +733,7 @@ def schema(
 
 
 @app.command()
+@trace_command("cleanup")
 def cleanup(
     root: Annotated[
         Path | None,
@@ -895,6 +975,7 @@ def plan() -> None:
 
 
 @app.command("guard-rails")
+@trace_command("guard-rails")
 def guard_rails(
     no_format: Annotated[
         bool,
@@ -920,64 +1001,65 @@ def guard_rails(
         # Drift detection mode
         if drift:
             console.print("[cyan]Checking for tool version drift...[/cyan]")
-            try:
-                tool_versions = drift_module.detect_drift()
+            with trace_operation("drift-detection", check_drift=True):
+                try:
+                    tool_versions = drift_module.detect_drift()
 
-                drift_table = Table(title="Tool Version Drift")
-                drift_table.add_column("Tool", style="cyan")
-                drift_table.add_column("Expected", style="yellow")
-                drift_table.add_column("Actual", style="green")
-                drift_table.add_column("Status", style="white")
+                    drift_table = Table(title="Tool Version Drift")
+                    drift_table.add_column("Tool", style="cyan")
+                    drift_table.add_column("Expected", style="yellow")
+                    drift_table.add_column("Actual", style="green")
+                    drift_table.add_column("Status", style="white")
 
-                drifted = []
-                for tool in tool_versions:
-                    if tool.is_missing:
-                        status = "[red]Missing[/red]"
-                        drifted.append(tool)
-                    elif tool.has_drift:
-                        status = "[yellow]Drift[/yellow]"
-                        drifted.append(tool)
-                    else:
-                        status = "[green]OK[/green]"
-
-                    drift_table.add_row(
-                        tool.name,
-                        tool.expected or "N/A",
-                        tool.actual or "Not installed",
-                        status,
-                    )
-
-                console.print(drift_table)
-
-                if drifted:
-                    console.print("\n[yellow]Tool version drift detected![/yellow]")
-                    commands = drift_module.generate_remediation_commands(drifted)
-
-                    console.print("\n[cyan]Remediation commands:[/cyan]")
-                    for cmd in commands:
-                        if cmd.startswith("#"):
-                            console.print(f"[dim]{cmd}[/dim]")
+                    drifted = []
+                    for tool in tool_versions:
+                        if tool.is_missing:
+                            status = "[red]Missing[/red]"
+                            drifted.append(tool)
+                        elif tool.has_drift:
+                            status = "[yellow]Drift[/yellow]"
+                            drifted.append(tool)
                         else:
-                            console.print(f"  {cmd}")
+                            status = "[green]OK[/green]"
 
-                    telemetry.emit_event(
-                        logger,
-                        telemetry.CLI_GUARD_RAILS_DRIFT,
-                        message="Tool version drift detected",
-                        drifted_tools=[t.name for t in drifted],
-                    )
-                    raise typer.Exit(code=1)
-                else:
-                    console.print("\n[green]✓ All tools are up to date.[/green]")
-                    telemetry.emit_event(
-                        logger,
-                        telemetry.CLI_GUARD_RAILS_DRIFT_OK,
-                        message="No tool version drift detected",
-                    )
-                return
-            except drift_module.DriftDetectionError as exc:
-                console.print(f"[red]✗ Drift detection failed: {exc}[/red]")
-                raise typer.Exit(code=1) from exc
+                        drift_table.add_row(
+                            tool.name,
+                            tool.expected or "N/A",
+                            tool.actual or "Not installed",
+                            status,
+                        )
+
+                    console.print(drift_table)
+
+                    if drifted:
+                        console.print("\n[yellow]Tool version drift detected![/yellow]")
+                        commands = drift_module.generate_remediation_commands(drifted)
+
+                        console.print("\n[cyan]Remediation commands:[/cyan]")
+                        for cmd in commands:
+                            if cmd.startswith("#"):
+                                console.print(f"[dim]{cmd}[/dim]")
+                            else:
+                                console.print(f"  {cmd}")
+
+                        telemetry.emit_event(
+                            logger,
+                            telemetry.CLI_GUARD_RAILS_DRIFT,
+                            message="Tool version drift detected",
+                            drifted_tools=[t.name for t in drifted],
+                        )
+                        raise typer.Exit(code=1)
+                    else:
+                        console.print("\n[green]✓ All tools are up to date.[/green]")
+                        telemetry.emit_event(
+                            logger,
+                            telemetry.CLI_GUARD_RAILS_DRIFT_OK,
+                            message="No tool version drift detected",
+                        )
+                        return
+                except drift_module.DriftDetectionError as exc:
+                    console.print(f"[red]✗ Drift detection failed: {exc}[/red]")
+                    raise typer.Exit(code=1) from exc
 
         # Standard guard-rails pipeline
         console.print("[cyan]Running guard rails...[/cyan]")
