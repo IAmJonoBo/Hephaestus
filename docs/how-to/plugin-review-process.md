@@ -163,8 +163,8 @@ If a plugin is rejected, authors can:
 ## Resources
 
 - [Plugin Development Guide](plugin-development.md)
-- [Plugin API Reference](../reference/plugins.md)
-- [Example Plugin Template](../../plugin-templates/example-plugin/)
+- [Plugin Catalog](../reference/plugin-catalog.md)
+- [Example Plugin Template](https://github.com/IAmJonoBo/Hephaestus/tree/main/plugin-templates/example-plugin/)
 - [ADR-0002: Plugin Architecture](../adr/0002-plugin-architecture.md)
 
 ## Questions?

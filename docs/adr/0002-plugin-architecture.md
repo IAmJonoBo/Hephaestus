@@ -359,7 +359,7 @@ def run_quality_gates(config_path: str) -> bool:
 - [Plugin Development Guide](../how-to/plugin-development.md)
 - [Plugin Catalog](../reference/plugin-catalog.md)
 - [Plugin Review Process](../how-to/plugin-review-process.md)
-- [Example Plugin Template](../../plugin-templates/example-plugin/)
+- [Example Plugin Template](https://github.com/IAmJonoBo/Hephaestus/tree/main/plugin-templates/example-plugin/)
 - [pytest plugin architecture](https://docs.pytest.org/en/stable/how-to/writing_plugins.html)
 - [pre-commit hooks architecture](https://pre-commit.com/#creating-new-hooks)
 

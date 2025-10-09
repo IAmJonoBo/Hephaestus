@@ -117,7 +117,7 @@ Community-developed plugins that extend Hephaestus functionality.
 **Category**: Custom  
 **Author**: Hephaestus Team  
 **Version**: 1.0.0  
-**Repository**: [plugin-templates/example-plugin](../../../plugin-templates/example-plugin/)
+**Repository**: [GitHub](https://github.com/IAmJonoBo/Hephaestus/tree/main/plugin-templates/example-plugin/)
 
 Template for creating custom quality gate plugins. Demonstrates best practices and includes comprehensive tests.
 
