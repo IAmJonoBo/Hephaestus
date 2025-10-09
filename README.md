@@ -91,8 +91,20 @@ pip install hephaestus
 # Or from source with uv (recommended for development)
 git clone https://github.com/IAmJonoBo/Hephaestus.git
 cd Hephaestus
+
+# Quick setup with automated script
+./scripts/setup-dev-env.sh
+
+# Or manual setup
 uv sync --extra dev --extra qa
 ```
+
+The setup script ensures a bulletproof development environment with:
+- Python 3.12+ validation
+- uv package manager installation (if needed)
+- All dependencies synced from lockfile
+- Pre-commit hooks configured
+- Environment validation
 
 ### Essential Commands
 

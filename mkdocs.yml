@@ -13,6 +13,7 @@ nav:
       - Configure Your Editor: how-to/editor-setup.md
       - Operating Safely: how-to/operating-safely.md
       - Quality Gate Validation: how-to/quality-gates.md
+      - CI/CD Setup & Dependency Management: how-to/ci-setup.md
       - AI Agent Integration: how-to/ai-agent-integration.md
       - Release Process: how-to/release-process.md
       - Testing Guide: how-to/testing.md
