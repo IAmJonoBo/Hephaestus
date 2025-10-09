@@ -27,11 +27,25 @@ jobs:
         with:
           languages: ${{ matrix.language }}
 
-      - name: Install uv
+      - name: Setup uv and Python
         uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+          enable-cache: true
 
       - name: Sync dependencies
-        run: uv sync --extra dev --extra qa
+        run: uv sync --locked --extra dev --extra qa
+
+      - name: Validate environment setup
+        run: |
+          echo "Validating Python and tool availability..."
+          uv run python --version
+          uv run python -c "import sys; print(f'Python: {sys.version}')"
+          uv run python -c \
+            "import pytest; print(f'pytest: {pytest.__version__}')"
+          uv run python -c \
+            "import mypy; print(f'mypy: {mypy.__version__}')"
+          echo "Environment validation complete ✓"
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

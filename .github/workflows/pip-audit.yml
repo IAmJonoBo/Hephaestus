@@ -14,11 +14,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Install uv
+      - name: Setup uv and Python
         uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+          enable-cache: true
 
       - name: Sync dependencies
-        run: uv sync --extra dev --extra qa
+        run: uv sync --locked --extra dev --extra qa
+
+      - name: Validate environment setup
+        run: |
+          echo "Validating Python and pip-audit availability..."
+          uv run python --version
+          uv run python -c "import sys; print(f'Python: {sys.version}')"
+          uv run pip-audit --version
+          echo "Environment validation complete ✓"
 
       - name: Run pip-audit
         run: uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph
