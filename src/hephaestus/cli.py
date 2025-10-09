@@ -815,6 +815,14 @@ def cleanup(
             show_default=False,
         ),
     ] = None,
+    max_depth: Annotated[
+        int | None,
+        typer.Option(
+            "--max-depth",
+            help="Maximum directory depth to traverse (DoS mitigation, default: unlimited).",
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
     """Scrub macOS metadata and development cruft from the workspace."""
 
@@ -829,6 +837,7 @@ def cleanup(
         extra_paths=tuple(extra_paths or ()),
         dry_run=dry_run,
         audit_manifest=audit_manifest,
+        max_depth=max_depth,
     )
 
     removal_log: list[Path] = []
