@@ -54,6 +54,8 @@ qa = [
   "pytest>=8.2",
   "pytest-cov>=5.0",
   "pytest-randomly>=3.15",
+  "pytest-asyncio>=0.25.0",
+  "httpx>=0.28.1",
   "bandit>=1.7.9",
 ]
 dev = [

@@ -1,6 +1,13 @@
 # AI Agent Integration Guide
 
-This guide helps AI agents (GitHub Copilot, Cursor, Claude, etc.) integrate with Hephaestus CLI commands safely and predictably.
+This guide helps AI agents (GitHub Copilot, Cursor, Claude, etc.) integrate with Hephaestus CLI commands and REST API safely and predictably.
+
+## Integration Options
+
+Hephaestus provides two integration paths:
+
+1. **CLI Integration**: Direct command-line execution (existing)
+2. **REST API Integration**: Remote HTTP/HTTPS invocation (new in v0.3.0)
 
 ## Getting Command Schemas
 
@@ -308,3 +315,149 @@ For issues with AI integration:
 2. Review retry hints in schema output
 3. Enable debug logging: `hephaestus --log-level DEBUG <command>`
 4. Report integration issues with schema version and agent details
+
+## REST API Integration (v0.3.0+)
+
+Hephaestus provides a REST API for remote invocation, ideal for web-based AI agents and distributed systems.
+
+### Starting the API Server
+
+```bash
+# Install API dependencies
+pip install 'hephaestus-toolkit[api]'
+
+# Start the server
+uvicorn hephaestus.api.rest.app:app --host 0.0.0.0 --port 8000
+
+# With auto-reload for development
+uvicorn hephaestus.api.rest.app:app --reload
+```
+
+### API Endpoints
+
+All API endpoints require authentication via Bearer token:
+
+```bash
+# Set your API key
+export HEPHAESTUS_API_KEY="your-api-key"
+
+# Make authenticated request
+curl -X POST http://localhost:8000/api/v1/quality/guard-rails \
+  -H "Authorization: Bearer your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"no_format": false, "drift_check": true}'
+```
+
+### Example: Guard-Rails Execution
+
+```python
+import httpx
+
+api_url = "http://localhost:8000"
+headers = {"Authorization": "Bearer your-api-key"}
+
+async with httpx.AsyncClient() as client:
+    # Execute guard-rails
+    response = await client.post(
+        f"{api_url}/api/v1/quality/guard-rails",
+        headers=headers,
+        json={"no_format": False, "drift_check": True}
+    )
+    
+    result = response.json()
+    print(f"Success: {result['success']}")
+    print(f"Duration: {result['duration']}s")
+    
+    for gate in result['gates']:
+        status = "✓" if gate['passed'] else "✗"
+        print(f"{status} {gate['name']}")
+```
+
+### Example: Cleanup with Dry-Run
+
+```python
+import httpx
+
+async with httpx.AsyncClient() as client:
+    response = await client.post(
+        "http://localhost:8000/api/v1/cleanup",
+        headers={"Authorization": "Bearer your-api-key"},
+        json={"deep_clean": True, "dry_run": True}
+    )
+    
+    result = response.json()
+    print(f"Would delete {result['files_deleted']} files")
+    print(f"Would free {result['size_freed']} bytes")
+```
+
+### Example: Analytics Rankings
+
+```python
+import httpx
+
+async with httpx.AsyncClient() as client:
+    response = await client.get(
+        "http://localhost:8000/api/v1/analytics/rankings",
+        headers={"Authorization": "Bearer your-api-key"},
+        params={"strategy": "coverage_first", "limit": 10}
+    )
+    
+    result = response.json()
+    for item in result['rankings']:
+        print(f"#{item['rank']} {item['path']} - Score: {item['score']}")
+```
+
+### Streaming Progress Updates
+
+For long-running operations, use Server-Sent Events to stream progress:
+
+```python
+import httpx
+
+async with httpx.AsyncClient() as client:
+    # Start operation
+    response = await client.post(
+        "http://localhost:8000/api/v1/quality/guard-rails",
+        headers={"Authorization": "Bearer your-api-key"},
+        json={"no_format": False}
+    )
+    task_id = response.json()['task_id']
+    
+    # Stream progress updates
+    async with client.stream(
+        "GET",
+        f"http://localhost:8000/api/v1/tasks/{task_id}/stream",
+        headers={"Authorization": "Bearer your-api-key"}
+    ) as stream:
+        async for line in stream.aiter_lines():
+            if line.startswith("data: "):
+                data = json.loads(line[6:])
+                print(f"Progress: {data['progress'] * 100}%")
+                if data['status'] in ['completed', 'failed']:
+                    break
+```
+
+### Error Handling
+
+All API endpoints return structured error responses:
+
+```python
+try:
+    response = await client.post(url, headers=headers, json=data)
+    response.raise_for_status()
+except httpx.HTTPStatusError as e:
+    if e.response.status_code == 401:
+        print("Authentication failed - check API key")
+    elif e.response.status_code == 500:
+        error = e.response.json()
+        print(f"Server error: {error['detail']}")
+```
+
+### API Documentation
+
+Full OpenAPI specification available at:
+
+- Interactive docs: `http://localhost:8000/docs`
+- OpenAPI JSON: `http://localhost:8000/openapi.json`
+- OpenAPI YAML: `docs/api/openapi.yaml`
+
