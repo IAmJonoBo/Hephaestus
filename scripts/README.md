@@ -159,6 +159,64 @@ CHANGELOG template for version 0.3.0:
 
 - [Release Process Guide](../docs/how-to/release-process.md)
 
+### validate-dependency-orchestration.sh
+
+Comprehensive dependency orchestration validation script that ensures all dependency management components are properly configured.
+
+**Usage:**
+
+```bash
+./scripts/validate-dependency-orchestration.sh
+```
+
+**What it checks:**
+
+- Python version ≥3.12
+- uv installation and version
+- pyproject.toml existence
+- uv.lock existence and sync status
+- Workflow Python version consistency (no invalid 3.14)
+- Workflow --locked flag usage
+- setup-uv python-version specifications
+- Dependabot configuration
+- Dependency sync functionality
+- Environment isolation (.venv usage)
+
+**Exit codes:**
+
+- 0: All checks passed
+- 1: One or more checks failed
+
+**Features:**
+
+- Color-coded output (✓ success, ✗ error, ⚠ warning)
+- Comprehensive validation across all components
+- Detects common misconfigurations
+- Can be run locally or in CI
+- Guards against drift during repo sync
+
+**Example output:**
+
+```bash
+$ ./scripts/validate-dependency-orchestration.sh
+==================================================================
+Hephaestus Dependency Orchestration Validator
+==================================================================
+
+→ Checking Python version...
+✓ Python 3.12.3 detected
+→ Checking uv installation...
+✓ uv detected: uv 0.9.1
+...
+==================================================================
+✓ All dependency orchestration checks passed
+```
+
+**See also:**
+
+- [CI/CD Setup Guide](../docs/how-to/ci-setup.md)
+- [Dependency Management Best Practices](../docs/how-to/ci-setup.md#dependency-management-best-practices)
+
 ### backfill_sigstore_bundles.py
 
 Automated Sigstore bundle backfill for historical releases (ADR-0006 Sprint 2).

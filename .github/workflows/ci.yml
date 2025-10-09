@@ -35,6 +35,13 @@ jobs:
           python-version: "3.12"
           enable-cache: true
 
+      # Validate lockfile is in sync with pyproject.toml BEFORE syncing
+      - name: Validate lockfile integrity
+        run: |
+          echo "Validating uv.lock is in sync with pyproject.toml..."
+          uv lock --check
+          echo "Lockfile validation complete ✓"
+
       # Install from the lockfile, including dev & qa extras.
       - name: Sync dependencies (locked)
         run: uv sync --locked --extra dev --extra qa
@@ -53,6 +60,16 @@ jobs:
             "import mypy; print(f'mypy: {mypy.__version__}')"
             uv run yamllint --version
           echo "Environment validation complete ✓"
+
+      # Verify environment isolation for ephemeral runners
+      - name: Verify environment isolation
+        run: |
+          echo "Verifying environment isolation..."
+          uv run python -c "import sys; print(f'sys.prefix: {sys.prefix}')"
+          uv run python -c \
+            "import sys; assert '.venv' in sys.prefix, \
+            'Not using isolated venv'"
+          echo "Environment isolation verified ✓"
 
       - name: Run tests
         run: uv run pytest -q
@@ -83,6 +100,13 @@ jobs:
           python-version: "3.12"
           enable-cache: true
 
+      # Validate lockfile is in sync before building
+      - name: Validate lockfile integrity
+        run: |
+          echo "Validating uv.lock is in sync with pyproject.toml..."
+          uv lock --check
+          echo "Lockfile validation complete ✓"
+
       # Export the uv.lock to requirements.txt for pip-only installs.
       - name: Export locked requirements (dev + qa)
         run: |
@@ -91,6 +115,10 @@ jobs:
             --extra qa \
             --all-extras \
             -o requirements.txt
+
+          echo "Exported requirements preview:"
+          head -20 requirements.txt
+          echo "Total requirements: $(wc -l < requirements.txt)"
 
       # Build wheels for *all* deps + build a wheel for this project itself.
       - name: Build wheelhouse
@@ -121,6 +149,10 @@ jobs:
           echo "Verifying wheelhouse..."
           uv run -- python -m hephaestus.cli wheelhouse verify wheelhouse
 
+          echo "Final wheelhouse statistics:"
+          echo "Total wheels: $(find wheelhouse -name '*.whl' | wc -l)"
+          echo "Total size: $(du -sh wheelhouse | cut -f1)"
+
           echo "Wheelhouse build complete ✓"
 
       - name: Upload wheelhouse artifact
@@ -144,7 +176,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          python-version: "3.12"
 
       - name: Verify Python version
         run: |
@@ -177,10 +209,15 @@ jobs:
             (echo "❌ requirements.txt missing in wheelhouse artifact" && \
             exit 1)
 
-          echo "Wheelhouse contents:"
+          echo "Wheelhouse statistics:"
+          echo "Total wheels: $(find wheelhouse/wheelhouse \
+            -name '*.whl' | wc -l)"
+          echo "Total size: $(du -sh wheelhouse/wheelhouse | cut -f1)"
+
+          echo "Wheelhouse contents (first 20):"
           ls -lh wheelhouse/wheelhouse/ | head -20
 
-          echo "Requirements preview:"
+          echo "Requirements preview (first 10):"
           head -10 wheelhouse/requirements.txt
 
           echo "Wheelhouse validation complete ✓"
@@ -225,6 +262,12 @@ jobs:
             "import mypy; print(f'mypy {mypy.__version__} ✓')"
             yamllint --version
           python -m ruff --version
+
+          echo "Verifying offline environment isolation..."
+          python -c "import sys; print(f'sys.prefix: {sys.prefix}')"
+          python -c "import sys; assert '.venv' in sys.prefix, \
+            'Not using isolated venv'"
+
           echo "Offline environment validation complete ✓"
 
       - name: Run tests (offline env)

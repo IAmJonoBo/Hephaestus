@@ -92,6 +92,9 @@ The Hephaestus CI pipeline uses a dual-path approach to ensure reliability in bo
 # Lock dependencies
 uv lock
 
+# Validate lock is in sync with pyproject.toml
+uv lock --check
+
 # Sync environment from lock
 uv sync --locked --extra dev --extra qa
 ```
@@ -101,6 +104,9 @@ The lockfile ensures:
 - Exact versions across all environments
 - Transitive dependency resolution
 - Consistent builds in CI and local development
+- Protection against drift during repo sync
+
+**Important:** Always run `uv lock --check` in CI to detect when `uv.lock` is out of sync with `pyproject.toml`. This guards against merge conflicts and manual edits that could break reproducibility.
 
 ### 2. Proper Extra Specification
 
