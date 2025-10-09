@@ -43,7 +43,7 @@ security = HTTPBearer(auto_error=False)
 
 
 def verify_api_key(
-    credentials: HTTPAuthorizationCredentials | None = Security(security),
+    credentials: HTTPAuthorizationCredentials | None = None,
 ) -> str:
     """Verify API key from Authorization header.
 
@@ -65,7 +65,9 @@ def verify_api_key(
         - Rate limiting per key
     """
     if credentials is None:
-        raise HTTPException(status_code=401, detail="Missing API key")
+        credentials = Security(security)
+        if credentials is None:
+            raise HTTPException(status_code=401, detail="Missing API key")
 
     api_key = credentials.credentials
 
