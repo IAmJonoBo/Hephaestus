@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **E2E Testing & Validation**:
+  - Comprehensive E2E test suite for development environment setup
+  - Regression tests for virtual environment preservation during cleanup
+  - Renovate compatibility tests for dependency update workflows
+  - Setup script validation tests (syntax, existence, permissions)
+  - E2E testing documentation guide (`docs/how-to/e2e-testing.md`)
 - **Sprint 2: PyPI Publication (ADR-0005)**:
   - Automated PyPI publication workflow via GitHub Actions
   - Sigstore signing integration for published packages
@@ -55,6 +61,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Existing telemetry event definitions moved to `events.py`
   - New `telemetry/` package for OpenTelemetry integration
   - All imports updated (`from hephaestus import events as telemetry`)
+
+### Fixed
+
+- **Critical: Cleanup Breaking Virtual Environments** (Issue #44)
+  - Fixed `_should_skip_venv_site_packages` logic that removed site-packages when .venv was in search roots
+  - Cleanup now properly preserves site-packages directory to prevent breaking virtual environments
+  - Added regression test to ensure site-packages preservation
+  - This fix ensures guard-rails command doesn't break the development environment
+- **Yamllint Configuration Path**
+  - Removed hardcoded reference to non-existent `.trunk/configs/.yamllint.yaml`
+  - Yamllint now uses default configuration
+  - Guard-rails command now completes yamllint step successfully
 
 ### Planned
 

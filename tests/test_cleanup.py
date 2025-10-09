@@ -202,6 +202,20 @@ def test_should_skip_venv_site_packages(tmp_path: Path) -> None:
     assert _should_skip_venv_site_packages(other_dir, root) is False
 
 
+def test_should_skip_venv_site_packages_when_root_is_venv(tmp_path: Path) -> None:
+    """Regression test: site-packages must be preserved when cleaning .venv directly."""
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    venv_root = repo_root / ".venv"
+    site_packages = venv_root / "lib" / "python3.12" / "site-packages"
+    site_packages.mkdir(parents=True)
+
+    # When root IS .venv (as added by gather_search_roots with include_poetry_env=True),
+    # we should still skip site-packages to avoid breaking the virtual environment
+    skip = _should_skip_venv_site_packages(site_packages, venv_root)
+    assert skip is True, "site-packages should be skipped even when root is .venv"
+
+
 def test_run_cleanup_removes_extended_build_artifacts(tmp_path: Path) -> None:
     root = tmp_path / "build-target"
     root.mkdir()

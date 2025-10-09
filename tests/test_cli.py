@@ -297,8 +297,6 @@ def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> 
         ["ruff", "format", "."],
         [
             "yamllint",
-            "-c",
-            ".trunk/configs/.yamllint.yaml",
             ".github/",
             ".pre-commit-config.yaml",
             "mkdocs.yml",
