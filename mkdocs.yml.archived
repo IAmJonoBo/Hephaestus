@@ -1,3 +1,16 @@
+# ARCHIVED - MkDocs Configuration
+# 
+# This file has been archived as part of the migration to Astro Starlight.
+# Date: January 2025
+# Reason: Upgraded to frontier-grade documentation with extensive automation
+# 
+# New documentation site: https://iamjonobo.github.io/Hephaestus/
+# Documentation source: docs-site/src/content/docs/
+# Migration details: See ADR 0007
+# 
+# This file is preserved for reference purposes only.
+# DO NOT USE for documentation builds.
+
 ---
 site_name: Hephaestus Toolkit
 site_description: Documentation for the Hephaestus developer experience toolkit
