@@ -332,6 +332,7 @@ def sanitize_attributes(attrs: dict) -> dict:
 - [ ] Create monitoring guide (planned for Sprint 4)
 
 **Sprint 3 Status**: Core command instrumentation complete. Added histogram metrics to track:
+
 - Guard-rails step durations (cleanup, ruff-check, ruff-format, yamllint, mypy, pytest, pip-audit)
 - Cleanup operation durations (preview, execution, total)
 - File removal counts and success rates

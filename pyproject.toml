@@ -19,7 +19,7 @@ keywords = [
   "cleanup",
   "release-automation",
   "developer-tools",
-  "ci-cd"
+  "ci-cd",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",

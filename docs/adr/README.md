@@ -96,6 +96,7 @@ When prioritizing ADR implementation, consider:
 ## Implementation Status
 
 ### Completed
+
 - ✅ ADR-0001: STRIDE Threat Model (security hardening)
 - ✅ ADR-0005: PyPI Publication Automation (workflow complete)
 - ✅ ADR-0002: Sprint 1-2 (foundation, built-in plugins, discovery)
@@ -104,9 +105,11 @@ When prioritizing ADR implementation, consider:
 - ✅ ADR-0004: Foundation (OpenAPI spec, module structure)
 
 ### In Progress
+
 - 🔄 ADR-0002: Sprint 3 partial (experimental guard-rails plugin integration via `--use-plugins` flag)
 
 ### Planned
+
 - ⏳ ADR-0002: Sprint 3 completion (plugin template, catalog, review process)
 - ⏳ ADR-0003: Sprint 3 (sampling strategies, custom metrics, plugin instrumentation)
 - ⏳ ADR-0004: Sprint 1+ (FastAPI implementation, authentication, async tasks)

@@ -25,7 +25,8 @@ from hephaestus import events as _events
 
 # Import tracing and metrics modules
 try:
-    from hephaestus.telemetry import metrics as _metrics, tracing as _tracing
+    from hephaestus.telemetry import metrics as _metrics
+    from hephaestus.telemetry import tracing as _tracing
 
     trace_command = _tracing.trace_command
     trace_operation = _tracing.trace_operation  # type: ignore[has-type]

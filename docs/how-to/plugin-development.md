@@ -7,6 +7,7 @@
 Hephaestus supports a plugin architecture for extending quality gates with custom checks. This allows teams to add project-specific quality gates without modifying Hephaestus core.
 
 **Current Implementation Status:**
+
 - ✅ Phase 1: Plugin API specification and registry
 - ✅ Phase 2: Built-in plugins and discovery mechanism
 - ✅ Phase 3: Integration with guard-rails command (experimental `--use-plugins` flag)
@@ -27,12 +28,14 @@ hephaestus guard-rails --use-plugins --no-format
 ```
 
 **How It Works:**
+
 1. Discovers plugins from `.hephaestus/plugins.toml` configuration
 2. Loads both built-in and external plugins
 3. Executes plugins in order based on their `order` property
 4. Falls back to standard pipeline if no plugins are found or errors occur
 
 **Current Limitations:**
+
 - Plugin mode is experimental and opt-in
 - No plugin configuration is loaded yet (empty config `{}` passed to plugins)
 - Standard pipeline remains default for maximum compatibility
@@ -262,10 +265,10 @@ class SecurityAuditPlugin(QualityGatePlugin):
     def run(self, config: dict) -> PluginResult:
         """Run security audit."""
         severity = config.get("severity", "medium")
-        
+
         # Your security check logic here
         issues_found = []
-        
+
         if issues_found:
             return PluginResult(
                 success=False,
@@ -273,7 +276,7 @@ class SecurityAuditPlugin(QualityGatePlugin):
                 details={"issues": issues_found},
                 exit_code=1,
             )
-        
+
         return PluginResult(
             success=True,
             message="No security issues found",
@@ -317,10 +320,10 @@ class CompliancePlugin(QualityGatePlugin):
 
     def run(self, config: dict) -> PluginResult:
         policy_version = config["policy_version"]
-        
+
         # Your compliance check logic
         compliant = True
-        
+
         return PluginResult(
             success=compliant,
             message=f"Compliance check passed (policy {policy_version})",
@@ -358,12 +361,11 @@ Phase 2 implementation provides:
 
 ## Future Phases
 
-- **Phase 3** (Sprint 3): 
+- **Phase 3** (Sprint 3):
   - Integration with guard-rails command
   - Example plugin templates
   - Plugin catalog documentation
-  
-- **Phase 4** (Sprint 4): 
+- **Phase 4** (Sprint 4):
   - Plugin marketplace/registry
   - Plugin versioning
   - Dependency resolution
@@ -382,7 +384,7 @@ def test_plugin_metadata():
     """Test plugin metadata is correctly defined."""
     plugin = MyCustomPlugin()
     metadata = plugin.metadata
-    
+
     assert metadata.name == "my-custom-check"
     assert metadata.version == "1.0.0"
     assert metadata.category == "custom"
@@ -390,10 +392,10 @@ def test_plugin_metadata():
 def test_plugin_validates_config():
     """Test configuration validation."""
     plugin = MyCustomPlugin()
-    
+
     valid_config = {"severity": "high"}
     assert plugin.validate_config(valid_config) is True
-    
+
     invalid_config = {"severity": "invalid"}
     assert plugin.validate_config(invalid_config) is False
 
@@ -401,9 +403,9 @@ def test_plugin_execution():
     """Test plugin runs successfully."""
     plugin = MyCustomPlugin()
     config = {"severity": "medium"}
-    
+
     result = plugin.run(config)
-    
+
     assert isinstance(result, PluginResult)
     assert result.success in [True, False]
     assert isinstance(result.message, str)
@@ -434,14 +436,14 @@ class TestPlugin(QualityGatePlugin):
             category="custom",
             requires=[],
         )
-    
+
     def validate_config(self, config):
         return True
-    
+
     def run(self, config):
         return PluginResult(success=True, message="Test passed")
 """)
-    
+
     # Create config
     config_file = tmp_path / "plugins.toml"
     config_file.write_text(f"""
@@ -450,15 +452,15 @@ name = "test-plugin"
 enabled = true
 path = "{plugin_file}"
 """)
-    
+
     # Discover plugins
     registry = PluginRegistry()
     discover_plugins(config_file, registry)
-    
+
     # Verify plugin is registered
     assert registry.is_registered("test-plugin")
     plugin = registry.get("test-plugin")
-    
+
     # Test execution
     result = plugin.run({})
     assert result.success is True

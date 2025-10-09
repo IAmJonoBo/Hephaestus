@@ -100,27 +100,27 @@ uv run hephaestus guard-rails
 
 ### Setup Script Tests
 
-| Test | Purpose | Status |
-|------|---------|--------|
-| `test_setup_dev_env_script_exists` | Verify script exists and is executable | ✅ |
-| `test_setup_dev_env_script_syntax` | Validate bash syntax | ✅ |
-| `test_setup_script_handles_dependency_updates` | Verify Renovate compatibility | ✅ |
+| Test                                           | Purpose                                | Status |
+| ---------------------------------------------- | -------------------------------------- | ------ |
+| `test_setup_dev_env_script_exists`             | Verify script exists and is executable | ✅     |
+| `test_setup_dev_env_script_syntax`             | Validate bash syntax                   | ✅     |
+| `test_setup_script_handles_dependency_updates` | Verify Renovate compatibility          | ✅     |
 
 ### Cleanup Preservation Tests
 
-| Test | Purpose | Status |
-|------|---------|--------|
-| `test_guard_rails_preserves_site_packages` | Verify site-packages not removed | ✅ |
-| `test_cleanup_with_venv_in_search_roots` | Test cleanup with .venv in search roots | ✅ |
-| `test_guard_rails_yamllint_works` | Verify tools work after cleanup | ✅ |
+| Test                                       | Purpose                                 | Status |
+| ------------------------------------------ | --------------------------------------- | ------ |
+| `test_guard_rails_preserves_site_packages` | Verify site-packages not removed        | ✅     |
+| `test_cleanup_with_venv_in_search_roots`   | Test cleanup with .venv in search roots | ✅     |
+| `test_guard_rails_yamllint_works`          | Verify tools work after cleanup         | ✅     |
 
 ### Renovate Compatibility Tests
 
-| Test | Purpose | Status |
-|------|---------|--------|
-| `test_renovate_config_exists` | Verify Renovate configuration | ✅ |
-| `test_uv_lock_exists_for_renovate` | Verify lock file for dependency updates | ✅ |
-| `test_setup_script_handles_dependency_updates` | Test dependency update workflow | ✅ |
+| Test                                           | Purpose                                 | Status |
+| ---------------------------------------------- | --------------------------------------- | ------ |
+| `test_renovate_config_exists`                  | Verify Renovate configuration           | ✅     |
+| `test_uv_lock_exists_for_renovate`             | Verify lock file for dependency updates | ✅     |
+| `test_setup_script_handles_dependency_updates` | Test dependency update workflow         | ✅     |
 
 ## Known Issues & Workarounds
 
@@ -129,6 +129,7 @@ uv run hephaestus guard-rails
 **Symptom**: Pre-commit hooks fail during git commit with pyupgrade errors.
 
 **Workaround**:
+
 ```bash
 # Commit without hooks
 git commit --no-verify -m "Your message"
@@ -144,6 +145,7 @@ pre-commit autoupdate
 **Solution**: Fixed in commit 143d47a. The cleanup now preserves site-packages in .venv.
 
 **Verification**:
+
 ```bash
 # Run cleanup
 uv run hephaestus cleanup --deep-clean
@@ -159,6 +161,7 @@ ls -la .venv/lib/python*/site-packages/
 **Solution**: Fixed in commit 143d47a. Removed hardcoded `.trunk/configs/.yamllint.yaml` path.
 
 **Verification**:
+
 ```bash
 # Yamllint should use defaults
 uv run yamllint --version
@@ -187,17 +190,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      
+          python-version: "3.12"
+
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      
+
       - name: Run setup script
         run: bash scripts/setup-dev-env.sh
-      
+
       - name: Run guard rails
         run: uv run hephaestus guard-rails
-      
+
       - name: Run E2E tests
         run: uv run pytest tests/test_e2e_setup.py -v
 ```
@@ -258,17 +261,20 @@ assert site_packages.exists(), \
 ### Debug E2E Test Failures
 
 1. **Run with verbose output**:
+
    ```bash
    uv run pytest tests/test_e2e_setup.py -vv -s
    ```
 
 2. **Check logs**:
+
    ```bash
    # View cleanup audit logs
    cat .hephaestus/audit/cleanup-*.json | jq
    ```
 
 3. **Inspect test artifacts**:
+
    ```bash
    # E2E tests use tmp_path, check pytest temp dirs
    ls -la /tmp/pytest-of-*/
@@ -282,12 +288,12 @@ assert site_packages.exists(), \
 
 ### Common Failures
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| ModuleNotFoundError after cleanup | site-packages removed | Fixed in v0.2.0+ |
-| yamllint config not found | Hardcoded config path | Fixed in v0.2.0+ |
-| Pre-commit hook failures | Outdated hooks | Run `pre-commit autoupdate` |
-| uv.lock out of sync | Dependency version mismatch | Run `uv lock` |
+| Error                             | Cause                       | Solution                    |
+| --------------------------------- | --------------------------- | --------------------------- |
+| ModuleNotFoundError after cleanup | site-packages removed       | Fixed in v0.2.0+            |
+| yamllint config not found         | Hardcoded config path       | Fixed in v0.2.0+            |
+| Pre-commit hook failures          | Outdated hooks              | Run `pre-commit autoupdate` |
+| uv.lock out of sync               | Dependency version mismatch | Run `uv lock`               |
 
 ## Related Documentation
 
