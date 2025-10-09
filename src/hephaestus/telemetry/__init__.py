@@ -23,6 +23,38 @@ from typing import Any
 
 from hephaestus import events as _events
 
+# Import tracing and metrics modules
+try:
+    from hephaestus.telemetry import metrics as _metrics, tracing as _tracing
+
+    trace_command = _tracing.trace_command
+    trace_operation = _tracing.trace_operation
+    record_counter = _metrics.record_counter
+    record_gauge = _metrics.record_gauge
+    record_histogram = _metrics.record_histogram
+except ImportError:
+    # If OpenTelemetry not installed, provide no-op implementations
+    def trace_command(name: str):  # type: ignore
+        def decorator(func):  # type: ignore
+            return func
+
+        return decorator
+
+    def trace_operation(name: str, **kwargs):  # type: ignore
+        from contextlib import nullcontext
+
+        return nullcontext()
+
+    def record_counter(name: str, value: int = 1, attributes=None):  # type: ignore
+        pass
+
+    def record_gauge(name: str, value: float, attributes=None):  # type: ignore
+        pass
+
+    def record_histogram(name: str, value: float, attributes=None):  # type: ignore
+        pass
+
+
 __all__ = [
     "is_telemetry_enabled",
     "get_tracer",
@@ -34,6 +66,13 @@ __all__ = [
     "operation_context",
     "generate_run_id",
     "generate_operation_id",
+    # Tracing utilities
+    "trace_command",
+    "trace_operation",
+    # Metrics utilities
+    "record_counter",
+    "record_gauge",
+    "record_histogram",
 ]
 
 # Re-export event definitions for backwards compatibility with the legacy module.

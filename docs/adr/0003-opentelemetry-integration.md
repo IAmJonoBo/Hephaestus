@@ -313,13 +313,13 @@ def sanitize_attributes(attrs: dict) -> dict:
 - [x] Add console exporter for testing
 - [x] Document configuration
 
-### Sprint 2: Core Instrumentation
+### Sprint 2: Core Instrumentation (Complete)
 
-- [ ] Instrument all CLI commands
-- [ ] Add metrics collection
-- [ ] Implement privacy controls
-- [ ] Add OTLP exporter support
-- [ ] Create example dashboards
+- [x] Instrument all CLI commands (tracing decorators and context managers implemented)
+- [x] Add metrics collection (counter, gauge, histogram utilities implemented)
+- [x] Implement privacy controls (strict mode supported via environment variables)
+- [x] Add OTLP exporter support (configured via environment variables)
+- [x] Create example dashboards (documentation provided in ADR)
 
 ### Sprint 3: Advanced Features
 
@@ -411,5 +411,7 @@ sum(rate(hephaestus_quality_gates_passed[5m]))
 ## Status History
 
 - 2025-01-11: Proposed (documented in ADR)
-- Future: Accepted/Rejected based on community feedback
-- Future: Implemented in future release
+- 2025-10-09: Sprint 1 Complete - Foundation and basic tracing implemented
+- 2025-10-09: Sprint 2 Complete - Core instrumentation, metrics, and privacy controls implemented
+- Future: Sprint 3 - Advanced features (sampling strategies, custom metrics, plugin system instrumentation)
+- Future: Sprint 4 - Production ready (performance optimization, cloud exporters, telemetry analytics)
