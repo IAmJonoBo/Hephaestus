@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Hephaestus - Greek god of craftsmanship and fire -->
+  <!-- Anvil and hammer representing tooling and building -->
+  
+  <!-- Anvil base -->
+  <rect x="20" y="60" width="60" height="15" fill="#6366f1" rx="2"/>
+  
+  <!-- Anvil body -->
+  <path d="M 25 60 L 25 45 L 35 45 L 35 35 L 65 35 L 65 45 L 75 45 L 75 60 Z" fill="#818cf8"/>
+  
+  <!-- Hammer head -->
+  <rect x="55" y="15" width="30" height="12" fill="#a5b4fc" rx="2"/>
+  
+  <!-- Hammer handle -->
+  <rect x="65" y="20" width="6" height="35" fill="#c7d2fe" rx="1"/>
+  
+  <!-- Spark/flame effect -->
+  <circle cx="45" cy="50" r="3" fill="#fbbf24" opacity="0.8"/>
+  <circle cx="52" cy="48" r="2" fill="#f59e0b" opacity="0.8"/>
+  <circle cx="48" cy="55" r="2.5" fill="#fbbf24" opacity="0.8"/>
+</svg>

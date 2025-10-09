@@ -1,0 +1,38 @@
+{
+  "name": "hephaestus-docs",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "check": "astro check",
+    "update-cli-reference": "node scripts/update-cli-reference.js",
+    "update-api-docs": "node scripts/update-api-docs.js",
+    "validate-links": "node scripts/validate-links.js",
+    "validate-examples": "node scripts/validate-examples.js",
+    "sync-changelog": "node scripts/sync-changelog.js",
+    "sync-version": "node scripts/sync-version.js",
+    "prune-stale": "node scripts/prune-stale.js",
+    "update-all": "npm run update-cli-reference && npm run update-api-docs && npm run sync-changelog && npm run sync-version",
+    "validate-all": "npm run validate-links && npm run validate-examples && npm run prune-stale"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@astrojs/starlight": "^0.36.0",
+    "astro": "^5.1.4",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.3",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "globby": "^14.0.3",
+    "js-yaml": "^4.1.0",
+    "cheerio": "^1.0.0",
+    "markdown-link-check": "^3.13.7"
+  }
+}

@@ -112,7 +112,7 @@ cd Hephaestus
 uv sync --extra dev --extra qa
 ```
 
-**Note for macOS users on external drives (exFAT, NTFS, FAT32):** The setup script automatically detects non-xattr filesystems and relocates the virtual environment to `$HOME/.uvenvs/<repo-name>` on your internal disk, creating a symlink at `.venv`. This prevents AppleDouble file issues. See [troubleshooting guide](docs/how-to/troubleshooting.md#working-on-externalusb-drives-exfat-ntfs-fat32) for details.
+**Note for macOS users on external drives (exFAT, NTFS, FAT32):** The setup script automatically detects non-xattr filesystems and relocates the virtual environment to `$HOME/.uvenvs/<repo-name>` on your internal disk, creating a symlink at `.venv`. This prevents AppleDouble file issues. See [troubleshooting guide](https://iamjonobo.github.io/Hephaestus/how-to/troubleshooting/#working-on-externalusb-drives-exfat-ntfs-fat32) for details.
 
 The setup script ensures a bulletproof development environment with:
 
@@ -123,7 +123,7 @@ The setup script ensures a bulletproof development environment with:
 - Environment validation
 - **macOS compatibility**: Automatic cleanup of resource fork files and proper UV configuration
 
-> **Note for macOS users**: The setup script automatically configures UV to avoid reflink issues and cleans up AppleDouble files (`._*`) that can cause installation failures. If you encounter issues, see the [troubleshooting guide](docs/how-to/troubleshooting.md#macos-appledoubleresource-fork-installation-errors).
+> **Note for macOS users**: The setup script automatically configures UV to avoid reflink issues and cleans up AppleDouble files (`._*`) that can cause installation failures. If you encounter issues, see the [troubleshooting guide](https://iamjonobo.github.io/Hephaestus/how-to/troubleshooting/#macos-appledoubleresource-fork-installation-errors).
 
 ### Essential Commands
 
@@ -317,7 +317,7 @@ Install Typer-provided autocompletions once per shell to explore commands quickl
 uv run hephaestus --install-completion
 ```
 
-See `docs/cli-completions.md` for manual installation steps and regeneration tips.
+See [CLI Autocompletion documentation](https://iamjonobo.github.io/Hephaestus/reference/cli-completions/) for manual installation steps and regeneration tips.
 
 ### Automation & CI
 
@@ -348,7 +348,7 @@ See `docs/cli-completions.md` for manual installation steps and regeneration tip
 
 | Stage                  | Tooling                                                                                                                               | Purpose                                                                                               |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Discovery & planning   | `docs/lifecycle.md`, `docs/adr/`, `plan` command                                                                                      | Capture intent, align stakeholders, and visualise rollouts.                                           |
+| Discovery & planning   | [Lifecycle Playbook](https://iamjonobo.github.io/Hephaestus/lifecycle/), [ADRs](https://iamjonobo.github.io/Hephaestus/adr/), `plan` command      | Capture intent, align stakeholders, and visualise rollouts.                                           |
 | Local analytics        | `tools refactor hotspots`, `tools refactor opportunities`                                                                             | Identify high-value refactor targets with churn and qualitative signals.                              |
 | Quality gates          | `guard-rails`, `scripts/validate_quality_gates.py`, `scripts/lint_nested_decorators.py`                                               | Comprehensive quality validation with frontier-level standards (coverage, linting, typing, security). |
 | Automation             | `hephaestus-toolkit/refactoring/scripts/`                                                                                             | Execute codemods, hotspot scans, and characterization harnesses with reproducible scripts.            |
@@ -366,8 +366,9 @@ hephaestus/
 ├── CHANGELOG.md                             # Version history and release notes
 ├── LICENSE                                  # MIT licence
 ├── SECURITY.md                              # Security policy and disclosure process
-├── docs/                                    # Diátaxis-aligned documentation
-│   ├── index.md                             # Documentation landing page
+├── docs-site/                               # Astro Starlight documentation (frontier-grade automation)
+│   ├── src/content/docs/                   # Documentation markdown files (Diátaxis-aligned)
+│   │   ├── index.md                        # Documentation landing page
 │   ├── tutorials/                           # Step-by-step walkthroughs
 │   │   └── getting-started.md               # Complete getting started guide
 │   ├── how-to/                              # Task-oriented guides
@@ -494,13 +495,32 @@ python3 scripts/validate_quality_gates.py
 
 ## Project Documentation
 
-The documentation site follows the [Diátaxis](https://diataxis.fr/) framework:
+📖 **[View full documentation site →](https://iamjonobo.github.io/Hephaestus/)**
 
-- **Tutorials** — e.g. `docs/tutorials/getting-started.md` for first-run guidance.
-- **How-to guides** — task recipes such as `docs/how-to/install-wheelhouse.md` and `docs/how-to/editor-setup.md`.
-- **Explanation** — conceptual material including `docs/explanation/architecture.md` and the lifecycle playbook.
-- **Reference** — factual resources such as `docs/reference/cli.md`, `docs/cli-completions.md`, and the pre-release checklist.
-- **Appendix** — templates and supporting material under `docs/adr/`.
+The documentation is built with [Astro Starlight](https://starlight.astro.build/) and features:
+
+- **Self-Updating Content**: CLI reference, API docs, and version info auto-generated daily
+- **Automated Quality**: Link validation, example testing, and stale content detection
+- **Diátaxis Structure**: Tutorials, How-To guides, Explanations, and Reference sections
+- **Full-Text Search**: Powered by Pagefind for instant results
+
+### Documentation Categories
+
+- **Tutorials** — [Getting Started](/tutorials/getting-started/) for first-run guidance
+- **How-To Guides** — Task recipes like [Install from Wheelhouse](/how-to/install-wheelhouse/) and [Editor Setup](/how-to/editor-setup/)
+- **Explanation** — Conceptual material including [Architecture](/explanation/architecture/) and [Lifecycle Playbook](/lifecycle/)
+- **Reference** — [CLI Reference](/reference/cli/), [API Reference](/reference/api/), and [Pre-Release Checklist](/reference/pre-release-checklist/)
+- **ADRs** — Architecture Decision Records under [ADR Index](/adr/)
+
+### Local Documentation Development
+
+```bash
+cd docs-site
+npm install          # First time only
+npm run dev          # Live preview at http://localhost:4321
+npm run update-all   # Update auto-generated content
+npm run validate-all # Run quality checks
+```
 
 Additional playbooks for the refactoring toolkit live under `hephaestus-toolkit/refactoring/docs/`.
 
@@ -519,5 +539,5 @@ For security concerns, please review our [Security Policy](SECURITY.md).
 
 We take security seriously. If you discover a security vulnerability, please follow our [Security Policy](SECURITY.md) for responsible disclosure. See also:
 
-- [STRIDE Threat Model](docs/adr/0001-stride-threat-model.md) - Comprehensive security analysis
+- [STRIDE Threat Model](https://iamjonobo.github.io/Hephaestus/adr/0001-stride-threat-model/) - Comprehensive security analysis
 - [Operating Safely Guide](docs/how-to/operating-safely.md) - Safe usage practices and constraints
