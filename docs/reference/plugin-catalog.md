@@ -15,6 +15,7 @@ These plugins are included with Hephaestus and available by default when using `
 Python linting with Ruff. Fast and comprehensive linting for Python code.
 
 **Configuration**:
+
 ```toml
 [builtin.ruff-check]
 enabled = true
@@ -35,6 +36,7 @@ config.args = ["--select", "E,F,W,I,N,B,UP"]
 Code formatting check with Ruff. Ensures consistent code style.
 
 **Configuration**:
+
 ```toml
 [builtin.ruff-format]
 enabled = true
@@ -55,6 +57,7 @@ config.paths = ["."]
 Static type checking with Mypy. Catches type errors before runtime.
 
 **Configuration**:
+
 ```toml
 [builtin.mypy]
 enabled = true
@@ -75,6 +78,7 @@ config.args = ["--strict"]
 Test execution with pytest and coverage reporting.
 
 **Configuration**:
+
 ```toml
 [builtin.pytest]
 enabled = true
@@ -95,6 +99,7 @@ config.args = ["--cov=src", "--cov-report=xml"]
 Security audit of Python dependencies. Checks for known vulnerabilities.
 
 **Configuration**:
+
 ```toml
 [builtin.pip-audit]
 enabled = true
@@ -122,6 +127,7 @@ Community-developed plugins that extend Hephaestus functionality.
 Template for creating custom quality gate plugins. Demonstrates best practices and includes comprehensive tests.
 
 **Usage**:
+
 ```toml
 [[external]]
 name = "example-plugin"

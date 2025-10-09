@@ -68,6 +68,7 @@ Plugin authors submit a pull request to add their plugin to the catalog:
 4. Complete the checklist below
 
 **Submission Checklist**:
+
 ```markdown
 - [ ] Plugin follows QualityGatePlugin API
 - [ ] Tests included with >80% coverage
@@ -140,6 +141,7 @@ Plugins may be deprecated if:
 - Superseded by better alternative
 
 Deprecated plugins:
+
 1. Marked as deprecated in catalog (30 days notice)
 2. Removed from catalog after 90 days
 3. Historical versions remain accessible
@@ -171,7 +173,7 @@ If a plugin is rejected, authors can:
 
 - Open a [GitHub Discussion](https://github.com/IAmJonoBo/Hephaestus/discussions)
 - Join our community chat
-- Email: maintainers@example.com
+- Email: [maintainers@example.com](mailto:maintainers@example.com)
 
 ## Version History
 

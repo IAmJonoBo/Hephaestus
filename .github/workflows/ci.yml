@@ -51,6 +51,7 @@ jobs:
             echo "ruff CLI-only"
           uv run python -c \
             "import mypy; print(f'mypy: {mypy.__version__}')"
+            uv run yamllint --version
           echo "Environment validation complete ✓"
 
       - name: Run tests
@@ -220,6 +221,7 @@ jobs:
             "import pytest; print(f'pytest {pytest.__version__} ✓')"
           python -c \
             "import mypy; print(f'mypy {mypy.__version__} ✓')"
+            yamllint --version
           python -m ruff --version
           echo "Offline environment validation complete ✓"
 

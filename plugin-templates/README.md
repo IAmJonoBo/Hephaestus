@@ -22,6 +22,7 @@ A complete, production-ready example plugin demonstrating best practices:
 ## Quick Start
 
 1. **Copy the template**:
+
    ```bash
    cp -r plugin-templates/example-plugin my-custom-plugin
    cd my-custom-plugin
@@ -34,13 +35,15 @@ A complete, production-ready example plugin demonstrating best practices:
    - Update configuration validation in `validate_config`
 
 3. **Write tests**:
+
    ```bash
    pytest test_example_plugin.py -v --cov
    ```
 
 4. **Use with Hephaestus**:
-   
+
    Add to `.hephaestus/plugins.toml`:
+
    ```toml
    [[external]]
    name = "my-custom-plugin"
@@ -50,6 +53,7 @@ A complete, production-ready example plugin demonstrating best practices:
    ```
 
    Run with guard-rails:
+
    ```bash
    hephaestus guard-rails --use-plugins
    ```

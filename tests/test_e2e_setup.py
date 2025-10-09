@@ -159,6 +159,6 @@ def test_setup_script_handles_dependency_updates() -> None:
     assert "uv sync --locked" in content, "setup script should use --locked for reproducibility"
 
     # Verify fallback for when lock is out of sync (after Renovate updates)
-    assert "uv sync --extra dev --extra qa" in content, (
-        "setup script should have fallback without --locked"
-    )
+    assert (
+        "uv sync --extra dev --extra qa" in content
+    ), "setup script should have fallback without --locked"

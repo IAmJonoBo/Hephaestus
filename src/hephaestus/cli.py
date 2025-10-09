@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Annotated, cast
 
@@ -15,14 +15,18 @@ from rich.table import Table
 
 from hephaestus import (
     __version__,
-    cleanup as cleanup_module,
-    drift as drift_module,
-    events as telemetry,
-    logging as logging_utils,
-    planning as planning_module,
-    release as release_module,
+)
+from hephaestus import cleanup as cleanup_module
+from hephaestus import drift as drift_module
+from hephaestus import events as telemetry
+from hephaestus import logging as logging_utils
+from hephaestus import planning as planning_module
+from hephaestus import release as release_module
+from hephaestus import (
     resource_forks,
-    schema as schema_module,
+)
+from hephaestus import schema as schema_module
+from hephaestus import (
     toolbox,
 )
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
@@ -120,47 +124,54 @@ def main(
     ctx.obj = {"run_id": final_run_id}
 
 
+@dataclass
+class ReleaseInstallOptions:
+    repository: str = release_module.DEFAULT_REPOSITORY
+    tag: str | None = None
+    asset_pattern: str = release_module.DEFAULT_ASSET_PATTERN
+    manifest_pattern: str = release_module.DEFAULT_MANIFEST_PATTERN
+    sigstore_pattern: str | None = release_module.DEFAULT_SIGSTORE_BUNDLE_PATTERN
+    destination: Path | None = None
+    token: str | None = None
+    timeout: float = release_module.DEFAULT_TIMEOUT
+    max_retries: int = release_module.DEFAULT_MAX_RETRIES
+    python_executable: str | None = None
+    pip_args: list[str] | None = None
+    no_upgrade: bool = False
+    overwrite: bool = False
+    cleanup: bool = False
+    remove_archive: bool = False
+    allow_unsigned: bool = False
+    require_sigstore: bool = False
+    sigstore_identity: list[str] | None = None
+
+
 @release_app.command("install")
 def release_install(
-    repository: Annotated[
-        str,
+    options: Annotated[
+        ReleaseInstallOptions,
         typer.Option(
             "--repository",
             "-r",
             help="GitHub repository in owner/name form to fetch wheelhouses from.",
             show_default=True,
         ),
-    ] = release_module.DEFAULT_REPOSITORY,
-    tag: Annotated[
-        str | None,
         typer.Option("--tag", "-t", help="Release tag to download (defaults to latest)."),
-    ] = None,
-    asset_pattern: Annotated[
-        str,
         typer.Option(
             "--asset-pattern",
             help="Glob used to select the wheelhouse asset.",
             show_default=True,
         ),
-    ] = release_module.DEFAULT_ASSET_PATTERN,
-    manifest_pattern: Annotated[
-        str,
         typer.Option(
             "--manifest-pattern",
             help="Glob used to locate the checksum manifest for verification.",
             show_default=True,
         ),
-    ] = release_module.DEFAULT_MANIFEST_PATTERN,
-    sigstore_pattern: Annotated[
-        str | None,
         typer.Option(
             "--sigstore-pattern",
             help="Glob used to locate Sigstore bundles for attestation verification.",
             show_default=True,
         ),
-    ] = release_module.DEFAULT_SIGSTORE_BUNDLE_PATTERN,
-    destination: Annotated[
-        Path | None,
         typer.Option(
             "--destination",
             "-d",
@@ -172,88 +183,52 @@ def release_install(
             readable=True,
             resolve_path=True,
         ),
-    ] = None,
-    token: Annotated[
-        str | None,
         typer.Option(
             "--token",
             envvar="GITHUB_TOKEN",
             help="GitHub token (falls back to the GITHUB_TOKEN environment variable).",
         ),
-    ] = None,
-    timeout: Annotated[
-        float,
         typer.Option(
             "--timeout",
             min=0.1,
             help="Network timeout in seconds for release API calls and downloads.",
             show_default=True,
         ),
-    ] = release_module.DEFAULT_TIMEOUT,
-    max_retries: Annotated[
-        int,
         typer.Option(
             "--max-retries",
             min=1,
             help="Maximum retry attempts for release API calls and downloads.",
             show_default=True,
         ),
-    ] = release_module.DEFAULT_MAX_RETRIES,
-    python_executable: Annotated[
-        str | None,
         typer.Option("--python", help="Python executable used to invoke pip."),
-    ] = None,
-    pip_args: Annotated[
-        list[str] | None,
         typer.Option(
             "--pip-arg",
             help="Additional arguments forwarded to pip install.",
             metavar="ARG",
             show_default=False,
         ),
-    ] = None,
-    no_upgrade: Annotated[
-        bool,
         typer.Option("--no-upgrade", help="Do not pass --upgrade to pip.", show_default=False),
-    ] = False,
-    overwrite: Annotated[
-        bool,
         typer.Option(
             "--overwrite", help="Overwrite existing archives if present.", show_default=False
         ),
-    ] = False,
-    cleanup: Annotated[
-        bool,
         typer.Option(
             "--cleanup", help="Remove the extracted wheelhouse after install.", show_default=False
         ),
-    ] = False,
-    remove_archive: Annotated[
-        bool,
         typer.Option(
             "--remove-archive",
             help="Delete the downloaded archive once installation succeeds.",
             show_default=False,
         ),
-    ] = False,
-    allow_unsigned: Annotated[
-        bool,
         typer.Option(
             "--allow-unsigned",
             help="Skip checksum verification (not recommended).",
             show_default=False,
         ),
-    ] = False,
-    require_sigstore: Annotated[
-        bool,
         typer.Option(
             "--require-sigstore",
             help="Fail if a Sigstore attestation bundle is not published.",
             show_default=False,
         ),
-    ] = False,
-    sigstore_identity: Annotated[
-        list[str] | None,
         typer.Option(
             "--sigstore-identity",
             help=(
@@ -262,63 +237,69 @@ def release_install(
             ),
             show_default=False,
         ),
-    ] = None,
+    ],
 ) -> None:
     """Download the Hephaestus wheelhouse and install it into the current environment."""
 
     destination = (
-        destination.expanduser() if destination else release_module.DEFAULT_DOWNLOAD_DIRECTORY
+        options.destination.expanduser()
+        if options.destination
+        else release_module.DEFAULT_DOWNLOAD_DIRECTORY
     )
     operation_id = telemetry.generate_operation_id()
     with telemetry.operation_context(
         "cli.release.install",
         operation_id=operation_id,
         command="release.install",
-        repository=repository,
-        tag=tag or "latest",
+        repository=options.repository,
+        tag=options.tag or "latest",
     ):
         telemetry.emit_event(
             logger,
             telemetry.CLI_RELEASE_INSTALL_START,
             message="Starting release install",
-            repository=repository,
-            tag=tag or "latest",
+            repository=options.repository,
+            tag=options.tag or "latest",
             destination=str(destination),
-            allow_unsigned=allow_unsigned,
-            asset_pattern=asset_pattern,
-            manifest_pattern=manifest_pattern,
-            sigstore_pattern=sigstore_pattern,
-            require_sigstore=require_sigstore,
-            sigstore_identity=list(sigstore_identity) if sigstore_identity else None,
-            timeout=timeout,
-            max_retries=max_retries,
+            allow_unsigned=options.allow_unsigned,
+            asset_pattern=options.asset_pattern,
+            manifest_pattern=options.manifest_pattern,
+            sigstore_pattern=options.sigstore_pattern,
+            require_sigstore=options.require_sigstore,
+            sigstore_identity=(
+                list(options.sigstore_identity) if options.sigstore_identity else None
+            ),
+            timeout=options.timeout,
+            max_retries=options.max_retries,
         )
         download = release_module.download_wheelhouse(
-            repository=repository,
+            repository=options.repository,
             destination_dir=destination,
-            tag=tag,
-            asset_pattern=asset_pattern,
-            manifest_pattern=manifest_pattern,
-            sigstore_bundle_pattern=sigstore_pattern,
-            token=token,
-            overwrite=overwrite,
+            tag=options.tag,
+            asset_pattern=options.asset_pattern,
+            manifest_pattern=options.manifest_pattern,
+            sigstore_bundle_pattern=options.sigstore_pattern,
+            token=options.token,
+            overwrite=options.overwrite,
             extract=False,
-            allow_unsigned=allow_unsigned,
-            require_sigstore=require_sigstore,
-            sigstore_identities=list(sigstore_identity) if sigstore_identity else None,
-            timeout=timeout,
-            max_retries=max_retries,
+            allow_unsigned=options.allow_unsigned,
+            require_sigstore=options.require_sigstore,
+            sigstore_identities=(
+                list(options.sigstore_identity) if options.sigstore_identity else None
+            ),
+            timeout=options.timeout,
+            max_retries=options.max_retries,
         )
 
         release_module.install_from_archive(
             download.archive_path,
-            python_executable=python_executable,
-            pip_args=list(pip_args) if pip_args else None,
-            upgrade=not no_upgrade,
-            cleanup=cleanup,
+            python_executable=options.python_executable,
+            pip_args=list(options.pip_args) if options.pip_args else None,
+            upgrade=not options.no_upgrade,
+            cleanup=options.cleanup,
         )
 
-        if remove_archive:
+        if options.remove_archive:
             download.archive_path.unlink(missing_ok=True)
             telemetry.emit_event(
                 logger,
@@ -329,21 +310,21 @@ def release_install(
 
         console.print(
             "[green]Installed wheelhouse[/green] "
-            f"{download.asset.name} from [cyan]{repository}[/cyan] (tag: {tag or 'latest'})."
+            f"{download.asset.name} from [cyan]{options.repository}[/cyan] (tag: {options.tag or 'latest'})."
         )
         telemetry.emit_event(
             logger,
             telemetry.CLI_RELEASE_INSTALL_COMPLETE,
             message="Release install completed",
-            repository=repository,
-            tag=tag or "latest",
+            repository=options.repository,
+            tag=options.tag or "latest",
             asset=download.asset.name,
-            allow_unsigned=allow_unsigned,
+            allow_unsigned=options.allow_unsigned,
         )
 
 
 @release_app.command("backfill")
-@trace_command("release-backfill")
+@trace_command()
 def release_backfill(
     version: Annotated[
         str | None,
@@ -488,6 +469,8 @@ def wheelhouse_sanitize(
 ) -> None:
     """Remove macOS resource fork artefacts from a wheelhouse directory."""
 
+    NO_RESOURCE_FORK_MSG = "[green]No resource fork artefacts detected.[/green]"
+
     operation_id = telemetry.generate_operation_id()
     with telemetry.operation_context(
         "cli.wheelhouse.sanitize",
@@ -510,14 +493,14 @@ def wheelhouse_sanitize(
                 for candidate in report.preview_paths:
                     console.print(f" - {candidate}")
             else:
-                console.print("[green]No resource fork artefacts detected.[/green]")
+                console.print(NO_RESOURCE_FORK_MSG)
             return
 
         if report.removed_paths:
             for candidate in report.removed_paths:
                 console.print(f"[green]Removed resource fork artefact[/green] {candidate}")
         else:
-            console.print("[green]No resource fork artefacts detected.[/green]")
+            console.print(NO_RESOURCE_FORK_MSG)
 
 
 @wheelhouse_app.command("verify")
@@ -543,6 +526,8 @@ def wheelhouse_verify(
 ) -> None:
     """Report macOS resource fork artefacts within a wheelhouse directory."""
 
+    NO_RESOURCE_FORK_MSG = "[green]No resource fork artefacts detected.[/green]"
+
     operation_id = telemetry.generate_operation_id()
     with telemetry.operation_context(
         "cli.wheelhouse.verify",
@@ -551,10 +536,10 @@ def wheelhouse_verify(
         root=str(wheelhouse),
         strict=strict,
     ):
-        findings = resource_forks.verify_clean(wheelhouse)
+        findings = resource_forks.find_resource_forks(wheelhouse)
 
         if not findings:
-            console.print("[green]No resource fork artefacts detected.[/green]")
+            console.print(NO_RESOURCE_FORK_MSG)
             return
 
         console.print("[red]Resource fork artefacts detected:[/red]")
@@ -734,7 +719,7 @@ def schema(
 
 
 @app.command()
-@trace_command("cleanup")
+@trace_command()
 def cleanup(
     root: Annotated[
         Path | None,
@@ -1015,7 +1000,7 @@ def plan() -> None:
 
 
 @app.command("guard-rails")
-@trace_command("guard-rails")
+@trace_command()
 def guard_rails(
     no_format: Annotated[
         bool,
@@ -1037,6 +1022,8 @@ def guard_rails(
     ] = False,
 ) -> None:
     """Run the full guard-rail pipeline: cleanup, lint, format, typecheck, test, and audit."""
+
+    GUARD_RAILS_STEP_DURATION = "hephaestus.guard_rails.step.duration"
 
     operation_id = telemetry.generate_operation_id()
     with telemetry.operation_context(
@@ -1215,6 +1202,8 @@ def guard_rails(
         if not use_plugins:
             console.print("[cyan]Running guard rails...[/cyan]")
 
+        import time  # Ensure time is imported before usage
+
         telemetry.emit_event(
             logger,
             telemetry.CLI_GUARD_RAILS_START,
@@ -1222,11 +1211,9 @@ def guard_rails(
             skip_format=no_format,
         )
 
+        start_time = time.perf_counter()
         try:
             # Step 1: Deep clean workspace
-            import time
-
-            start_time = time.perf_counter()
             cleanup(deep_clean=True)
             record_histogram(
                 "hephaestus.guard_rails.cleanup.duration",
@@ -1236,10 +1223,9 @@ def guard_rails(
 
             # Step 2: Lint with ruff
             console.print("\n[cyan]→ Running ruff check...[/cyan]")
-            start_time = time.perf_counter()
-            subprocess.run(["ruff", "check", "."], check=True, timeout=300)
+            subprocess.run(["uv", "run", "ruff", "check", "."], check=True)
             record_histogram(
-                "hephaestus.guard_rails.step.duration",
+                GUARD_RAILS_STEP_DURATION,
                 time.perf_counter() - start_time,
                 attributes={"step": "ruff-check"},
             )
@@ -1247,17 +1233,15 @@ def guard_rails(
             # Step 3: Format with ruff (unless skipped)
             if not no_format:
                 console.print("[cyan]→ Running ruff format...[/cyan]")
-                start_time = time.perf_counter()
-                subprocess.run(["ruff", "format", "."], check=True, timeout=300)
+                subprocess.run(["uv", "run", "ruff", "format", "."], check=True)
                 record_histogram(
-                    "hephaestus.guard_rails.step.duration",
+                    GUARD_RAILS_STEP_DURATION,
                     time.perf_counter() - start_time,
                     attributes={"step": "ruff-format"},
                 )
 
-            # Step 4: Lint YAML files with yamllint
+            # Step 4: Yamllint
             console.print("[cyan]→ Running yamllint...[/cyan]")
-            start_time = time.perf_counter()
             subprocess.run(
                 [
                     "yamllint",
@@ -1267,44 +1251,39 @@ def guard_rails(
                     "hephaestus-toolkit/",
                 ],
                 check=True,
-                timeout=60,
             )
             record_histogram(
-                "hephaestus.guard_rails.step.duration",
+                GUARD_RAILS_STEP_DURATION,
                 time.perf_counter() - start_time,
                 attributes={"step": "yamllint"},
             )
 
-            # Step 5: Type check with mypy
+            # Step 5: Mypy
             console.print("[cyan]→ Running mypy...[/cyan]")
-            start_time = time.perf_counter()
-            subprocess.run(["mypy", "src", "tests"], check=True, timeout=300)
+            subprocess.run(["uv", "run", "mypy", "src", "tests"], check=True)
             record_histogram(
-                "hephaestus.guard_rails.step.duration",
+                GUARD_RAILS_STEP_DURATION,
                 time.perf_counter() - start_time,
                 attributes={"step": "mypy"},
             )
 
-            # Step 6: Run tests with pytest
+            # Step 6: Pytest
             console.print("[cyan]→ Running pytest...[/cyan]")
-            start_time = time.perf_counter()
-            subprocess.run(["pytest"], check=True, timeout=600)
+            subprocess.run(["uv", "run", "pytest"], check=True)
             record_histogram(
-                "hephaestus.guard_rails.step.duration",
+                GUARD_RAILS_STEP_DURATION,
                 time.perf_counter() - start_time,
                 attributes={"step": "pytest"},
             )
 
-            # Step 7: Security audit with pip-audit
+            # Step 7: pip-audit
             console.print("[cyan]→ Running pip-audit...[/cyan]")
-            start_time = time.perf_counter()
             subprocess.run(
-                ["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"],
+                ["uv", "run", "pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"],
                 check=True,
-                timeout=300,
             )
             record_histogram(
-                "hephaestus.guard_rails.step.duration",
+                GUARD_RAILS_STEP_DURATION,
                 time.perf_counter() - start_time,
                 attributes={"step": "pip-audit"},
             )
@@ -1312,12 +1291,16 @@ def guard_rails(
             console.print("\n[green]✓ Guard rails completed successfully.[/green]")
             telemetry.emit_event(
                 logger,
-                telemetry.CLI_GUARD_RAILS_COMPLETE,
+                telemetry.CLI_GUARD_RAILS_SUCCESS,
                 message="Guard rails completed successfully",
-                skip_format=no_format,
             )
 
         except subprocess.TimeoutExpired as exc:
+            record_histogram(
+                GUARD_RAILS_STEP_DURATION,
+                time.perf_counter() - start_time,
+                attributes={"step": "pip-audit", "timeout": True},
+            )
             console.print(f"\n[red]✗ Guard rails timed out: {exc.cmd[0]}[/red]")
             console.print(f"[yellow]Timeout: {exc.timeout}s[/yellow]")
             telemetry.emit_event(
@@ -1342,7 +1325,3 @@ def guard_rails(
                 returncode=exc.returncode,
             )
             raise typer.Exit(code=exc.returncode) from exc
-
-
-if __name__ == "__main__":  # pragma: no cover
-    app()

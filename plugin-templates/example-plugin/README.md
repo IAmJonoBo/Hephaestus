@@ -12,7 +12,7 @@ This template demonstrates how to create a custom quality gate plugin for Hephae
 
 ## Structure
 
-```
+```text
 example-plugin/
 ├── README.md                 # This file
 ├── example_plugin.py         # Plugin implementation
@@ -48,16 +48,19 @@ config = { severity = "high" }
 ## Development
 
 1. **Test your plugin**:
+
    ```bash
    pytest test_example_plugin.py
    ```
 
 2. **Run with Hephaestus**:
+
    ```bash
    hephaestus guard-rails --use-plugins
    ```
 
 3. **Lint and format**:
+
    ```bash
    ruff check example_plugin.py
    ruff format example_plugin.py

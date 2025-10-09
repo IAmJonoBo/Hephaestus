@@ -25,16 +25,19 @@ from hephaestus import events as _events
 
 # Import tracing and metrics modules
 try:
-    from hephaestus.telemetry import metrics as _metrics, tracing as _tracing
+    from hephaestus.telemetry import metrics as _metrics
+    from hephaestus.telemetry import tracing as _tracing
 
-    trace_command = _tracing.trace_command
+    # Ensure the decorator signature matches expected (name: str)
+    trace_command = _tracing.trace_command  # type: ignore[assignment]
+
     trace_operation = _tracing.trace_operation  # type: ignore[has-type]
     record_counter = _metrics.record_counter
     record_gauge = _metrics.record_gauge
     record_histogram = _metrics.record_histogram
 except ImportError:
     # If OpenTelemetry not installed, provide no-op implementations
-    def trace_command(name: str):  # type: ignore[no-untyped-def,misc]
+    def trace_command():  # type: ignore[no-untyped-def,misc]
         def decorator(func):  # type: ignore[no-untyped-def]
             return func
 

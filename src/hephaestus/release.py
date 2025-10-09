@@ -30,7 +30,8 @@ from typing import IO, cast
 from cryptography import x509
 from cryptography.x509.oid import ExtensionOID
 
-from hephaestus import events as telemetry, resource_forks
+from hephaestus import events as telemetry
+from hephaestus import resource_forks
 from hephaestus.logging import log_context
 
 __all__ = [
@@ -71,7 +72,7 @@ _CHECKSUM_LINE = re.compile(r"^(?P<digest>[0-9a-fA-F]{64})[ \t]+[*]?(?P<name>.+)
 # GitHub token patterns (classic and fine-grained)
 _GITHUB_TOKEN_PATTERNS = (
     re.compile(r"^gh[ps]_[A-Za-z0-9]{36,255}$"),  # Fine-grained and classic tokens
-    re.compile(r"^github_pat_[A-Za-z0-9_]{82}$"),  # Personal access tokens (new format)
+    re.compile(r"^github_pat_\w{82}$"),  # Personal access tokens (new format)
 )
 
 DEFAULT_TIMEOUT = 10.0
@@ -563,13 +564,12 @@ def _verify_sigstore_bundle(
 
     deduped_identities = tuple(dict.fromkeys(identities))
 
-    if identity_patterns:
-        if not any(
-            fnmatch(identity, pattern)
-            for identity in deduped_identities
-            for pattern in identity_patterns
-        ):
-            raise ReleaseError("Sigstore identity mismatch for downloaded archive.")
+    if identity_patterns and not any(
+        fnmatch(identity, pattern)
+        for identity in deduped_identities
+        for pattern in identity_patterns
+    ):
+        raise ReleaseError("Sigstore identity mismatch for downloaded archive.")
 
     return SigstoreVerification(
         bundle_path=bundle_path,
@@ -705,25 +705,50 @@ def install_from_directory(
     )
 
 
+@dataclass(slots=True)
+class WheelhouseDownloadOptions:
+    repository: str
+    destination_dir: Path
+    tag: str | None = None
+    asset_pattern: str = DEFAULT_ASSET_PATTERN
+    manifest_pattern: str | None = DEFAULT_MANIFEST_PATTERN
+    sigstore_bundle_pattern: str | None = DEFAULT_SIGSTORE_BUNDLE_PATTERN
+    token: str | None = None
+    overwrite: bool = False
+    extract: bool = True
+    allow_unsigned: bool = False
+    require_sigstore: bool = False
+    sigstore_identities: Sequence[str] | None = None
+    extract_dir: Path | None = None
+    timeout: float = DEFAULT_TIMEOUT
+    max_retries: int = DEFAULT_MAX_RETRIES
+
+
 def download_wheelhouse(
-    *,
-    repository: str,
-    destination_dir: Path,
-    tag: str | None = None,
-    asset_pattern: str = DEFAULT_ASSET_PATTERN,
-    manifest_pattern: str | None = DEFAULT_MANIFEST_PATTERN,
-    sigstore_bundle_pattern: str | None = DEFAULT_SIGSTORE_BUNDLE_PATTERN,
-    token: str | None = None,
-    overwrite: bool = False,
-    extract: bool = True,
-    allow_unsigned: bool = False,
-    require_sigstore: bool = False,
-    sigstore_identities: Sequence[str] | None = None,
-    extract_dir: Path | None = None,
-    timeout: float = DEFAULT_TIMEOUT,
-    max_retries: int = DEFAULT_MAX_RETRIES,
+    options: WheelhouseDownloadOptions,
 ) -> ReleaseDownload:
-    """Download a wheelhouse archive from a GitHub release."""
+    """Download a wheelhouse archive from a GitHub release.
+
+    This implementation is explicit about using values from ``options`` to avoid
+    undefined-name errors (Ruff F821) and to satisfy Pyright/Pylance analysis.
+    """
+
+    # Unpack options into locals for readability and consistent telemetry fields
+    repository = options.repository
+    destination_dir = options.destination_dir
+    tag = options.tag
+    asset_pattern = options.asset_pattern
+    manifest_pattern = options.manifest_pattern
+    sigstore_bundle_pattern = options.sigstore_bundle_pattern
+    token = options.token
+    overwrite = options.overwrite
+    extract = options.extract
+    allow_unsigned = options.allow_unsigned
+    require_sigstore = options.require_sigstore
+    sigstore_identities = options.sigstore_identities
+    extract_dir = options.extract_dir
+    timeout = options.timeout
+    max_retries = options.max_retries
 
     if allow_unsigned and require_sigstore:
         raise ReleaseError(

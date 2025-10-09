@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from hephaestus.plugins import PluginMetadata, PluginResult
-
 from example_plugin import ExamplePlugin
+
+from hephaestus.plugins import PluginMetadata, PluginResult
 
 
 def test_plugin_metadata() -> None:
@@ -69,7 +69,7 @@ def test_plugin_validates_invalid_args_type() -> None:
 def test_plugin_runs_successfully() -> None:
     """Test plugin runs successfully with default config."""
     plugin = ExamplePlugin()
-    config = {}
+    config: dict[str, object] = {}
 
     result = plugin.run(config)
 
