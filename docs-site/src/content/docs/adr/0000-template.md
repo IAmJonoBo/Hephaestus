@@ -2,6 +2,7 @@
 title: "ADR 0000: Title"
 description: "- Status: Proposed - Date: 2025-10-07 Explain the motivating forces behind the decision. Link to churn reports, hotspot scans, or stakeholder notes that..."
 ---
+
 - Status: Proposed
 - Date: 2025-10-07
 

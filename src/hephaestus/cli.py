@@ -1049,7 +1049,6 @@ def cleanup(
         command="cleanup",
         root=str(root) if root else None,
     ):
-
         telemetry.emit_event(
             logger,
             telemetry.CLI_CLEANUP_START,
@@ -1298,6 +1297,14 @@ def _run_guard_rails_standard(no_format: bool) -> None:  # NOSONAR(S3776)
             GUARD_RAILS_STEP_DURATION,
             time.perf_counter() - start_time,
             attributes={"step": "yamllint"},
+        )
+
+        console.print("[cyan]→ Running actionlint...[/cyan]")
+        subprocess.run(["bash", "scripts/run_actionlint.sh"], check=True)
+        record_histogram(
+            GUARD_RAILS_STEP_DURATION,
+            time.perf_counter() - start_time,
+            attributes={"step": "actionlint"},
         )
 
         # Step 5: Mypy

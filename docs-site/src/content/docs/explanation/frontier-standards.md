@@ -2,6 +2,7 @@
 title: "Frontier Standards Charter"
 description: "This charter codifies the frontier-grade engineering standards for the Hephaestus toolkit. It captures every enforced quality gate, the required developer..."
 ---
+
 This charter codifies the frontier-grade engineering standards for the Hephaestus toolkit. It
 captures every enforced quality gate, the required developer behaviors, and the automation that keeps
 those expectations evergreen. The goal is to make quality non-negotiable while remaining explicit
@@ -37,12 +38,12 @@ full software development lifecycle:
 
 ### 1. Discovery & Planning
 
-| Requirement                                                     | Enforcement                                                                                          |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Architectural decisions captured as ADRs before large refactors | `docs/adr/` templates (ADR-0000)                                                                     |
-| Execution plans reviewed for multi-week initiatives             | `hephaestus plan` command output and review meeting notes                                            |
+| Requirement                                                     | Enforcement                                                                                                     |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Architectural decisions captured as ADRs before large refactors | `docs/adr/` templates (ADR-0000)                                                                                |
+| Execution plans reviewed for multi-week initiatives             | `hephaestus plan` command output and review meeting notes                                                       |
 | Risk and threat analysis refreshed yearly                       | [`docs/explanation/frontier-red-team-gap-analysis.md`](/explanation/frontier-red-team-gap-analysis/) & ADR-0001 |
-| Roadmapping and gap tracking centralised                        | `Next_Steps.md`, `IMPLEMENTATION_SUMMARY.md`, project boards                                         |
+| Roadmapping and gap tracking centralised                        | `Next_Steps.md`, `IMPLEMENTATION_SUMMARY.md`, project boards                                                    |
 
 ### 2. Environment & Tooling Hygiene
 
@@ -67,17 +68,17 @@ full software development lifecycle:
 
 ### 4. Testing & Quality Gates
 
-| Gate                     | Threshold / Expectation                                                 | Primary Command                                               | Automation                                                |
-| ------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------- |
-| Unit & integration tests | 100% pass, coverage ≥ 85%, warnings-as-errors                           | `uv run pytest`                                               | CI (`ci.yml`), `guard-rails`, `validate_quality_gates.py` |
-| Linting                  | Zero Ruff violations                                                    | `uv run ruff check .`                                         | Pre-commit & CI                                           |
-| Formatting               | Zero drift                                                              | `uv run ruff format --check .`                                | Pre-commit & CI                                           |
-| Type safety              | No mypy errors                                                          | `uv run mypy src tests`                                       | Pre-commit & CI                                           |
-| YAML hygiene             | No yamllint errors under `.trunk/configs/.yamllint.yaml`                | `uv run yamllint …`                                           | Guard-rails & quality gate script                         |
-| Nested decorator lint    | Zero violations                                                         | `python3 scripts/lint_nested_decorators.py`                   | Pre-commit & CI                                           |
-| Build reproducibility    | Wheels & sdists build cleanly                                           | `uv run uv build` (or `python3 -m build`)                     | `validate_quality_gates.py`, release workflows            |
-| Security audit           | `pip-audit --strict` clean (ignoring GHSA-4xh5-x5gv-qwph until patched) | `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` | Guard-rails, scheduled `pip-audit.yml`                    |
-| Workflow lint (optional) | Actionlint passes                                                       | `bash scripts/run_actionlint.sh`                              | Optional quality gate, manual before large workflow edits |
+| Gate                     | Threshold / Expectation                                                 | Primary Command                                               | Automation                                                     |
+| ------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------- |
+| Unit & integration tests | 100% pass, coverage ≥ 85%, warnings-as-errors                           | `uv run pytest`                                               | CI (`ci.yml`), `guard-rails`, `validate_quality_gates.py`      |
+| Linting                  | Zero Ruff violations                                                    | `uv run ruff check .`                                         | Pre-commit & CI                                                |
+| Formatting               | Zero drift                                                              | `uv run ruff format --check .`                                | Pre-commit & CI                                                |
+| Type safety              | No mypy errors                                                          | `uv run mypy src tests`                                       | Pre-commit & CI                                                |
+| YAML hygiene             | No yamllint errors under `.trunk/configs/.yamllint.yaml`                | `uv run yamllint …`                                           | Guard-rails & quality gate script                              |
+| Nested decorator lint    | Zero violations                                                         | `python3 scripts/lint_nested_decorators.py`                   | Pre-commit & CI                                                |
+| Build reproducibility    | Wheels & sdists build cleanly                                           | `uv run uv build` (or `python3 -m build`)                     | `validate_quality_gates.py`, release workflows                 |
+| Security audit           | `pip-audit --strict` clean (ignoring GHSA-4xh5-x5gv-qwph until patched) | `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` | Guard-rails, scheduled `pip-audit.yml`                         |
+| Workflow lint            | Actionlint passes                                                       | `bash scripts/run_actionlint.sh`                              | Guard-rails, quality gate script, manual before workflow edits |
 
 Run the full suite locally using either:
 
@@ -102,7 +103,7 @@ python3 scripts/validate_quality_gates.py
 | Standard                                          | Mechanism                                                                      |
 | ------------------------------------------------- | ------------------------------------------------------------------------------ |
 | Semantic versioning applied (`MAJOR.MINOR.PATCH`) | Manual review via `docs/how-to/release-process.md`                             |
-| Release prep checklist executed                   | [`docs/pre-release-checklist.md`](/pre-release-checklist/)                 |
+| Release prep checklist executed                   | [`docs/pre-release-checklist.md`](/pre-release-checklist/)                     |
 | Automated tagging & GitHub Releases               | `.github/workflows/release-tag.yml`                                            |
 | Wheelhouse build & attachment                     | `.github/workflows/publish.yml`                                                |
 | Installation verification                         | `uv run hephaestus release install --cleanup --remove-archive`                 |

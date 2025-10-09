@@ -2,6 +2,7 @@
 title: "ADR 0005: PyPI Publication Automation"
 description: "- Status: Sprint 2 Workflow Complete (2025-01-16) - Date: 2025-01-15 - Last Updated: 2025-01-16 - Implementation Date: Pending PyPI account setup - Supersedes:..."
 ---
+
 - Status: Sprint 2 Workflow Complete (2025-01-16)
 - Date: 2025-01-15
 - Last Updated: 2025-01-16

@@ -39,6 +39,7 @@ except ImportError:
     # If OpenTelemetry not installed, provide no-op implementations
     def trace_command(command_name: str = ""):  # type: ignore[no-untyped-def,misc]
         """No-op decorator when OpenTelemetry is not available."""
+
         def decorator(func):  # type: ignore[no-untyped-def]
             return func
 

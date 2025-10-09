@@ -2,6 +2,7 @@
 title: "CLI Autocompletion"
 description: "Hephaestus is built with Typer (Click under the hood) and ships native shell completion scripts. The steps below install completions once per machine so..."
 ---
+
 Hephaestus is built with Typer (Click under the hood) and ships native shell completion scripts. The
 steps below install completions once per machine so subcommands and options appear automatically.
 

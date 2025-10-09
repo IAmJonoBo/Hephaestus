@@ -1,25 +1,25 @@
 #!/usr/bin/env node
 /**
  * Sync CHANGELOG.md to documentation
- * 
+ *
  * Creates a changelog page from the root CHANGELOG.md file.
  */
 
-import { readFileSync, writeFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { readFileSync, writeFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const ROOT = resolve(__dirname, '..');
-const CHANGELOG_SRC = resolve(ROOT, '../CHANGELOG.md');
-const CHANGELOG_DEST = resolve(ROOT, 'src/content/docs/reference/changelog.md');
+const ROOT = resolve(__dirname, "..");
+const CHANGELOG_SRC = resolve(ROOT, "../CHANGELOG.md");
+const CHANGELOG_DEST = resolve(ROOT, "src/content/docs/reference/changelog.md");
 
 function main() {
-  console.log('🔄 Syncing CHANGELOG...');
-  
-  let content = readFileSync(CHANGELOG_SRC, 'utf-8');
-  
+  console.log("🔄 Syncing CHANGELOG...");
+
+  let content = readFileSync(CHANGELOG_SRC, "utf-8");
+
   // Add frontmatter
   const frontmatter = `---
 title: "Changelog"
@@ -32,11 +32,11 @@ Last synced: ${new Date().toISOString()}
 :::
 
 `;
-  
+
   content = frontmatter + content;
-  
-  writeFileSync(CHANGELOG_DEST, content, 'utf-8');
-  
+
+  writeFileSync(CHANGELOG_DEST, content, "utf-8");
+
   console.log(`✅ Changelog synced to ${CHANGELOG_DEST}`);
 }
 

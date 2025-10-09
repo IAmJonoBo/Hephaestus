@@ -2,6 +2,7 @@
 title: "Troubleshooting Guide"
 description: "This guide helps you diagnose and fix common issues with Hephaestus. Start with these commands to identify issues: bash hephaestus --version hephaestus..."
 ---
+
 This guide helps you diagnose and fix common issues with Hephaestus.
 
 ## Quick Diagnostics

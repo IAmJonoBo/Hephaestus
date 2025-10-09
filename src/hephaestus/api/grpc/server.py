@@ -42,15 +42,9 @@ async def serve(
     server = grpc.aio.server()
 
     # Add services
-    hephaestus_pb2_grpc.add_QualityServiceServicer_to_server(
-        QualityServiceServicer(), server
-    )
-    hephaestus_pb2_grpc.add_CleanupServiceServicer_to_server(
-        CleanupServiceServicer(), server
-    )
-    hephaestus_pb2_grpc.add_AnalyticsServiceServicer_to_server(
-        AnalyticsServiceServicer(), server
-    )
+    hephaestus_pb2_grpc.add_QualityServiceServicer_to_server(QualityServiceServicer(), server)
+    hephaestus_pb2_grpc.add_CleanupServiceServicer_to_server(CleanupServiceServicer(), server)
+    hephaestus_pb2_grpc.add_AnalyticsServiceServicer_to_server(AnalyticsServiceServicer(), server)
 
     # Enable reflection for debugging
     if reflection_enabled:

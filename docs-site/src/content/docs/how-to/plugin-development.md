@@ -2,6 +2,7 @@
 title: "Plugin Development Guide (ADR-0002)"
 description: "Status: Phase 2 Complete, Sprint 3 Partial - Experimental guard-rails integration Hephaestus supports a plugin architecture for extending quality gates with..."
 ---
+
 **Status**: Phase 2 Complete, Sprint 3 Partial - Experimental guard-rails integration
 
 ## Overview

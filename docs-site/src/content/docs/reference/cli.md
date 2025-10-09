@@ -2,6 +2,7 @@
 title: "CLI Reference"
 description: "This reference documents the top-level hephaestus commands and their most important options. Run uv run hephaestus --help for the canonical source of truth and..."
 ---
+
 This reference documents the top-level `hephaestus` commands and their most important options. Run
 `uv run hephaestus --help` for the canonical source of truth and subcommand details.
 

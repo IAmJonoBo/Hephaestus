@@ -185,7 +185,8 @@ def test_release_install_help_succeeds() -> None:
     assert "Download the Hephaestus wheelhouse" in result.stdout
     # Check for sigstore-identity without ANSI codes by removing color codes
     import re
-    clean_stdout = re.sub(r'\x1b\[[0-9;]*m', '', result.stdout)
+
+    clean_stdout = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
     assert "--sigstore-identity" in clean_stdout
 
 
@@ -315,6 +316,7 @@ def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> 
 
     # Patch subprocess module globally since it's imported locally in the function
     import subprocess
+
     monkeypatch.setattr(subprocess, "run", _fake_run)
 
     result = runner.invoke(cli.app, ["guard-rails"])
@@ -335,6 +337,7 @@ def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> 
             "mkdocs.yml",
             "hephaestus-toolkit/",
         ],
+        ["bash", "scripts/run_actionlint.sh"],
         ["uv", "run", "mypy", "src", "tests"],
         ["uv", "run", "pytest"],
         ["uv", "run", "pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"],
@@ -359,12 +362,14 @@ def test_guard_rails_can_skip_format(monkeypatch: pytest.MonkeyPatch) -> None:
 
     # Patch subprocess module globally since it's imported locally in the function
     import subprocess
+
     monkeypatch.setattr(subprocess, "run", _fake_run)
 
     result = runner.invoke(cli.app, ["guard-rails", "--no-format"])
 
     assert result.exit_code == 0
     assert ["uv", "run", "ruff", "format", "."] not in executed
+    assert ["bash", "scripts/run_actionlint.sh"] in executed
 
 
 def test_guard_rails_plugin_mode_with_no_plugins(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -387,6 +392,7 @@ def test_guard_rails_plugin_mode_with_no_plugins(monkeypatch: pytest.MonkeyPatch
 
     # Patch subprocess module globally since it's imported locally in the function
     import subprocess
+
     monkeypatch.setattr(subprocess, "run", _fake_run)
 
     result = runner.invoke(cli.app, ["guard-rails", "--use-plugins"])
