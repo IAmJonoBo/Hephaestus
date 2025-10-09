@@ -55,14 +55,22 @@ def verify_api_key(
 
     Raises:
         HTTPException: If API key is missing or invalid
+
+    Note:
+        This is a development-only implementation. Sprint 4 (ADR-0004) will add:
+        - Secure API key storage and validation
+        - JWT token support
+        - mTLS authentication
+        - Role-based authorization
+        - Rate limiting per key
     """
     if credentials is None:
         raise HTTPException(status_code=401, detail="Missing API key")
 
     api_key = credentials.credentials
 
-    # In production, validate against secure storage
-    # For now, accept any non-empty key for development
+    # TODO(Sprint 4): Replace with secure key validation against database/vault
+    # Current implementation accepts any non-empty key for development only
     if not api_key:
         raise HTTPException(status_code=403, detail="Invalid API key")
 

@@ -753,7 +753,7 @@ def wheelhouse_verify(
         root=str(wheelhouse),
         strict=strict,
     ):
-        findings = resource_forks.find_resource_forks(wheelhouse)
+        findings = resource_forks.verify_clean(wheelhouse)
 
         if not findings:
             console.print(NO_RESOURCE_FORK_MSG)

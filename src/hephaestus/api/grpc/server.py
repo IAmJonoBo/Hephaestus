@@ -23,6 +23,8 @@ async def serve(
     port: int = 50051,
     max_workers: int = 10,
     reflection_enabled: bool = True,
+    tls_cert_path: str | None = None,
+    tls_key_path: str | None = None,
 ) -> None:
     """Start gRPC server.
 
@@ -30,6 +32,12 @@ async def serve(
         port: Port to listen on
         max_workers: Maximum number of worker threads
         reflection_enabled: Enable gRPC reflection for debugging
+        tls_cert_path: Path to TLS certificate file (Sprint 4 - production hardening)
+        tls_key_path: Path to TLS private key file (Sprint 4 - production hardening)
+
+    Note:
+        TLS/SSL support is planned for Sprint 4 (ADR-0004).
+        Currently only insecure channels are supported for development.
     """
     server = grpc.aio.server()
 
@@ -56,6 +64,13 @@ async def serve(
         logger.info("gRPC reflection enabled")
 
     # Bind to port
+    # TODO(Sprint 4): Add TLS/SSL support when tls_cert_path and tls_key_path are provided
+    # See ADR-0004 Sprint 4 for production hardening requirements
+    if tls_cert_path and tls_key_path:
+        logger.warning(
+            "TLS/SSL configuration provided but not yet implemented. "
+            "Using insecure channel. TLS support is planned for Sprint 4 (ADR-0004)."
+        )
     server.add_insecure_port(f"[::]:{port}")
 
     logger.info(f"Starting gRPC server on port {port}")

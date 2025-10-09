@@ -37,15 +37,18 @@ try:
     record_histogram = _metrics.record_histogram
 except ImportError:
     # If OpenTelemetry not installed, provide no-op implementations
-    def trace_command():  # type: ignore[no-untyped-def,misc]
+    def trace_command(command_name: str = ""):  # type: ignore[no-untyped-def,misc]
+        """No-op decorator when OpenTelemetry is not available."""
         def decorator(func):  # type: ignore[no-untyped-def]
             return func
 
         return decorator
 
-    def trace_operation(**kwargs):  # type: ignore[no-untyped-def]
+    def trace_operation(operation_name: str = "", **kwargs):  # type: ignore[no-untyped-def]
+        """No-op context manager when OpenTelemetry is not available."""
         from contextlib import nullcontext
 
+        _ = (operation_name, kwargs)
         return nullcontext()
 
     def record_counter(name: str, value: int = 1, attributes=None):  # type: ignore[no-untyped-def]
