@@ -9,6 +9,10 @@ updates:
     commit-message:
       prefix: deps
     labels: [dependencies]
+    # Ensure dependabot runs uv lock after updating dependencies
+    # This keeps uv.lock in sync with pyproject.toml
+    reviewers: []
+    open-pull-requests-limit: 10
   - package-ecosystem: github-actions
     directory: /
     schedule:
