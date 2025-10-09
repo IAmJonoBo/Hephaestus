@@ -1,5 +1,16 @@
 # Operating Safely with Hephaestus
 
+┏━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ Tool ┃ Expected ┃ Actual ┃ Status ┃
+┡━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ ruff │ 0.14.0 │ 0.14.5 │ OK │
+│ black │ 25.9.0 │ 25.8.0 │ Drift │
+│ mypy │ 1.18.2 │ Not installed │ Missing│
+│ pip-audit │ 2.9.0 │ 2.9.0 │ OK │
+└────────────┴──────────┴───────────────┴────────┘
+
+## Remediation commands
+
 This guide explains safety constraints, guard-rail workflows, and secure operational practices when using the Hephaestus toolkit.
 
 ## Cleanup Safety
@@ -18,7 +29,7 @@ The `hephaestus cleanup` command removes files and directories from your workspa
 
 5. **Virtual Environment Protection**: When cleaning build artifacts, the command preserves `.venv/site-packages` unless you're cleaning the virtual environment itself with `--include-poetry-env`.
 
-6. **Audit Manifests**: Successful runs emit a JSON manifest under `.hephaestus/audit/` (or the path provided to `--audit-manifest`) capturing the options, removals, skips, and errors for compliance reviews.
+````bash
 
 ### Dangerous Operations to Avoid
 
@@ -34,7 +45,6 @@ hephaestus cleanup /home/username
 
 # DON'T: Use wildcards or shell expansion with --extra-path
 hephaestus cleanup --extra-path "*"
-```
 
 ### Safe Usage Patterns
 
@@ -55,7 +65,7 @@ hephaestus cleanup --build-artifacts
 
 # Dry-run: Preview what would be removed without deleting anything
 hephaestus cleanup --dry-run --deep-clean
-```
+````
 
 ### Extra Paths
 
@@ -126,7 +136,7 @@ hephaestus guard-rails --no-format
 hephaestus guard-rails --drift
 ```
 
-### Tool Version Drift Detection
+## Tool Version Drift Detection
 
 The `--drift` flag enables drift detection mode, which checks if your installed development tools match the versions specified in `pyproject.toml`.
 
@@ -138,24 +148,23 @@ The `--drift` flag enables drift detection mode, which checks if your installed 
 - After system updates or Python version changes
 
 **Example output:**
-
-```
-┏━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━┓
-┃ Tool       ┃ Expected ┃ Actual        ┃ Status ┃
-┡━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━┩
-│ ruff       │ 0.14.0   │ 0.14.5        │ OK     │
-│ black      │ 25.9.0   │ 25.8.0        │ Drift  │
-│ mypy       │ 1.18.2   │ Not installed │ Missing│
-│ pip-audit  │ 2.9.0    │ 2.9.0         │ OK     │
+│ ruff │ 0.14.0 │ 0.14.5 │ OK │
+│ black │ 25.9.0 │ 25.8.0 │ Drift │
+│ mypy │ 1.18.2 │ Not installed │ Missing│
+│ pip-audit │ 2.9.0 │ 2.9.0 │ OK │
 └────────────┴──────────┴───────────────┴────────┘
 
-Remediation commands:
-  # Recommended: Use uv to sync dependencies
-  uv sync --extra dev --extra qa
+### Tool Drift Remediation
 
-  # Or manually update individual tools:
-  pip install --upgrade black>=25.9.0
-  pip install mypy>=1.18.2
+## Recommended: Use uv to sync dependencies
+
+uv sync --extra dev --extra qa
+
+## Or manually update individual tools
+
+pip install --upgrade black>=25.9.0
+pip install mypy>=1.18.2
+
 ```
 
 **Drift detection rules:**
@@ -166,13 +175,13 @@ Remediation commands:
 
 The command exits with code 1 if any drift or missing tools are detected.
 
-````
+```
 
-### Guard Rails in CI
+## Guard Rails in CI
 
 The CI pipeline automatically runs guard rails on every push and pull request. Local execution ensures you catch issues before pushing.
 
-### Troubleshooting Guard Rails
+## Troubleshooting Guard Rails
 
 If guard rails fail:
 
@@ -191,12 +200,12 @@ When using `hephaestus release install`, follow these practices:
 ```bash
 # Always specify the repository explicitly
 hephaestus release install --repository IAmJonoBo/Hephaestus
-
+### Verify Release Source
 # Pin to a specific tag for reproducibility
 hephaestus release install --tag v0.1.0
-````
+```
 
-### Network Security
+## Network Security
 
 The release command includes several security features:
 
@@ -216,7 +225,7 @@ hephaestus release install
 hephaestus release install --token ghp_your_token_here
 ```
 
-### Future Verification Features
+## Future Verification Features
 
 The following security enhancements are planned:
 
@@ -279,7 +288,7 @@ For classic tokens, use the minimal `public_repo` scope (or `repo` for private r
 - Never commit tokens to version control
 - Set token expiration dates to limit exposure window
 
-### CI/CD Security
+## CI/CD Security
 
 **Secrets management:**
 
@@ -287,29 +296,22 @@ For classic tokens, use the minimal `public_repo` scope (or `repo` for private r
 - Never log tokens or credentials
 - Audit workflow permissions regularly
 
-## Incident Response
+  ```bash
+  hephaestus release install --tag v0.0.9
+  ```
 
-If you discover a security issue:
+  1. **Stop**: Don't push compromised code
+  2. **Identify the issue**: Review release notes and changelogs
+  3. **Pin to last known good version**:
 
-1. **Stop**: Don't push compromised code
-2. **Report**: Follow the disclosure process in SECURITY.md
-3. **Rotate**: Change any exposed credentials immediately
-4. **Review**: Check git history for sensitive data
-5. **Clean**: Use `git filter-branch` or BFG Repo-Cleaner to remove secrets
+  ```bash
+  hephaestus release install --tag v0.0.9
+  ```
 
-## Rollback Procedures
+  4. **Report the issue**: Open a GitHub issue with details
+  5. **Document learnings**: Update documentation and tests
 
-If a bad release is deployed:
-
-1. **Identify the issue**: Review release notes and changelogs
-2. **Pin to last known good version**:
-   ```bash
-   hephaestus release install --tag v0.0.9
-   ```
-3. **Report the issue**: Open a GitHub issue with details
-4. **Document learnings**: Update documentation and tests
-
-### Release Revocation (Future)
+## Release Revocation (Future)
 
 The following rollback features are planned:
 
@@ -333,7 +335,8 @@ Hephaestus logs to stdout/stderr using Rich formatting. Key events are highlight
 
 Planned observability features:
 
-- **Structured JSON logs**: Machine-parseable event streams
+- **Security**: Email [opensource@hephaestus.dev](mailto:opensource@hephaestus.dev) for security concerns
+- **Community**: Check [existing issues and discussions](https://github.com/IAmJonoBo/Hephaestus/issues)
 - **OpenTelemetry spans**: Distributed tracing for CLI operations
 - **Anonymous metrics**: Aggregated usage statistics (opt-in)
 - **Failure tracking**: Network errors, timeout counts, retry attempts
@@ -346,10 +349,13 @@ All telemetry will be:
 
 ## Getting Help
 
-- **Documentation**: See `docs/` for detailed guides
-- **Issues**: Open a GitHub issue for bugs or feature requests
-- **Security**: Email opensource@hephaestus.dev for security concerns
-- **Community**: Check existing issues and discussions
+- **Security**: Email [opensource@hephaestus.dev](mailto:opensource@hephaestus.dev) for security concerns
+
+- **Community**: Check [existing issues and discussions](https://github.com/IAmJonoBo/Hephaestus/issues)
+
+- **OpenTelemetry spans**: Distributed tracing for CLI operations
+- **Anonymous metrics**: Aggregated usage statistics (opt-in)
+- **Failure tracking**: Network errors, timeout counts, retry attempts
 
 ## Summary Checklist
 
@@ -360,6 +366,6 @@ Before running potentially destructive operations:
 - [ ] Check for typos in path specifications
 - [ ] Consider running without `--deep-clean` first
 - [ ] Ensure critical work is committed to git
-- [ ] Have backups of important data
-
-Remember: Hephaestus is a powerful tool. With power comes responsibility. Stay safe! 🛡️
+- **Security**: Email [opensource@hephaestus.dev](mailto:opensource@hephaestus.dev) for security concerns
+- **Community**: Check [existing issues and discussions](https://github.com/IAmJonoBo/Hephaestus/issues)
+  Remember: Hephaestus is a powerful tool. With power comes responsibility. Stay safe! 🛡️
