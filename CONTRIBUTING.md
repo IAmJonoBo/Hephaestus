@@ -12,9 +12,15 @@ ship improvements with confidence.
 Clone the repository and install the toolchain:
 
 ```bash
+# Automated setup (recommended, especially on macOS)
+./scripts/setup-dev-env.sh
+
+# Or manual setup
 uv sync --extra dev --extra qa
 uv run pre-commit install
 ```
+
+**macOS users**: The automated setup script handles resource fork cleanup and UV configuration automatically. If you encounter installation issues, see [troubleshooting guide](docs/how-to/troubleshooting.md#macos-appledoubleresource-fork-installation-errors).
 
 ## Branching & Commit Hygiene
 
