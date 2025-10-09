@@ -2,6 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![PyPI version](https://img.shields.io/pypi/v/hephaestus-toolkit.svg)](https://pypi.org/project/hephaestus-toolkit/)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](http://mypy-lang.org/)
 [![Security: pip-audit](https://img.shields.io/badge/security-pip--audit-blue.svg)](https://github.com/pypa/pip-audit)
@@ -84,11 +85,23 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
 ### Installation
 
-```bash
-# Using pip
-pip install hephaestus
+**Standard Installation (PyPI):**
 
-# Or from source with uv (recommended for development)
+```bash
+# Install from PyPI
+pip install hephaestus-toolkit
+
+# With optional dependencies
+pip install hephaestus-toolkit[dev,qa]
+
+# Specific version
+pip install hephaestus-toolkit==0.2.0
+```
+
+**Development Installation (from source):**
+
+```bash
+# Clone and setup with uv (recommended for development)
 git clone https://github.com/IAmJonoBo/Hephaestus.git
 cd Hephaestus
 
