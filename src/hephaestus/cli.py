@@ -934,7 +934,7 @@ def cleanup(
         cleanup_start = time.perf_counter()
         result = cleanup_module.run_cleanup(options, on_remove=_on_remove, on_skip=_on_skip)
         cleanup_duration = time.perf_counter() - cleanup_start
-        
+
         record_histogram(
             "hephaestus.cleanup.execution.duration",
             cleanup_duration,
@@ -1113,6 +1113,7 @@ def guard_rails(
         try:
             # Step 1: Deep clean workspace
             import time
+
             start_time = time.perf_counter()
             cleanup(deep_clean=True)
             record_histogram(

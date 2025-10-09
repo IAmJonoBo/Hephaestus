@@ -344,33 +344,33 @@ def test_cleanup_respects_max_depth(tmp_path: Path) -> None:
     # Create a deep directory structure
     root = tmp_path / "workspace"
     root.mkdir()
-    
+
     # Create .DS_Store files at various depths
     (root / ".DS_Store").write_text("root", encoding="utf-8")
-    
+
     level1 = root / "level1"
     level1.mkdir()
     (level1 / ".DS_Store").write_text("level1", encoding="utf-8")
-    
+
     level2 = level1 / "level2"
     level2.mkdir()
     (level2 / ".DS_Store").write_text("level2", encoding="utf-8")
-    
+
     level3 = level2 / "level3"
     level3.mkdir()
     (level3 / ".DS_Store").write_text("level3", encoding="utf-8")
-    
+
     # Run cleanup with max_depth=1
     options = CleanupOptions(root=root, max_depth=1)
     result = run_cleanup(options)
-    
+
     # Root and level1 .DS_Store should be removed (depths 0 and 1)
     assert not (root / ".DS_Store").exists()
     assert not (level1 / ".DS_Store").exists()
-    
+
     # level2 and level3 .DS_Store should NOT be removed (depths 2 and 3)
     assert (level2 / ".DS_Store").exists()
     assert (level3 / ".DS_Store").exists()
-    
+
     # Check result contains exactly 2 removed paths
     assert len(result.removed_paths) == 2

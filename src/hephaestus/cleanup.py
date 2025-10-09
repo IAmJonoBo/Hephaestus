@@ -476,7 +476,7 @@ def _walk_workspace(
     for current_dir, dirnames, filenames in os.walk(root, topdown=True):
         if not include_git:
             dirnames[:] = [name for name in dirnames if name != GIT_DIR]
-        
+
         # Check depth limit
         if max_depth is not None:
             current_path = Path(current_dir)
@@ -488,7 +488,7 @@ def _walk_workspace(
             except ValueError:
                 # current_dir is not relative to root, skip depth check
                 pass
-        
+
         yield Path(current_dir), dirnames, filenames
 
 
