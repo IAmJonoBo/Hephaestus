@@ -334,14 +334,14 @@ if __name__ == "__main__":
 - [x] Review historical releases (v0.1.0-v0.2.3)
 - [x] Verify all releases have SHA-256 checksums
 - [x] Design backfill metadata schema
-- [ ] Write backfill automation script
-- [ ] Test backfill process on staging
+- [x] Write backfill automation script
+- [x] Test backfill process on staging
 
-### Sprint 2: Execution
+### Sprint 2: Execution (In Progress)
 
-- [ ] Run backfill script for all historical releases
+- [ ] Run backfill script for all historical releases (Manual step - requires GitHub Actions environment)
 - [ ] Verify uploaded bundles
-- [ ] Update release notes with backfill notices
+- [ ] Update release notes with backfill notices (Automated by script)
 - [ ] Update documentation to explain backfilled attestations
 - [ ] Test verification with backfilled bundles
 
@@ -363,11 +363,11 @@ if __name__ == "__main__":
 
 ## Follow-up Actions
 
-- [ ] Design backfill metadata schema
-- [ ] Implement backfill automation script
-- [ ] Execute backfill for historical releases
-- [ ] Add verification flags to CLI
-- [ ] Update documentation and announce completion
+- [x] Design backfill metadata schema (Complete - `src/hephaestus/backfill.py`)
+- [x] Implement backfill automation script (Complete - `scripts/backfill_sigstore_bundles.py`)
+- [ ] Execute backfill for historical releases (Ready - use GitHub Actions workflow `sigstore-backfill.yml`)
+- [ ] Add verification flags to CLI (Planned for Sprint 3)
+- [ ] Update documentation and announce completion (Planned after execution)
 
 ## References
 
@@ -408,5 +408,7 @@ ERROR: Use --allow-backfill to accept retroactive attestations
 ## Status History
 
 - 2025-01-15: Proposed (documented in ADR)
-- Future: Accepted after backfill metadata schema review
-- Future: Implemented in next release
+- 2025-10-09: Sprint 1 Complete - Schema and script implemented
+- Future: Sprint 2 Complete - Execution pending manual trigger
+- Future: Sprint 3 - CLI verification flags
+- Future: Sprint 4 - Documentation and announcement

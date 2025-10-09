@@ -158,6 +158,90 @@ CHANGELOG template for version 0.3.0:
 
 - [Release Process Guide](../docs/how-to/release-process.md)
 
+### backfill_sigstore_bundles.py
+
+Automated Sigstore bundle backfill for historical releases (ADR-0006 Sprint 2).
+
+**Usage:**
+
+```bash
+# Dry run (recommended first)
+GITHUB_TOKEN=<token> python scripts/backfill_sigstore_bundles.py --dry-run
+
+# Backfill all historical versions
+GITHUB_TOKEN=<token> python scripts/backfill_sigstore_bundles.py
+
+# Backfill specific version
+GITHUB_TOKEN=<token> python scripts/backfill_sigstore_bundles.py --version v0.2.3
+```
+
+**What it does:**
+
+1. Enumerates historical releases (v0.1.0-v0.2.3)
+2. Downloads existing wheelhouse archives
+3. Verifies SHA-256 checksums against published manifests
+4. Generates Sigstore attestations using current signing identity
+5. Adds backfill metadata to attestations
+6. Uploads .sigstore bundles as new release assets
+7. Updates release notes with backfill notices
+
+**Requirements:**
+
+- `GITHUB_TOKEN` environment variable with repo write access
+- `sigstore-python` installed (`pip install sigstore`)
+- GitHub Actions OIDC authentication (for production use)
+- `requests` library
+
+**Features:**
+
+- Dry run mode for testing
+- Automatic checksum verification
+- Backfill metadata tracking
+- Idempotent (skips already-backfilled releases)
+- Comprehensive error handling and logging
+- GitHub Actions workflow integration
+
+**Exit codes:**
+
+- 0: Success (all versions backfilled)
+- 1: One or more versions failed
+
+**GitHub Actions Integration:**
+
+The script is integrated into a manual workflow (`.github/workflows/sigstore-backfill.yml`):
+
+```bash
+# Trigger via GitHub Actions UI with:
+# - Optional version filter
+# - Dry run toggle
+# - Automatic artifact uploads
+```
+
+**Historical Versions:**
+
+- v0.1.0, v0.1.1, v0.1.2
+- v0.2.0, v0.2.1, v0.2.2, v0.2.3
+
+**Backfill Metadata Format:**
+
+```json
+{
+  "version": "v0.2.3",
+  "original_release_date": "2025-01-10T12:00:00Z",
+  "backfill_date": "2025-01-20T15:30:00Z",
+  "backfill_identity": "https://github.com/IAmJonoBo/Hephaestus/.github/workflows/backfill.yml@refs/heads/main",
+  "verification_status": "backfilled",
+  "checksum_verified": true,
+  "notes": "Sigstore bundle backfilled for historical release..."
+}
+```
+
+**See also:**
+
+- [ADR-0006: Sigstore Bundle Backfill](../docs/adr/0006-sigstore-backfill.md)
+- [Security Policy](../SECURITY.md)
+- [Operating Safely Guide](../docs/how-to/operating-safely.md)
+
 ## Integration
 
 ### CI Pipeline

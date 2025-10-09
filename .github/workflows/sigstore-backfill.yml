@@ -1,0 +1,79 @@
+name: Sigstore Bundle Backfill
+
+# Workflow for backfilling Sigstore bundles on historical releases (ADR-0006)
+# This is a manually triggered workflow to avoid accidental execution
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Specific version to backfill (leave empty for all historical versions)'
+        required: false
+        type: string
+      dry_run:
+        description: 'Perform dry run (no actual uploads)'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write # Required to upload release assets and update notes
+  id-token: write # Required for Sigstore OIDC authentication
+
+jobs:
+  backfill:
+    name: Backfill Sigstore Bundles
+    runs-on: ubuntu-latest
+    environment:
+      name: backfill
+      url: https://github.com/${{ github.repository }}/releases
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install sigstore requests
+
+      - name: Run backfill script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "Running in DRY RUN mode"
+            python scripts/backfill_sigstore_bundles.py --dry-run ${{ inputs.version && format('--version {0}', inputs.version) || '' }}
+          else
+            echo "Running LIVE backfill"
+            python scripts/backfill_sigstore_bundles.py ${{ inputs.version && format('--version {0}', inputs.version) || '' }}
+          fi
+
+      - name: Upload backfill report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backfill-report
+          path: |
+            *.log
+            backfill-*.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Comment on completion
+        if: success() && !inputs.dry_run
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ inputs.version }}' || 'all historical versions';
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `✅ Sigstore backfill completed for ${version}.\n\nSee [workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.`
+            });
