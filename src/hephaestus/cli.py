@@ -1214,8 +1214,9 @@ def _run_guard_rails_plugin_mode(no_format: bool) -> bool:  # NOSONAR(S3776)
         console.print("\n[green]✓ Guard rails completed successfully (plugin mode).[/green]")
         telemetry.emit_event(
             logger,
-            telemetry.CLI_GUARD_RAILS_SUCCESS,
+            telemetry.CLI_GUARD_RAILS_COMPLETE,
             message="Guard rails completed successfully in plugin mode",
+            skip_format=no_format,
         )
         return True
     except Exception as exc:  # noqa: BLE001 - convert any plugin infra errors to fallback
@@ -1337,8 +1338,9 @@ def _run_guard_rails_standard(no_format: bool) -> None:  # NOSONAR(S3776)
         console.print("\n[green]✓ Guard rails completed successfully.[/green]")
         telemetry.emit_event(
             logger,
-            telemetry.CLI_GUARD_RAILS_SUCCESS,
+            telemetry.CLI_GUARD_RAILS_COMPLETE,
             message="Guard rails completed successfully",
+            skip_format=no_format,
         )
 
     except subprocess.TimeoutExpired as exc:
