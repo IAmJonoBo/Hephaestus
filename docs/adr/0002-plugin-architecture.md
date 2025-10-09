@@ -1,6 +1,6 @@
 # ADR 0002: Plugin Architecture for Extensible Quality Gates
 
-- Status: Phase 2 Implemented
+- Status: Phase 2 Implemented, Sprint 3 Partial
 - Date: 2025-01-11
 - Last Updated: 2025-01-XX
 - Supersedes: N/A
@@ -318,19 +318,21 @@ def run_quality_gates(config_path: str) -> bool:
 - [x] Refactor existing gates to plugins (built-in plugins implemented)
 - [x] Implement plugin discovery (discovery mechanism complete with file and module loading)
 - [x] Add plugin validation (configuration validation and plugin loading implemented)
-- [ ] Update guard-rails to use plugin system (deferred to Sprint 3 - backward compatible approach maintained)
-- [x] Maintain backward compatibility (built-in plugins available, guard-rails unchanged)
+- [x] Update guard-rails to use plugin system (experimental --use-plugins flag added in Sprint 3)
+- [x] Maintain backward compatibility (built-in plugins available, standard mode remains default)
 
-**Sprint 2 Status**: Discovery and configuration loading complete. Guard-rails integration deferred to maintain backward compatibility and allow gradual adoption.
+**Sprint 2 Status**: Discovery and configuration loading complete. Guard-rails integration completed in Sprint 3 with experimental flag for gradual adoption.
 
-### Sprint 3: Ecosystem Development (In Progress)
+### Sprint 3: Ecosystem Development (In Progress - Partial Completion)
 
 - [x] Document plugin development (comprehensive guide updated with Phase 2 features)
 - [x] Create example plugins (examples added to documentation)
+- [x] Integrate plugin system with guard-rails command (experimental --use-plugins flag implemented)
 - [ ] Publish plugin template (planned)
 - [ ] Build plugin catalog (planned)
 - [ ] Establish review process (planned)
-- [ ] Integrate plugin system with guard-rails command (planned)
+
+**Sprint 3 Status**: Guard-rails integration complete with experimental plugin mode. Users can opt-in to plugin-based execution with `--use-plugins` flag. Standard pipeline remains default for backward compatibility.
 
 ### Sprint 4: Advanced Features
 
@@ -416,6 +418,7 @@ class BanditPlugin(QualityGatePlugin):
 
 - 2025-01-11: Proposed (documented in ADR)
 - 2025-10-09: Sprint 1 Complete - Foundation implemented
-- 2025-10-09: Sprint 2 Partial - Built-in plugins implemented, discovery deferred to Sprint 3
-- Future: Sprint 3 - Plugin discovery and ecosystem development
+- 2025-10-09: Sprint 2 Complete - Built-in plugins and discovery implemented
+- 2025-10-XX: Sprint 3 Partial - Guard-rails integration with experimental --use-plugins flag
+- Future: Sprint 3 Complete - Plugin template, catalog, review process
 - Future: Sprint 4 - Advanced features (dependency resolution, versioning, marketplace)
