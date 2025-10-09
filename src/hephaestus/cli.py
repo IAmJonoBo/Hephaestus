@@ -1284,6 +1284,8 @@ def _run_guard_rails_standard(no_format: bool) -> None:  # NOSONAR(S3776)
         console.print("[cyan]→ Running yamllint...[/cyan]")
         subprocess.run(
             [
+                "uv",
+                "run",
                 "yamllint",
                 ".github/",
                 ".pre-commit-config.yaml",
