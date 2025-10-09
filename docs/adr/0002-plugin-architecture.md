@@ -1,6 +1,6 @@
 # ADR 0002: Plugin Architecture for Extensible Quality Gates
 
-- Status: Sprint 2-3 Partial (2025-10-09)
+- Status: Sprint 3 Complete (2025-10-09)
 - Date: 2025-01-11
 - Last Updated: 2025-10-09
 - Supersedes: N/A
@@ -323,16 +323,16 @@ def run_quality_gates(config_path: str) -> bool:
 
 **Sprint 2 Status**: Discovery and configuration loading complete. Guard-rails integration completed in Sprint 3 with experimental flag for gradual adoption.
 
-### Sprint 3: Ecosystem Development (In Progress - Partial Completion)
+### Sprint 3: Ecosystem Development (Complete)
 
 - [x] Document plugin development (comprehensive guide updated with Phase 2 features)
 - [x] Create example plugins (examples added to documentation)
 - [x] Integrate plugin system with guard-rails command (experimental --use-plugins flag implemented)
-- [ ] Publish plugin template (planned)
-- [ ] Build plugin catalog (planned)
-- [ ] Establish review process (planned)
+- [x] Publish plugin template (example plugin template created in plugin-templates/)
+- [x] Build plugin catalog (catalog documentation created in docs/reference/)
+- [x] Establish review process (review process documented in docs/how-to/)
 
-**Sprint 3 Status**: Guard-rails integration complete with experimental plugin mode. Users can opt-in to plugin-based execution with `--use-plugins` flag. Standard pipeline remains default for backward compatibility.
+**Sprint 3 Status**: Complete. Full plugin ecosystem established with guard-rails integration, example templates, catalog documentation, and review process. Users can opt-in to plugin-based execution with `--use-plugins` flag. Standard pipeline remains default for backward compatibility.
 
 ### Sprint 4: Advanced Features
 
@@ -344,17 +344,22 @@ def run_quality_gates(config_path: str) -> bool:
 
 ## Follow-up Actions
 
-- [ ] Create plugin API design document
-- [ ] Implement plugin base class and registry
-- [ ] Refactor existing gates to plugins
-- [ ] Write plugin development guide
-- [ ] Create example plugins and template
+- [x] Create plugin API design document (documented in ADR and development guide)
+- [x] Implement plugin base class and registry (src/hephaestus/plugins/)
+- [x] Refactor existing gates to plugins (built-in plugins in src/hephaestus/plugins/builtin/)
+- [x] Write plugin development guide (docs/how-to/plugin-development.md)
+- [x] Create example plugins and template (plugin-templates/example-plugin/)
+- [x] Build plugin catalog (docs/reference/plugin-catalog.md)
+- [x] Document review process (docs/how-to/plugin-review-process.md)
 
 ## References
 
 - [Hephaestus Architecture](../explanation/architecture.md)
 - [Quality Gates Guide](../how-to/quality-gates.md)
-- [Plugin Development Guide](../how-to/plugin-development.md) (future)
+- [Plugin Development Guide](../how-to/plugin-development.md)
+- [Plugin Catalog](../reference/plugin-catalog.md)
+- [Plugin Review Process](../how-to/plugin-review-process.md)
+- [Example Plugin Template](../../plugin-templates/example-plugin/)
 - [pytest plugin architecture](https://docs.pytest.org/en/stable/how-to/writing_plugins.html)
 - [pre-commit hooks architecture](https://pre-commit.com/#creating-new-hooks)
 
@@ -419,6 +424,5 @@ class BanditPlugin(QualityGatePlugin):
 - 2025-01-11: Proposed (documented in ADR)
 - 2025-10-09: Sprint 1 Complete - Foundation implemented
 - 2025-10-09: Sprint 2 Complete - Built-in plugins and discovery implemented
-- 2025-10-XX: Sprint 3 Partial - Guard-rails integration with experimental --use-plugins flag
-- Future: Sprint 3 Complete - Plugin template, catalog, review process
+- 2025-10-09: Sprint 3 Complete - Full ecosystem with guard-rails integration, templates, catalog, and review process
 - Future: Sprint 4 - Advanced features (dependency resolution, versioning, marketplace)
