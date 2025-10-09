@@ -345,6 +345,45 @@ def test_guard_rails_can_skip_format(monkeypatch: pytest.MonkeyPatch) -> None:
     assert ["ruff", "format", "."] not in executed
 
 
+def test_guard_rails_plugin_mode_with_no_plugins(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test guard-rails falls back to standard mode when no plugins loaded."""
+    _, cli = _load_modules()
+    monkeypatch.setattr(cli, "cleanup", lambda *args, **kwargs: None)
+
+    # Mock the plugin discovery to return empty registry
+    from hephaestus.plugins import PluginRegistry
+
+    def _fake_discover_plugins(*args: Any, **kwargs: Any) -> PluginRegistry:
+        return PluginRegistry()  # Empty registry
+
+    monkeypatch.setattr("hephaestus.plugins.discover_plugins", _fake_discover_plugins)
+
+    executed: list[list[str]] = []
+
+    def _fake_run(command: list[str], *, check: bool, timeout: int | None = None) -> None:
+        executed.append(command)
+
+    monkeypatch.setattr(cli.subprocess, "run", _fake_run)
+
+    result = runner.invoke(cli.app, ["guard-rails", "--use-plugins"])
+
+    # Should fall back to standard pipeline when no plugins
+    assert result.exit_code == 0
+    assert "No plugins loaded" in result.stdout
+    assert "Falling back to standard pipeline" in result.stdout
+    # Standard pipeline should have run
+    assert ["ruff", "check", "."] in executed
+
+
+def test_guard_rails_plugin_mode_flag_available() -> None:
+    """Test guard-rails --use-plugins flag is available."""
+    _, cli = _load_modules()
+    result = runner.invoke(cli.app, ["guard-rails", "--help"])
+    assert result.exit_code == 0
+    assert "plugins" in result.stdout
+    assert "ADR-002" in result.stdout or "experimental" in result.stdout
+
+
 def test_wheelhouse_sanitize_removes_metadata(tmp_path: Path) -> None:
     _, cli = _load_modules()
     wheelhouse = tmp_path / "wheelhouse"

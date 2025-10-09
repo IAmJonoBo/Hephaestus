@@ -1,6 +1,6 @@
 # Plugin Development Guide (ADR-0002)
 
-**Status**: Phase 2 (Discovery & Configuration) - Discovery implemented
+**Status**: Phase 2 Complete, Sprint 3 Partial - Experimental guard-rails integration
 
 ## Overview
 
@@ -9,8 +9,42 @@ Hephaestus supports a plugin architecture for extending quality gates with custo
 **Current Implementation Status:**
 - ✅ Phase 1: Plugin API specification and registry
 - ✅ Phase 2: Built-in plugins and discovery mechanism
-- ⏳ Phase 3: Integration with guard-rails command (planned)
+- ✅ Phase 3: Integration with guard-rails command (experimental `--use-plugins` flag)
 - ⏳ Phase 4: Plugin marketplace and advanced features (planned)
+
+## Using Plugins with Guard-Rails
+
+### Experimental Plugin Mode
+
+As of Sprint 3, you can run guard-rails using the plugin system with the experimental `--use-plugins` flag:
+
+```bash
+# Run guard-rails in plugin mode (experimental)
+hephaestus guard-rails --use-plugins
+
+# Skip formatting in plugin mode
+hephaestus guard-rails --use-plugins --no-format
+```
+
+**How It Works:**
+1. Discovers plugins from `.hephaestus/plugins.toml` configuration
+2. Loads both built-in and external plugins
+3. Executes plugins in order based on their `order` property
+4. Falls back to standard pipeline if no plugins are found or errors occur
+
+**Current Limitations:**
+- Plugin mode is experimental and opt-in
+- No plugin configuration is loaded yet (empty config `{}` passed to plugins)
+- Standard pipeline remains default for maximum compatibility
+
+### Standard Mode (Default)
+
+The standard guard-rails pipeline continues to work as before:
+
+```bash
+# Standard mode (default)
+hephaestus guard-rails
+```
 
 ## Quick Start
 

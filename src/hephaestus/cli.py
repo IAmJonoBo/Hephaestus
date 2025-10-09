@@ -1027,6 +1027,14 @@ def guard_rails(
             "--drift", help="Check for tool version drift and show remediation.", show_default=False
         ),
     ] = False,
+    use_plugins: Annotated[
+        bool,
+        typer.Option(
+            "--use-plugins",
+            help="Use plugin system for quality gates (ADR-002 experimental).",
+            show_default=False,
+        ),
+    ] = False,
 ) -> None:
     """Run the full guard-rail pipeline: cleanup, lint, format, typecheck, test, and audit."""
 
@@ -1101,8 +1109,112 @@ def guard_rails(
                     console.print(f"[red]✗ Drift detection failed: {exc}[/red]")
                     raise typer.Exit(code=1) from exc
 
+        # Plugin-based pipeline (experimental - ADR-002 Sprint 3)
+        if use_plugins:
+            console.print("[cyan]Running guard rails using plugin system (experimental)...[/cyan]")
+            from hephaestus.plugins import discover_plugins
+
+            try:
+                # Step 1: Deep clean workspace (not yet a plugin)
+                import time
+
+                start_time = time.perf_counter()
+                cleanup(deep_clean=True)
+                record_histogram(
+                    "hephaestus.guard_rails.cleanup.duration",
+                    time.perf_counter() - start_time,
+                    attributes={"step": "cleanup", "plugin_mode": "true"},
+                )
+
+                # Step 2: Load and execute plugins
+                plugin_registry = discover_plugins()
+                plugins = plugin_registry.all_plugins()
+
+                if not plugins:
+                    console.print(
+                        "[yellow]Warning: No plugins loaded. "
+                        "Falling back to standard pipeline.[/yellow]"
+                    )
+                    use_plugins = False
+                else:
+                    console.print(f"[cyan]Loaded {len(plugins)} quality gate plugins[/cyan]")
+
+                    # Execute each plugin
+                    failed_plugins = []
+                    for plugin in plugins:
+                        # Skip format plugin if --no-format is set
+                        if no_format and plugin.metadata.name == "ruff-format":
+                            console.print(
+                                f"[dim]Skipping {plugin.metadata.name} (--no-format)[/dim]"
+                            )
+                            continue
+
+                        console.print(
+                            f"[cyan]→ Running {plugin.metadata.name} "
+                            f"({plugin.metadata.description})...[/cyan]"
+                        )
+                        start_time = time.perf_counter()
+
+                        try:
+                            result = plugin.run({})
+                            record_histogram(
+                                "hephaestus.guard_rails.plugin.duration",
+                                time.perf_counter() - start_time,
+                                attributes={
+                                    "plugin": plugin.metadata.name,
+                                    "success": str(result.success).lower(),
+                                },
+                            )
+
+                            if not result.success:
+                                console.print(
+                                    f"[red]✗ {plugin.metadata.name}: {result.message}[/red]"
+                                )
+                                failed_plugins.append(plugin.metadata.name)
+                                if result.details and "stdout" in result.details:
+                                    console.print(result.details["stdout"])
+                            else:
+                                console.print(
+                                    f"[green]✓ {plugin.metadata.name}: {result.message}[/green]"
+                                )
+                        except Exception as exc:
+                            console.print(f"[red]✗ {plugin.metadata.name} crashed: {exc}[/red]")
+                            failed_plugins.append(plugin.metadata.name)
+
+                    if failed_plugins:
+                        console.print(
+                            f"\n[red]✗ Guard rails failed. {len(failed_plugins)} "
+                            f"plugin(s) failed:[/red]"
+                        )
+                        for plugin_name in failed_plugins:
+                            console.print(f"  - {plugin_name}")
+                        telemetry.emit_event(
+                            logger,
+                            telemetry.CLI_GUARD_RAILS_FAILED,
+                            message="Guard rails failed in plugin mode",
+                            failed_plugins=failed_plugins,
+                        )
+                        raise typer.Exit(code=1)
+
+                    console.print(
+                        "\n[green]✓ Guard rails completed successfully (plugin mode).[/green]"
+                    )
+                    telemetry.emit_event(
+                        logger,
+                        telemetry.CLI_GUARD_RAILS_SUCCESS,
+                        message="Guard rails completed successfully in plugin mode",
+                    )
+                    return
+
+            except Exception as exc:
+                console.print(f"[red]✗ Plugin system error: {exc}[/red]")
+                console.print("[yellow]Falling back to standard pipeline...[/yellow]")
+                use_plugins = False
+
         # Standard guard-rails pipeline
-        console.print("[cyan]Running guard rails...[/cyan]")
+        if not use_plugins:
+            console.print("[cyan]Running guard rails...[/cyan]")
+
         telemetry.emit_event(
             logger,
             telemetry.CLI_GUARD_RAILS_START,
