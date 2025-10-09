@@ -31,12 +31,12 @@ This directory contains Architecture Decision Records documenting significant te
   - Implementation: Phase 1 (Preparation) complete - Metadata schema defined
   - Summary: Backfill Sigstore attestations for historical releases to close supply chain security gap
 
-### Proposed - Sprint 2
-
 - **[ADR-0005: PyPI Publication Automation](./0005-pypi-publication.md)**
-  - Status: Proposed (2025-01-15)
-  - Target: Next release (Sprint 1-2)
+  - Status: Phase 2 Implemented (2025-10-09)
+  - Implementation: Sprint 2 complete - Workflow automation and documentation
   - Summary: Automated publication to PyPI using GitHub Actions and Trusted Publishers for improved discoverability and standard installation
+
+### Proposed - Sprint 3
 
 ## ADR Lifecycle
 

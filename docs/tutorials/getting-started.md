@@ -36,7 +36,20 @@ By the end of this tutorial, you'll know how to:
 
 Choose one of these installation methods:
 
-### Method A: Clone from Source (for development)
+### Method A: Install from PyPI (recommended for users)
+
+```bash
+# Install latest stable release
+pip install hephaestus-toolkit
+
+# Or with optional dependencies
+pip install hephaestus-toolkit[dev,qa]
+
+# Specific version
+pip install hephaestus-toolkit==0.2.0
+```
+
+### Method B: Clone from Source (for development)
 
 ```bash
 git clone https://github.com/IAmJonoBo/Hephaestus.git
@@ -44,20 +57,14 @@ cd Hephaestus
 uv sync --extra dev --extra qa
 ```
 
-### Method B: Install Wheelhouse (for usage)
+### Method C: Install Wheelhouse (alternative)
 
 ```bash
-# Install latest stable release
+# Install latest stable release via wheelhouse
 hephaestus release install --repository IAmJonoBo/Hephaestus
 
 # Or install specific version
 hephaestus release install --repository IAmJonoBo/Hephaestus --tag v0.2.0
-```
-
-### Method C: Direct pip install (from source)
-
-```bash
-pip install -e ".[dev,qa]"
 ```
 
 ### Verify Installation

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Sprint 2: PyPI Publication (ADR-0005)**:
+  - Automated PyPI publication workflow via GitHub Actions
+  - Sigstore signing integration for published packages
+  - PyPI Trusted Publishers configuration support
+  - Rich package metadata in `pyproject.toml` (classifiers, URLs, keywords)
+  - PyPI badge in README
+  - Updated installation documentation with pip instructions
 - **Authentication & Authorization Hardening (ADR-0001 Phase 3+)**:
   - Token validation before GitHub API calls with pattern matching
   - Support for classic (`ghp_*`), fine-grained (`ghs_*`), and PAT (`github_pat_*`) token formats
@@ -40,6 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Package name**: Changed from `hephaestus` to `hephaestus-toolkit` for PyPI publication
+  - Command-line interface remains `hephaestus`
+  - Import path still `from hephaestus import ...`
+  - Only affects package installation name
 - **Module Reorganization**: Renamed `telemetry.py` to `events.py` for clarity
   - Existing telemetry event definitions moved to `events.py`
   - New `telemetry/` package for OpenTelemetry integration

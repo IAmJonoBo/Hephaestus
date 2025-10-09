@@ -1,7 +1,8 @@
 # ADR 0005: PyPI Publication Automation
 
-- Status: Proposed
+- Status: Phase 2 Implemented
 - Date: 2025-01-15
+- Implementation Date: 2025-10-09
 - Supersedes: N/A
 - Superseded by: N/A
 
@@ -334,11 +335,13 @@ hephaestus release install --repository IAmJonoBo/Hephaestus
 
 ### Sprint 2: Automation
 
-- [ ] Create PyPI publication workflow
-- [ ] Add Sigstore signing to workflow
+- [x] Create PyPI publication workflow
+- [x] Add Sigstore signing to workflow
+- [x] Update documentation with pip installation
+- [x] Add PyPI badge to README
+- [ ] Register PyPI account and configure 2FA
+- [ ] Set up Trusted Publishers on PyPI
 - [ ] Test publication to Test PyPI
-- [ ] Update documentation with pip installation
-- [ ] Add PyPI badge to README
 
 ### Sprint 3: Launch
 

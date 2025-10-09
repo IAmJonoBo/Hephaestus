@@ -101,21 +101,23 @@ class QualityGatePlugin(ABC):
         """
         pass
 
-    def setup(self) -> None:
+    def setup(self) -> None:  # noqa: B027 - intentional hook with default no-op implementation
         """Optional: Setup before running.
 
         Override this method if your plugin needs to perform setup
         operations before executing the quality check.
-        """
-        pass
 
-    def teardown(self) -> None:
+        Default implementation does nothing.
+        """
+
+    def teardown(self) -> None:  # noqa: B027 - intentional hook with default no-op implementation
         """Optional: Cleanup after running.
 
         Override this method if your plugin needs to perform cleanup
         operations after executing the quality check.
+
+        Default implementation does nothing.
         """
-        pass
 
 
 class PluginRegistry:
