@@ -2,6 +2,7 @@
 title: "How-To: Install Hephaestus from a Wheelhouse"
 description: "Follow these steps when you want to consume the toolkit in a repository without cloning the full source tree or publishing to PyPI. - Python 3.12 or newer - uv..."
 ---
+
 Follow these steps when you want to consume the toolkit in a repository without cloning the full
 source tree or publishing to PyPI.
 

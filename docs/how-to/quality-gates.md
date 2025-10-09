@@ -24,7 +24,7 @@ This runs:
 - YAML linting with yamllint
 - Mypy type checking
 - Nested decorator linting
-- Workflow validation with actionlint (optional)
+- Workflow validation with actionlint
 - Build artifact generation
 - Security auditing (when available)
 
@@ -40,11 +40,12 @@ This performs:
 
 1. Deep cleanup of build artifacts
 2. Ruff linting with auto-fix
-3. Ruff formatting
-4. YAML linting with yamllint
-5. Mypy type checking
-6. Full test suite with coverage
-7. Security audit with pip-audit
+3. Workflow validation with actionlint
+4. Ruff formatting
+5. YAML linting with yamllint
+6. Mypy type checking
+7. Full test suite with coverage
+8. Security audit with pip-audit
 
 ## Individual Quality Gates
 
@@ -140,20 +141,20 @@ This ensures Typer commands are defined at module scope, not nested inside other
 
 ### Workflow Validation (actionlint)
 
-Validate GitHub Actions workflows:
+Validate GitHub Actions workflows (required in guard-rails):
 
 ```bash
 bash scripts/run_actionlint.sh
 ```
 
-This optional check:
+This check:
 
 - Automatically installs actionlint if not present
 - Validates workflow syntax and structure
 - Checks for deprecated actions
 - Reports shellcheck issues in workflow scripts
 
-Note: This is an optional quality gate. The script will download actionlint on first run.
+The script will download actionlint on first run and is now part of the default guard-rails pipeline.
 
 ### Security Audit
 

@@ -2,6 +2,7 @@
 title: "OpenTelemetry Integration Guide (ADR-0003)"
 description: "Status: Phase 1 (Foundation) - Optional observability support Hephaestus supports optional OpenTelemetry integration for distributed tracing and observability...."
 ---
+
 **Status**: Phase 1 (Foundation) - Optional observability support
 
 ## Overview

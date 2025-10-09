@@ -8,6 +8,7 @@ DESCRIPTOR: _descriptor.FileDescriptor
 
 class GuardRailsRequest(_message.Message):
     __slots__ = ("no_format", "workspace", "drift_check", "env")
+
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -70,6 +71,7 @@ class GuardRailsProgress(_message.Message):
 
 class QualityGateResult(_message.Message):
     __slots__ = ("name", "passed", "message", "duration", "metadata")
+
     class MetadataEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -156,6 +158,7 @@ class CleanupRequest(_message.Message):
 
 class CleanupResponse(_message.Message):
     __slots__ = ("files_deleted", "size_freed", "deleted_paths", "manifest")
+
     class ManifestEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -182,6 +185,7 @@ class CleanupResponse(_message.Message):
 
 class CleanupPreview(_message.Message):
     __slots__ = ("files_to_delete", "size_to_free", "paths", "preview_manifest")
+
     class PreviewManifestEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -235,6 +239,7 @@ class RankingsResponse(_message.Message):
 
 class FileRanking(_message.Message):
     __slots__ = ("file", "score", "metrics")
+
     class MetricsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]

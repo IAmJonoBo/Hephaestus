@@ -34,8 +34,17 @@ GaugeRecorder = Callable[..., None]
 HistogramRecorder = Callable[..., None]
 
 
-def _noop_trace_command(command_name: str) -> TraceDecorator:  # pragma: no cover - exercised only when OTEL unavailable
-    """Return a decorator that leaves the wrapped function unchanged."""
+    trace_operation = _tracing.trace_operation  # type: ignore[has-type]
+    record_counter = _metrics.record_counter
+    record_gauge = _metrics.record_gauge
+    record_histogram = _metrics.record_histogram
+except ImportError:
+    # If OpenTelemetry not installed, provide no-op implementations
+    def trace_command(command_name: str = ""):  # type: ignore[no-untyped-def,misc]
+        """No-op decorator when OpenTelemetry is not available."""
+
+        def decorator(func):  # type: ignore[no-untyped-def]
+            return func
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         _ = (command_name,)

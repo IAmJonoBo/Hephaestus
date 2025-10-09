@@ -2,6 +2,7 @@
 title: "Editor Setup"
 description: "Use these quick steps to align your editor with the tooling that ships in Hephaestus. The configuration keeps formatting, linting, and typing feedback..."
 ---
+
 Use these quick steps to align your editor with the tooling that ships in Hephaestus. The
 configuration keeps formatting, linting, and typing feedback consistent with CI so contributors see
 issues locally before they reach a pull request.

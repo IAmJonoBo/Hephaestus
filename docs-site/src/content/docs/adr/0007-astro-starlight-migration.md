@@ -94,12 +94,14 @@ We will migrate from MkDocs Material to Astro Starlight with comprehensive autom
 ## Implementation
 
 ### Phase 1: Infrastructure Setup ✅
+
 - Created `docs-site/` directory with Astro Starlight
 - Configured package.json with automation scripts
 - Set up TypeScript and ESLint
 - Created custom styling
 
 ### Phase 2: Content Migration ✅
+
 - Developed Python migration script (`scripts/migrate-from-mkdocs.py`)
 - Migrated all 38 markdown files automatically
 - Converted internal links to Starlight format
@@ -107,6 +109,7 @@ We will migrate from MkDocs Material to Astro Starlight with comprehensive autom
 - Created index pages for directory navigation
 
 ### Phase 3: Automation Scripts ✅
+
 - `update-cli-reference.js`: Generate CLI docs from schemas
 - `update-api-docs.js`: Generate API reference from code
 - `sync-changelog.js`: Sync root CHANGELOG.md
@@ -116,6 +119,7 @@ We will migrate from MkDocs Material to Astro Starlight with comprehensive autom
 - `prune-stale.js`: Detect outdated content
 
 ### Phase 4: CI/CD Pipeline ✅
+
 - Created `.github/workflows/docs.yml`
 - Scheduled daily auto-updates
 - Automated validation on PRs
@@ -123,6 +127,7 @@ We will migrate from MkDocs Material to Astro Starlight with comprehensive autom
 - Preview comments on PRs
 
 ### Phase 5: Documentation
+
 - This ADR documenting the migration
 - Updated CONTRIBUTING.md with new workflows
 - Added docs-site/README.md with usage guide

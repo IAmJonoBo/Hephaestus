@@ -2,6 +2,7 @@
 title: "exFAT Filesystem Compatibility Implementation"
 description: "This document describes the implementation of automatic exFAT/non-xattr filesystem compatibility for the Hephaestus development environment setup process. When..."
 ---
+
 ## Overview
 
 This document describes the implementation of automatic exFAT/non-xattr filesystem compatibility for the Hephaestus development environment setup process.

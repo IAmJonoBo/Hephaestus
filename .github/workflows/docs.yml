@@ -4,18 +4,18 @@ on:
   push:
     branches: [main]
     paths:
-      - 'docs-site/**'
-      - 'docs/**'
-      - '.github/workflows/docs.yml'
+      - "docs-site/**"
+      - "docs/**"
+      - ".github/workflows/docs.yml"
   pull_request:
     branches: [main]
     paths:
-      - 'docs-site/**'
-      - 'docs/**'
+      - "docs-site/**"
+      - "docs/**"
   workflow_dispatch:
   schedule:
     # Run daily to keep auto-updated content fresh
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
 
 permissions:
   contents: write
@@ -39,7 +39,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Install UV
         uses: astral-sh/setup-uv@v7
@@ -53,8 +53,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
           cache-dependency-path: docs-site/package-lock.json
 
       - name: Install Node dependencies
@@ -102,8 +102,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
           cache-dependency-path: docs-site/package-lock.json
 
       - name: Install dependencies
@@ -138,8 +138,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
           cache-dependency-path: docs-site/package-lock.json
 
       - name: Install dependencies

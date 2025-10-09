@@ -2,6 +2,7 @@
 title: "ADR-001: STRIDE Threat Model for Hephaestus CLI and Release Pipeline"
 description: "Status: Implemented Date: 2025-01-08 Last Updated: 2025-01-16 Authors: Security Review Team Reviewers: Platform Engineering Hephaestus is a developer toolkit..."
 ---
+
 **Status:** Implemented  
 **Date:** 2025-01-08  
 **Last Updated:** 2025-01-16  

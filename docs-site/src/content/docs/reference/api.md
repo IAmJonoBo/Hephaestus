@@ -2,6 +2,7 @@
 title: "REST API Reference (ADR-0004)"
 description: "Status: Phase 1 (Foundation) - OpenAPI specification only Hephaestus provides a REST API for remote invocation of quality gates, cleanup operations, and..."
 ---
+
 **Status**: Phase 1 (Foundation) - OpenAPI specification only
 
 ## Overview

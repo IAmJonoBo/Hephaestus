@@ -44,7 +44,7 @@ jobs:
 
       # Install from the lockfile, including dev & qa extras.
       - name: Sync dependencies (locked)
-        run: uv sync --locked --extra dev --extra qa
+        run: uv sync --locked --extra dev --extra qa --extra grpc
 
       # Validate all required tools are available
       - name: Validate environment setup
@@ -76,6 +76,9 @@ jobs:
 
       - name: Run ruff lint
         run: uv run python -m ruff check .
+
+      - name: Run actionlint
+        run: bash scripts/run_actionlint.sh
 
       - name: Run ruff isort + format check
         run: |
@@ -141,7 +144,7 @@ jobs:
           cp dist/*.whl wheelhouse/
 
           echo "Wheelhouse contents:"
-          ls -lh wheelhouse/ | head -20
+          find wheelhouse -mindepth 1 -maxdepth 1 -type f -print | head -20
 
           echo "Sanitizing wheelhouse..."
           uv run -- python -m hephaestus.cli wheelhouse sanitize wheelhouse
@@ -215,7 +218,7 @@ jobs:
           echo "Total size: $(du -sh wheelhouse/wheelhouse | cut -f1)"
 
           echo "Wheelhouse contents (first 20):"
-          ls -lh wheelhouse/wheelhouse/ | head -20
+          find wheelhouse/wheelhouse -mindepth 1 -maxdepth 1 -type f -print | head -20
 
           echo "Requirements preview (first 10):"
           head -10 wheelhouse/requirements.txt

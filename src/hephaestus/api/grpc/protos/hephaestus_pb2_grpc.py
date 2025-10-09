@@ -4,6 +4,8 @@
 import grpc
 import warnings
 
+import grpc
+
 from hephaestus.api.grpc.protos import hephaestus_pb2 as hephaestus__pb2
 
 GRPC_GENERATED_VERSION = "1.75.1"

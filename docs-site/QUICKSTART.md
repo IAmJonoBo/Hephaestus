@@ -77,14 +77,16 @@ docs-site/
 
 1. Create markdown file in appropriate category under `src/content/docs/`
 2. Add frontmatter:
+
    ```markdown
    ---
    title: "Your Page Title"
    description: "Brief description for SEO"
    ---
-   
+
    Your content here...
    ```
+
 3. Test locally: `npm run dev`
 4. Validate: `npm run validate-all`
 5. Commit and push - CI will handle the rest!
@@ -120,16 +122,19 @@ npm run prune-stale          # Detect stale content
 ### Troubleshooting
 
 **Build fails?**
+
 - Check Node.js version: `node --version` (need 20+)
 - Clean install: `rm -rf node_modules package-lock.json && npm install`
 - Check for TypeScript errors: `npm run check`
 
 **Content not showing?**
+
 - Ensure frontmatter is properly formatted
 - Check file is in `src/content/docs/`
 - Verify no validation errors in build output
 
 **Links broken?**
+
 - Run `npm run validate-links`
 - Use `/path/to/page/` format (with trailing slash)
 - For internal docs, use Starlight's slug format
@@ -137,6 +142,7 @@ npm run prune-stale          # Detect stale content
 ## 📊 Quality Metrics
 
 Current status:
+
 - ✅ 46 pages built
 - ✅ 45 pages indexed
 - ✅ 4,513 words indexed
@@ -159,6 +165,7 @@ Current status:
 - **CI/CD Issues:** File issue with `ci` label
 
 Include:
+
 1. Steps to reproduce
 2. Expected vs actual behavior
 3. Relevant logs/screenshots
