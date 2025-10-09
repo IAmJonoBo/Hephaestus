@@ -305,7 +305,7 @@ def sanitize_attributes(attrs: dict) -> dict:
 
 ## Implementation Plan
 
-### Phase 1: Foundation (v0.3.0 - Q1 2025)
+### Sprint 1: Foundation (Complete)
 
 - [x] Add OpenTelemetry dependencies (optional)
 - [x] Implement basic tracing setup
@@ -313,7 +313,7 @@ def sanitize_attributes(attrs: dict) -> dict:
 - [x] Add console exporter for testing
 - [x] Document configuration
 
-### Phase 2: Core Instrumentation (v0.4.0 - Q2 2025)
+### Sprint 2: Core Instrumentation
 
 - [ ] Instrument all CLI commands
 - [ ] Add metrics collection
@@ -321,7 +321,7 @@ def sanitize_attributes(attrs: dict) -> dict:
 - [ ] Add OTLP exporter support
 - [ ] Create example dashboards
 
-### Phase 3: Advanced Features (v0.5.0 - Q2 2025)
+### Sprint 3: Advanced Features
 
 - [ ] Implement sampling strategies
 - [ ] Add custom metrics for analytics
@@ -329,7 +329,7 @@ def sanitize_attributes(attrs: dict) -> dict:
 - [ ] Add Prometheus exporter
 - [ ] Create monitoring guide
 
-### Phase 4: Production Ready (v0.6.0 - Q3 2025)
+### Sprint 4: Production Ready
 
 - [ ] Performance optimization
 - [ ] Advanced privacy features
@@ -339,11 +339,11 @@ def sanitize_attributes(attrs: dict) -> dict:
 
 ## Follow-up Actions
 
-- [ ] @IAmJonoBo/2025-02-28 — Design telemetry architecture
-- [ ] @IAmJonoBo/2025-03-15 — Implement basic tracing
-- [ ] @IAmJonoBo/2025-03-31 — Add privacy controls
-- [ ] @IAmJonoBo/2025-04-15 — Create example dashboards
-- [ ] @IAmJonoBo/2025-04-30 — Write observability guide
+- [ ] Design telemetry architecture
+- [ ] Implement basic tracing
+- [ ] Add privacy controls
+- [ ] Create example dashboards
+- [ ] Write observability guide
 
 ## References
 
@@ -412,4 +412,4 @@ sum(rate(hephaestus_quality_gates_passed[5m]))
 
 - 2025-01-11: Proposed (documented in ADR)
 - Future: Accepted/Rejected based on community feedback
-- Future: Implemented in vX.Y.Z (Q2 2025 target)
+- Future: Implemented in future release
