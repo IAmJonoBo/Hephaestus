@@ -721,7 +721,7 @@ def schema(
     schema_dict = registry.to_json_dict()
 
     if format.lower() == "json":
-        output_text = json.dumps(schema_dict, indent=2)
+        output_text = json.dumps(schema_dict, indent=2, ensure_ascii=False)
     else:
         raise typer.BadParameter(f"Unsupported format: {format}")
 

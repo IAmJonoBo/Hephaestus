@@ -136,3 +136,28 @@ def test_command_registry_to_json() -> None:
     # Should be JSON-serializable
     json_str = json.dumps(json_dict)
     assert "test" in json_str
+
+
+def test_command_schema_with_special_characters() -> None:
+    """Test that schemas with special characters are properly JSON-encoded."""
+    from hephaestus.schema import CommandRegistry
+
+    registry = CommandRegistry()
+    registry.commands = [
+        CommandSchema(
+            name="test",
+            help="Test command\nwith newlines\tand tabs",
+            examples=["hephaestus test --arg 'value with \"quotes\"'"],
+        )
+    ]
+
+    json_dict = registry.to_json_dict()
+
+    # Should be JSON-serializable without errors
+    json_str = json.dumps(json_dict, ensure_ascii=False)
+    parsed = json.loads(json_str)
+
+    # Verify special characters are preserved
+    assert "\n" in parsed["commands"][0]["help"]
+    assert "\t" in parsed["commands"][0]["help"]
+    assert '"' in parsed["commands"][0]["examples"][0]
