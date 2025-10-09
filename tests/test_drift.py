@@ -240,8 +240,6 @@ def test_get_installed_version_no_version_in_output() -> None:
     from hephaestus.drift import _get_installed_version
 
     with mock.patch("subprocess.run") as mock_run:
-        mock_run.return_value = mock.Mock(
-            returncode=0, stdout="No version info here", stderr=""
-        )
+        mock_run.return_value = mock.Mock(returncode=0, stdout="No version info here", stderr="")
         result = _get_installed_version("some-tool")
         assert result is None

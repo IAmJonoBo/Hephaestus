@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib
 import importlib.util
 import os
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -279,7 +280,7 @@ def test_configure_telemetry_with_endpoint() -> None:
             )()
             mock_sdk_export.BatchSpanProcessor = lambda exporter: "processor"
 
-            def import_side_effect(module_name: str):
+            def import_side_effect(module_name: str) -> Any:
                 if "trace_exporter" in module_name:
                     return mock_exporter
                 elif "resources" in module_name:

@@ -1,8 +1,8 @@
 # ADR 0002: Plugin Architecture for Extensible Quality Gates
 
-- Status: Phase 2 Implemented, Sprint 3 Partial
+- Status: Sprint 2-3 Partial (2025-10-09)
 - Date: 2025-01-11
-- Last Updated: 2025-01-XX
+- Last Updated: 2025-10-09
 - Supersedes: N/A
 - Superseded by: N/A
 

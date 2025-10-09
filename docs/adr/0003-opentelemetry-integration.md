@@ -1,8 +1,8 @@
 # ADR 0003: OpenTelemetry Integration for Observability
 
-- Status: Phase 2 Implemented (Sprint 3 Instrumentation Complete)
+- Status: Sprint 2 Complete (2025-10-09)
 - Date: 2025-01-11
-- Last Updated: 2025-01-XX
+- Last Updated: 2025-10-09
 - Supersedes: N/A
 - Superseded by: N/A
 
