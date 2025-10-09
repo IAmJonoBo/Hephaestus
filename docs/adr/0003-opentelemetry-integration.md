@@ -1,7 +1,8 @@
 # ADR 0003: OpenTelemetry Integration for Observability
 
-- Status: Phase 1 Implemented
+- Status: Phase 2 Implemented (Sprint 3 Instrumentation Complete)
 - Date: 2025-01-11
+- Last Updated: 2025-01-XX
 - Supersedes: N/A
 - Superseded by: N/A
 
@@ -321,13 +322,21 @@ def sanitize_attributes(attrs: dict) -> dict:
 - [x] Add OTLP exporter support (configured via environment variables)
 - [x] Create example dashboards (documentation provided in ADR)
 
-### Sprint 3: Advanced Features
+### Sprint 3: Advanced Features (Complete)
 
-- [ ] Implement sampling strategies
-- [ ] Add custom metrics for analytics
-- [ ] Instrument plugin system
-- [ ] Add Prometheus exporter
-- [ ] Create monitoring guide
+- [ ] Implement sampling strategies (deferred to Sprint 4)
+- [x] Add custom metrics for analytics (histogram metrics added for guard-rails and cleanup)
+- [x] Instrument CLI commands (guard-rails and cleanup instrumented with performance metrics)
+- [ ] Instrument plugin system (planned for Sprint 4)
+- [ ] Add Prometheus exporter (planned for Sprint 4)
+- [ ] Create monitoring guide (planned for Sprint 4)
+
+**Sprint 3 Status**: Core command instrumentation complete. Added histogram metrics to track:
+- Guard-rails step durations (cleanup, ruff-check, ruff-format, yamllint, mypy, pytest, pip-audit)
+- Cleanup operation durations (preview, execution, total)
+- File removal counts and success rates
+
+Metrics are recorded using the `record_histogram` utility and are opt-in via `HEPHAESTUS_TELEMETRY_ENABLED` environment variable.
 
 ### Sprint 4: Production Ready
 

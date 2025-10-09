@@ -27,7 +27,7 @@ from hephaestus import (
 )
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
 from hephaestus.logging import LogFormat
-from hephaestus.telemetry import trace_command, trace_operation
+from hephaestus.telemetry import record_histogram, trace_command, trace_operation
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
 tools_app = typer.Typer(name="tools", help="Toolkit command groups.", no_args_is_help=True)
@@ -848,6 +848,8 @@ def cleanup(
         command="cleanup",
         root=str(root) if root else None,
     ):
+        import time
+
         telemetry.emit_event(
             logger,
             telemetry.CLI_CLEANUP_START,
@@ -864,13 +866,20 @@ def cleanup(
             audit_manifest=str(audit_manifest) if audit_manifest else None,
         )
 
+        start_time = time.perf_counter()
         normalized = options.normalize()
         search_roots = cleanup_module.gather_search_roots(normalized)
 
+        preview_start = time.perf_counter()
         preview_result = cleanup_module.run_cleanup(
             replace(options, dry_run=True),
             on_remove=None,
             on_skip=None,
+        )
+        record_histogram(
+            "hephaestus.cleanup.preview.duration",
+            time.perf_counter() - preview_start,
+            attributes={"dry_run": True},
         )
 
         if preview_result.preview_paths:
@@ -922,7 +931,20 @@ def cleanup(
         def _on_skip(path: Path, reason: str) -> None:
             console.print(f"[yellow]! skipped[/yellow] {path} ({reason})")
 
+        cleanup_start = time.perf_counter()
         result = cleanup_module.run_cleanup(options, on_remove=_on_remove, on_skip=_on_skip)
+        cleanup_duration = time.perf_counter() - cleanup_start
+
+        record_histogram(
+            "hephaestus.cleanup.execution.duration",
+            cleanup_duration,
+            attributes={"dry_run": False, "success": len(result.errors) == 0},
+        )
+        record_histogram(
+            "hephaestus.cleanup.files_removed",
+            len(result.removed_paths),
+            attributes={"deep_clean": deep_clean},
+        )
 
         if result.errors:
             telemetry.emit_event(
@@ -963,6 +985,14 @@ def cleanup(
             skipped=len(result.skipped_roots),
             errors=len(result.errors),
             audit_manifest=str(result.audit_manifest) if result.audit_manifest else None,
+        )
+
+        # Record overall cleanup metrics
+        total_duration = time.perf_counter() - start_time
+        record_histogram(
+            "hephaestus.cleanup.total.duration",
+            total_duration,
+            attributes={"deep_clean": deep_clean, "dry_run": dry_run},
         )
 
 
@@ -1082,19 +1112,40 @@ def guard_rails(
 
         try:
             # Step 1: Deep clean workspace
+            import time
+
+            start_time = time.perf_counter()
             cleanup(deep_clean=True)
+            record_histogram(
+                "hephaestus.guard_rails.cleanup.duration",
+                time.perf_counter() - start_time,
+                attributes={"step": "cleanup"},
+            )
 
             # Step 2: Lint with ruff
             console.print("\n[cyan]→ Running ruff check...[/cyan]")
+            start_time = time.perf_counter()
             subprocess.run(["ruff", "check", "."], check=True, timeout=300)
+            record_histogram(
+                "hephaestus.guard_rails.step.duration",
+                time.perf_counter() - start_time,
+                attributes={"step": "ruff-check"},
+            )
 
             # Step 3: Format with ruff (unless skipped)
             if not no_format:
                 console.print("[cyan]→ Running ruff format...[/cyan]")
+                start_time = time.perf_counter()
                 subprocess.run(["ruff", "format", "."], check=True, timeout=300)
+                record_histogram(
+                    "hephaestus.guard_rails.step.duration",
+                    time.perf_counter() - start_time,
+                    attributes={"step": "ruff-format"},
+                )
 
             # Step 4: Lint YAML files with yamllint
             console.print("[cyan]→ Running yamllint...[/cyan]")
+            start_time = time.perf_counter()
             subprocess.run(
                 [
                     "yamllint",
@@ -1106,21 +1157,44 @@ def guard_rails(
                 check=True,
                 timeout=60,
             )
+            record_histogram(
+                "hephaestus.guard_rails.step.duration",
+                time.perf_counter() - start_time,
+                attributes={"step": "yamllint"},
+            )
 
             # Step 5: Type check with mypy
             console.print("[cyan]→ Running mypy...[/cyan]")
+            start_time = time.perf_counter()
             subprocess.run(["mypy", "src", "tests"], check=True, timeout=300)
+            record_histogram(
+                "hephaestus.guard_rails.step.duration",
+                time.perf_counter() - start_time,
+                attributes={"step": "mypy"},
+            )
 
             # Step 6: Run tests with pytest
             console.print("[cyan]→ Running pytest...[/cyan]")
+            start_time = time.perf_counter()
             subprocess.run(["pytest"], check=True, timeout=600)
+            record_histogram(
+                "hephaestus.guard_rails.step.duration",
+                time.perf_counter() - start_time,
+                attributes={"step": "pytest"},
+            )
 
             # Step 7: Security audit with pip-audit
             console.print("[cyan]→ Running pip-audit...[/cyan]")
+            start_time = time.perf_counter()
             subprocess.run(
                 ["pip-audit", "--strict", "--ignore-vuln", "GHSA-4xh5-x5gv-qwph"],
                 check=True,
                 timeout=300,
+            )
+            record_histogram(
+                "hephaestus.guard_rails.step.duration",
+                time.perf_counter() - start_time,
+                attributes={"step": "pip-audit"},
             )
 
             console.print("\n[green]✓ Guard rails completed successfully.[/green]")
