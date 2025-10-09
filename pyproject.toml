@@ -78,11 +78,7 @@ telemetry = [
   "opentelemetry-exporter-otlp>=1.37.0",
 ]
 api = ["fastapi>=0.118.2", "starlette>=0.48.0", "uvicorn[standard]>=0.37.0"]
-grpc = [
-  "grpcio>=1.68.0",
-  "grpcio-tools>=1.68.0",
-  "grpcio-reflection>=1.68.0",
-]
+grpc = ["grpcio>=1.68.0", "grpcio-tools>=1.68.0", "grpcio-reflection>=1.68.0"]
 
 [project.scripts]
 hephaestus = "hephaestus.cli:app"
@@ -116,7 +112,7 @@ select = [
   "B",
   "C4",
 ] # Frontier linting profile: errors, imports, upgrades, bugs, comprehensions
-ignore = ["0.1.4"] # Line length handled by ruff format
+ignore = ["E501"] # Line length handled by ruff format
 
 [tool.ruff.format]
 quote-style = "double"
