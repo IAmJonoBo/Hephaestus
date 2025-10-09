@@ -132,3 +132,73 @@ def test_noop_span_context_manager() -> None:
                 inner_span.add_event("inner_event")
 
         assert telemetry.trace is None
+
+
+def test_trace_command_decorator_when_disabled() -> None:
+    """trace_command decorator should work when telemetry is disabled."""
+    with patch.dict(os.environ, {}, clear=True):
+        from hephaestus.telemetry import trace_command
+
+        @trace_command("test_command")
+        def sample_command(x: int) -> int:
+            return x * 2
+
+        result = sample_command(5)
+        assert result == 10
+
+
+def test_trace_operation_context_when_disabled() -> None:
+    """trace_operation context manager should work when telemetry is disabled."""
+    with patch.dict(os.environ, {}, clear=True):
+        from hephaestus.telemetry import trace_operation
+
+        with trace_operation("test_operation"):
+            result = 1 + 1
+
+        assert result == 2
+
+
+def test_record_counter_when_disabled() -> None:
+    """record_counter should work when telemetry is disabled."""
+    with patch.dict(os.environ, {}, clear=True):
+        from hephaestus.telemetry import record_counter
+
+        # Should not raise
+        record_counter("test.counter", 1)
+        record_counter("test.counter", 5, attributes={"key": "value"})
+
+
+def test_record_gauge_when_disabled() -> None:
+    """record_gauge should work when telemetry is disabled."""
+    with patch.dict(os.environ, {}, clear=True):
+        from hephaestus.telemetry import record_gauge
+
+        # Should not raise
+        record_gauge("test.gauge", 42.5)
+        record_gauge("test.gauge", 100.0, attributes={"key": "value"})
+
+
+def test_record_histogram_when_disabled() -> None:
+    """record_histogram should work when telemetry is disabled."""
+    with patch.dict(os.environ, {}, clear=True):
+        from hephaestus.telemetry import record_histogram
+
+        # Should not raise
+        record_histogram("test.histogram", 1.5)
+        record_histogram("test.histogram", 2.5, attributes={"key": "value"})
+
+
+def test_telemetry_attribute_access() -> None:
+    """Telemetry module should re-export events module attributes."""
+    # Test that we can access events module attributes through telemetry
+    assert hasattr(telemetry, "TelemetryEvent")
+    assert hasattr(telemetry, "TelemetryRegistry")
+    assert hasattr(telemetry, "emit_event")
+    assert hasattr(telemetry, "generate_run_id")
+    assert hasattr(telemetry, "generate_operation_id")
+
+
+def test_telemetry_missing_attribute() -> None:
+    """Telemetry module should raise AttributeError for missing attributes."""
+    with pytest.raises(AttributeError, match="has no attribute 'nonexistent'"):
+        _ = telemetry.nonexistent  # type: ignore[attr-defined]

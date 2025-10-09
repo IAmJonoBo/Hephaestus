@@ -398,6 +398,167 @@ ruff-check = true
     discover_plugins(config_file, registry_instance)
 
     # Should only have one instance
+
+
+def test_load_external_plugin_from_module(tmp_path: Path) -> None:
+    """discover_plugins should load external plugins from module path."""
+    # Create a plugin module file
+    plugin_file = tmp_path / "custom_plugin.py"
+    plugin_file.write_text(
+        """
+from hephaestus.plugins import QualityGatePlugin, PluginMetadata, PluginResult
+
+class CustomPlugin(QualityGatePlugin):
+    @property
+    def metadata(self):
+        return PluginMetadata(
+            name="custom-plugin",
+            version="1.0.0",
+            description="Custom test plugin",
+            author="Test",
+            category="custom",
+            requires=[],
+            order=150,
+        )
+    
+    def validate_config(self, config):
+        return True
+    
+    def run(self, config):
+        return PluginResult(success=True, message="Custom plugin ran")
+"""
+    )
+
+    # Create config that references the plugin file
+    config_file = tmp_path / "plugins.toml"
+    config_file.write_text(
+        f"""
+[[external]]
+name = "custom-plugin"
+enabled = true
+path = "{plugin_file}"
+"""
+    )
+
+    registry_instance = PluginRegistry()
+    discover_plugins(config_file, registry_instance)
+
+    # Should have registered the external plugin
+    assert registry_instance.is_registered("custom-plugin")
+    plugin = registry_instance.get("custom-plugin")
+    assert plugin.metadata.name == "custom-plugin"
+
+
+def test_load_external_plugin_missing_path(tmp_path: Path) -> None:
+    """discover_plugins should handle missing plugin file path gracefully."""
+    config_file = tmp_path / "plugins.toml"
+    config_file.write_text(
+        """
+[[external]]
+name = "missing-plugin"
+enabled = true
+path = "/nonexistent/plugin.py"
+"""
+    )
+
+    registry_instance = PluginRegistry()
+    # Should not raise, just log warning
+    discover_plugins(config_file, registry_instance)
+
+    # Plugin should not be registered
+    assert not registry_instance.is_registered("missing-plugin")
+
+
+def test_load_external_plugin_no_module_or_path(tmp_path: Path) -> None:
+    """discover_plugins should handle external plugin with neither module nor path."""
+    config_file = tmp_path / "plugins.toml"
+    config_file.write_text(
+        """
+[[external]]
+name = "incomplete-plugin"
+enabled = true
+"""
+    )
+
+    registry_instance = PluginRegistry()
+    # Should not raise, just log warning
+    discover_plugins(config_file, registry_instance)
+
+    # Plugin should not be registered
+    assert not registry_instance.is_registered("incomplete-plugin")
+
+
+def test_load_external_plugin_no_plugin_class(tmp_path: Path) -> None:
+    """discover_plugins should handle plugin file with no QualityGatePlugin subclass."""
+    plugin_file = tmp_path / "bad_plugin.py"
+    plugin_file.write_text(
+        """
+# This file has no QualityGatePlugin subclass
+def some_function():
+    pass
+"""
+    )
+
+    config_file = tmp_path / "plugins.toml"
+    config_file.write_text(
+        f"""
+[[external]]
+name = "bad-plugin"
+enabled = true
+path = "{plugin_file}"
+"""
+    )
+
+    registry_instance = PluginRegistry()
+    # Should not raise, just log warning
+    discover_plugins(config_file, registry_instance)
+
+    # Plugin should not be registered
+    assert not registry_instance.is_registered("bad-plugin")
+
+
+def test_load_external_plugin_disabled(tmp_path: Path) -> None:
+    """discover_plugins should skip disabled external plugins."""
+    plugin_file = tmp_path / "disabled_plugin.py"
+    plugin_file.write_text(
+        """
+from hephaestus.plugins import QualityGatePlugin, PluginMetadata, PluginResult
+
+class DisabledPlugin(QualityGatePlugin):
+    @property
+    def metadata(self):
+        return PluginMetadata(
+            name="disabled-plugin",
+            version="1.0.0",
+            description="Disabled test plugin",
+            author="Test",
+            category="custom",
+            requires=[],
+        )
+    
+    def validate_config(self, config):
+        return True
+    
+    def run(self, config):
+        return PluginResult(success=True, message="Should not run")
+"""
+    )
+
+    config_file = tmp_path / "plugins.toml"
+    config_file.write_text(
+        f"""
+[[external]]
+name = "disabled-plugin"
+enabled = false
+path = "{plugin_file}"
+"""
+    )
+
+    registry_instance = PluginRegistry()
+    discover_plugins(config_file, registry_instance)
+
+    # Plugin should not be registered because it's disabled
+    assert not registry_instance.is_registered("disabled-plugin")
     plugins = [p for p in registry_instance.all_plugins() if p.metadata.name == "ruff-check"]
     assert len(plugins) == 1
 
