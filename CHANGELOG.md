@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Authentication & Authorization Hardening (ADR-0001 Phase 3+)**:
+  - Token validation before GitHub API calls with pattern matching
+  - Support for classic (`ghp_*`), fine-grained (`ghs_*`), and PAT (`github_pat_*`) token formats
+  - Token expiration detection with clear error messages for HTTP 401 responses
+  - `RELEASE_TOKEN_VALIDATION` telemetry event for monitoring token issues
+  - Comprehensive test coverage for token validation scenarios (7 new tests)
 - **Phase 1 ADR Implementations**: Foundation for major architectural features
   - **ADR-0002 (Plugin Architecture)**: Plugin API specification and base classes
     - `QualityGatePlugin` abstract base class for custom quality gates

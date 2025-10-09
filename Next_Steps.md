@@ -26,6 +26,14 @@ Remaining work is focused on advanced features with clear ADRs and timelines:
 
 ## Recent Improvements (Latest Session)
 
+**Authentication & Authorization Hardening (2025-01-XX):**
+
+- ✅ Token validation before GitHub API calls with format validation
+- ✅ Support for classic, fine-grained, and PAT GitHub token formats
+- ✅ Token expiration detection with clear HTTP 401 error messages
+- ✅ Added telemetry event for token validation warnings
+- ✅ Comprehensive test coverage (7 new tests)
+
 **AI-Native Workflows & Analytics (2025-01-XX):**
 
 - ✅ Analytics ranking API: 4 strategies (risk_weighted, coverage_first, churn_based, composite)

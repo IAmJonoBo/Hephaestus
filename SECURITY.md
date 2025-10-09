@@ -54,11 +54,12 @@ When using Hephaestus:
 
 Hephaestus includes several security safeguards:
 
+- **Token Validation**: GitHub tokens are validated before API calls with clear error messages for expired or invalid tokens
 - **Cleanup Protection**: Guards against dangerous path operations (/, home directory)
 - **Dependency Auditing**: Integrated `pip-audit` in guard-rails pipeline
 - **Pre-commit Hooks**: Automated security checks before code is committed
 - **Network Timeouts**: Configurable timeouts and retry logic for release downloads
-- **Checksum Verification**: SHA-256 verification for wheelhouse downloads (in progress)
+- **Checksum Verification**: SHA-256 verification and Sigstore attestation for wheelhouse downloads
 
 ## Threat Model
 

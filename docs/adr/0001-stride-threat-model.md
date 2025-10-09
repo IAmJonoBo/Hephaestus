@@ -282,9 +282,9 @@ This document applies the STRIDE threat modeling framework to identify security 
 
 ### Authentication & Authorization
 
-- [ ] Token validation before GitHub API calls
+- [x] Token validation before GitHub API calls
 - [x] Fine-grained token permissions documentation
-- [ ] Token expiration handling
+- [x] Token expiration handling
 
 ### Data Protection
 
@@ -381,3 +381,7 @@ Implementing the recommended mitigations will significantly improve the security
   - ✅ Dangerous path protection in cleanup
   - ✅ Network timeouts and exponential backoff
   - ✅ SECURITY.md published with disclosure process
+- **2025-01-XX:** Updated - Authentication & Authorization hardening complete:
+  - ✅ Token validation before GitHub API calls
+  - ✅ Token expiration handling with clear error messages
+  - ✅ Support for all GitHub token formats (classic, fine-grained, PAT)
