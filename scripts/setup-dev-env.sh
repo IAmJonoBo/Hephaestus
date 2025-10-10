@@ -41,32 +41,7 @@ fi
 
 print_success "Repository root detected"
 
-# Step 1: Check Python version
-print_status "Checking Python version..."
-PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
-PYTHON_MAJOR=$(echo "${PYTHON_VERSION}" | cut -d. -f1)
-PYTHON_MINOR=$(echo "${PYTHON_VERSION}" | cut -d. -f2)
-
-if [[ ${PYTHON_MAJOR} -lt 3 ]] || [[ ${PYTHON_MAJOR} -eq 3 && ${PYTHON_MINOR} -lt 12 ]]; then
-  print_error "Python 3.12+ required, found ${PYTHON_VERSION}"
-  echo ""
-  echo "Recommended fixes:"
-  if command -v uv &>/dev/null; then
-    echo "  1. Install Python 3.12 with uv: uv python install 3.12"
-    echo "  2. Use it for this project: uv python pin 3.12"
-  else
-    echo "  1. Install uv first: curl -LsSf https://astral.sh/uv/install.sh | sh"
-    echo "  2. Install Python 3.12: uv python install 3.12"
-    echo "  3. Use it for this project: uv python pin 3.12"
-  fi
-  echo "  Or install Python 3.12+ from https://www.python.org/downloads/"
-  echo ""
-  exit 1
-fi
-
-print_success "Python ${PYTHON_VERSION} detected"
-
-# Step 2: Check for uv installation
+# Step 1: Check for uv installation
 print_status "Checking for uv package manager..."
 if ! command -v uv &>/dev/null; then
   print_warning "uv not found, attempting to install..."
@@ -85,6 +60,65 @@ else
   UV_VERSION=$(uv --version 2>&1)
   print_success "uv detected: ${UV_VERSION}"
 fi
+
+# Step 2: Ensure Python 3.12+ is available via uv
+REQUIRED_PYTHON_MAJOR=3
+REQUIRED_PYTHON_MINOR=12
+REQUIRED_PYTHON="${REQUIRED_PYTHON_MAJOR}.${REQUIRED_PYTHON_MINOR}"
+
+print_status "Ensuring Python ${REQUIRED_PYTHON}+ is installed with uv..."
+if uv python find "${REQUIRED_PYTHON}" >/dev/null 2>&1; then
+  print_success "Python ${REQUIRED_PYTHON} available in uv cache"
+else
+  print_status "Installing Python ${REQUIRED_PYTHON} via uv..."
+  if uv python install "${REQUIRED_PYTHON}" >/dev/null 2>&1; then
+    print_success "Python ${REQUIRED_PYTHON} installed"
+  else
+    print_error "Failed to install Python ${REQUIRED_PYTHON} via uv"
+    echo ""
+    echo "Manual options:"
+    echo "  • Install from https://www.python.org/downloads/"
+    echo "  • Or install another compatible interpreter and export UV_PYTHON"
+    echo ""
+    exit 1
+  fi
+fi
+
+print_status "Pinning Python ${REQUIRED_PYTHON} for this project..."
+if uv python pin "${REQUIRED_PYTHON}" >/dev/null 2>&1; then
+  print_success "Project pinned to Python ${REQUIRED_PYTHON}"
+else
+  print_warning "Unable to pin Python version automatically; continuing"
+fi
+
+print_status "Verifying Python runtime..."
+PYTHON_VERSION=$(uv run python -c 'import sys; print(".".join(map(str, sys.version_info[:3])))' 2>/dev/null || true)
+
+if [[ -z ${PYTHON_VERSION} ]]; then
+  PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
+fi
+
+if [[ -z ${PYTHON_VERSION} ]]; then
+  print_error "Unable to determine Python version"
+  exit 1
+fi
+
+PYTHON_MAJOR=$(echo "${PYTHON_VERSION}" | cut -d. -f1)
+PYTHON_MINOR=$(echo "${PYTHON_VERSION}" | cut -d. -f2)
+
+if [[ ${PYTHON_MAJOR} -lt ${REQUIRED_PYTHON_MAJOR} ]] || {
+  [[ ${PYTHON_MAJOR} -eq ${REQUIRED_PYTHON_MAJOR} ]] && [[ ${PYTHON_MINOR} -lt ${REQUIRED_PYTHON_MINOR} ]]
+}; then
+  print_error "Python ${REQUIRED_PYTHON}+ required, found ${PYTHON_VERSION}"
+  echo ""
+  echo "Troubleshooting tips:"
+  echo "  • Re-run: uv python install ${REQUIRED_PYTHON} && uv python pin ${REQUIRED_PYTHON}"
+  echo "  • Ensure UV_PYTHON or .python-version points to a compatible interpreter"
+  echo ""
+  exit 1
+fi
+
+print_success "Python ${PYTHON_VERSION} verified"
 
 # Step 2.5: Detect filesystem type and configure UV environment location
 REPO_NAME=$(basename "$(pwd)" || true)
