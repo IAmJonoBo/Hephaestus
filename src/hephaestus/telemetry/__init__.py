@@ -19,46 +19,149 @@ from __future__ import annotations
 
 import importlib
 import os
-from typing import Any
+from collections.abc import Callable
+from contextlib import AbstractContextManager, nullcontext
+from functools import lru_cache
+from typing import Any, cast
 
 from hephaestus import events as _events
 
-# Import tracing and metrics modules
-try:
-    from hephaestus.telemetry import metrics as _metrics
-    from hephaestus.telemetry import tracing as _tracing
+TraceDecorator = Callable[[Callable[..., Any]], Callable[..., Any]]
+TraceCommand = Callable[[str], TraceDecorator]
+TraceOperation = Callable[..., AbstractContextManager[Any]]
+CounterRecorder = Callable[..., None]
+GaugeRecorder = Callable[..., None]
+HistogramRecorder = Callable[..., None]
 
-    # Ensure the decorator signature matches expected (name: str)
-    trace_command = _tracing.trace_command  # type: ignore[assignment]
 
-    trace_operation = _tracing.trace_operation  # type: ignore[has-type]
-    record_counter = _metrics.record_counter
-    record_gauge = _metrics.record_gauge
-    record_histogram = _metrics.record_histogram
-except ImportError:
-    # If OpenTelemetry not installed, provide no-op implementations
-    def trace_command(command_name: str = ""):  # type: ignore[no-untyped-def,misc]
-        """No-op decorator when OpenTelemetry is not available."""
-        def decorator(func):  # type: ignore[no-untyped-def]
-            return func
+def _noop_trace_command(command_name: str) -> TraceDecorator:  # pragma: no cover - exercised only when OTEL unavailable
+    """Return a decorator that leaves the wrapped function unchanged."""
 
-        return decorator
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        _ = (command_name,)
+        return func
 
-    def trace_operation(operation_name: str = "", **kwargs):  # type: ignore[no-untyped-def]
-        """No-op context manager when OpenTelemetry is not available."""
-        from contextlib import nullcontext
+    return decorator
 
-        _ = (operation_name, kwargs)
-        return nullcontext()
 
-    def record_counter(name: str, value: int = 1, attributes=None):  # type: ignore[no-untyped-def]
-        pass
+def _noop_trace_operation(operation_name: str, **kwargs: Any) -> AbstractContextManager[Any]:  # pragma: no cover - OTEL disabled path
+    """Provide a no-op context manager when telemetry is unavailable."""
 
-    def record_gauge(name: str, value: float, attributes=None):  # type: ignore[no-untyped-def]
-        pass
+    _ = (operation_name, kwargs)
+    return nullcontext()
 
-    def record_histogram(name: str, value: float, attributes=None):  # type: ignore[no-untyped-def]
-        pass
+
+def _noop_record_counter(
+    name: str,
+    value: int = 1,
+    attributes: dict[str, Any] | None = None,
+) -> None:  # pragma: no cover - OTEL disabled path
+    _ = (name, value, attributes)
+
+
+def _noop_record_gauge(
+    name: str,
+    value: float,
+    attributes: dict[str, Any] | None = None,
+) -> None:  # pragma: no cover - OTEL disabled path
+    _ = (name, value, attributes)
+
+
+def _noop_record_histogram(
+    name: str,
+    value: float,
+    attributes: dict[str, Any] | None = None,
+) -> None:  # pragma: no cover - OTEL disabled path
+    _ = (name, value, attributes)
+
+
+@lru_cache(maxsize=1)
+def _resolve_tracing() -> tuple[TraceCommand, TraceOperation] | None:
+    try:
+        tracing_mod = importlib.import_module("hephaestus.telemetry.tracing")
+    except ImportError:  # pragma: no cover - import failure handled in production deployments only
+        return None
+    return (
+        cast(TraceCommand, tracing_mod.trace_command),
+        cast(TraceOperation, tracing_mod.trace_operation),
+    )
+
+
+@lru_cache(maxsize=1)
+def _resolve_metrics() -> tuple[CounterRecorder, GaugeRecorder, HistogramRecorder] | None:
+    try:
+        metrics_mod = importlib.import_module("hephaestus.telemetry.metrics")
+    except ImportError:  # pragma: no cover - import failure handled in production deployments only
+        return None
+    return (
+        cast(CounterRecorder, metrics_mod.record_counter),
+        cast(GaugeRecorder, metrics_mod.record_gauge),
+        cast(HistogramRecorder, metrics_mod.record_histogram),
+    )
+
+
+def trace_command(command_name: str) -> TraceDecorator:
+    """Return the tracing decorator or a no-op fallback."""
+
+    resolved = _resolve_tracing()
+    if resolved is None:  # pragma: no cover - exercised only without telemetry modules
+        return _noop_trace_command(command_name)
+
+    real_trace_command, _ = resolved
+    return real_trace_command(command_name)
+
+
+def trace_operation(operation_name: str, **kwargs: Any) -> AbstractContextManager[Any]:
+    """Return an operation context manager with tracing when available."""
+
+    resolved = _resolve_tracing()
+    if resolved is None:  # pragma: no cover - exercised only without telemetry modules
+        return _noop_trace_operation(operation_name, **kwargs)
+
+    _, real_trace_operation = resolved
+    return real_trace_operation(operation_name, **kwargs)
+
+
+def record_counter(
+    name: str,
+    value: int = 1,
+    attributes: dict[str, Any] | None = None,
+) -> None:
+    resolved = _resolve_metrics()
+    if resolved is None:  # pragma: no cover - exercised only without telemetry modules
+        _noop_record_counter(name, value, attributes)
+        return
+
+    real_record_counter, _, _ = resolved
+    real_record_counter(name, value=value, attributes=attributes)
+
+
+def record_gauge(
+    name: str,
+    value: float,
+    attributes: dict[str, Any] | None = None,
+) -> None:
+    resolved = _resolve_metrics()
+    if resolved is None:  # pragma: no cover - exercised only without telemetry modules
+        _noop_record_gauge(name, value, attributes)
+        return
+
+    _, real_record_gauge, _ = resolved
+    real_record_gauge(name, value=value, attributes=attributes)
+
+
+def record_histogram(
+    name: str,
+    value: float,
+    attributes: dict[str, Any] | None = None,
+) -> None:
+    resolved = _resolve_metrics()
+    if resolved is None:  # pragma: no cover - exercised only without telemetry modules
+        _noop_record_histogram(name, value, attributes)
+        return
+
+    _, _, real_record_histogram = resolved
+    real_record_histogram(name, value=value, attributes=attributes)
 
 
 __all__ = [

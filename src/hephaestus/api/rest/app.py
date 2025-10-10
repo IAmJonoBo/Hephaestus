@@ -11,13 +11,15 @@ Example:
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, cast
+from typing import Any
 
 try:
-    from fastapi import FastAPI, HTTPException, Security
+    from fastapi import FastAPI, HTTPException, Request, Security
     from fastapi.responses import StreamingResponse
     from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 except ImportError as exc:
@@ -25,7 +27,10 @@ except ImportError as exc:
         "FastAPI is not installed. Install with: pip install 'hephaestus-toolkit[api]'"
     ) from exc
 
+from hephaestus.analytics_streaming import global_ingestor
 from hephaestus.api.rest.models import (
+    AnalyticsEventPayload,
+    AnalyticsIngestResponse,
     CleanupRequest,
     CleanupResponse,
     GuardRailsRequest,
@@ -34,7 +39,7 @@ from hephaestus.api.rest.models import (
     RankingsResponse,
     TaskStatusResponse,
 )
-from hephaestus.api.rest.tasks import TaskManager, TaskStatus
+from hephaestus.api.rest.tasks import DEFAULT_TASK_TIMEOUT, TaskManager, TaskStatus
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +48,7 @@ security = HTTPBearer(auto_error=False)
 
 
 def verify_api_key(
-    credentials: HTTPAuthorizationCredentials | None = Security(security),
+    credentials: HTTPAuthorizationCredentials | None = Security(security),  # noqa: B008
 ) -> str:
     """Verify API key from Authorization header.
 
@@ -139,13 +144,18 @@ async def run_guard_rails(
         # Start async task for guard-rails execution
         task_id = await task_manager.create_task("guard-rails", _execute_guard_rails, request)
 
-        # For now, wait for completion (blocking)
-        # In future, return task_id for async polling
-        while True:
-            status = await task_manager.get_task_status(task_id)
-            if status.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
-                break
-            await asyncio.sleep(0.5)
+        try:
+            status = await task_manager.wait_for_completion(
+                task_id,
+                poll_interval=0.5,
+                timeout=DEFAULT_TASK_TIMEOUT,
+            )
+        except TimeoutError as exc:
+            logger.error(
+                "Guard-rails task timed out",
+                extra={"task_id": task_id},
+            )
+            raise HTTPException(status_code=504, detail="Guard-rails execution timed out") from exc
 
         if status.status == TaskStatus.FAILED:
             raise HTTPException(status_code=500, detail=status.error)
@@ -153,7 +163,7 @@ async def run_guard_rails(
         result = status.result
         if not isinstance(result, dict):
             raise HTTPException(status_code=500, detail="Invalid task result")
-        data = cast(dict[str, Any], result)
+        data = result
         return GuardRailsResponse(
             success=data.get("success", False),
             gates=data.get("gates", []),
@@ -161,6 +171,8 @@ async def run_guard_rails(
             task_id=task_id,
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Error executing guard-rails")
         raise HTTPException(status_code=500, detail=str(e)) from e
@@ -189,12 +201,18 @@ async def cleanup(
         # Start async task
         task_id = await task_manager.create_task("cleanup", _execute_cleanup, request)
 
-        # Wait for completion
-        while True:
-            status = await task_manager.get_task_status(task_id)
-            if status.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
-                break
-            await asyncio.sleep(0.5)
+        try:
+            status = await task_manager.wait_for_completion(
+                task_id,
+                poll_interval=0.5,
+                timeout=DEFAULT_TASK_TIMEOUT,
+            )
+        except TimeoutError as exc:
+            logger.error(
+                "Cleanup task timed out",
+                extra={"task_id": task_id},
+            )
+            raise HTTPException(status_code=504, detail="Cleanup execution timed out") from exc
 
         if status.status == TaskStatus.FAILED:
             raise HTTPException(status_code=500, detail=status.error)
@@ -202,16 +220,87 @@ async def cleanup(
         result = status.result
         if not isinstance(result, dict):
             raise HTTPException(status_code=500, detail="Invalid task result")
-        data = cast(dict[str, Any], result)
+        data = result
         return CleanupResponse(
             files_deleted=data.get("files_deleted", 0),
             size_freed=data.get("size_freed", 0),
             manifest=data.get("manifest", {}),
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Error executing cleanup")
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.post("/api/v1/analytics/ingest", response_model=AnalyticsIngestResponse)
+async def ingest_analytics_stream(
+    request: Request,
+    api_key: str = Security(verify_api_key),
+) -> AnalyticsIngestResponse:
+    """Ingest analytics events via NDJSON streaming."""
+
+    _ = api_key
+    accepted = 0
+    rejected = 0
+    buffer = ""
+
+    async for chunk in request.stream():
+        buffer += chunk.decode("utf-8")
+        *lines, buffer = buffer.split("\n")
+        for line in lines:
+            if not line.strip():
+                continue
+            try:
+                payload_raw = json.loads(line)
+            except json.JSONDecodeError:
+                global_ingestor.mark_rejected()
+                rejected += 1
+                continue
+
+            try:
+                payload = AnalyticsEventPayload.model_validate(payload_raw)
+            except Exception as exc:  # noqa: BLE001 - convert validation errors to rejection
+                logger.debug("Rejected analytics event", extra={"error": str(exc)})
+                global_ingestor.mark_rejected()
+                rejected += 1
+                continue
+
+            if global_ingestor.ingest_mapping(payload.model_dump()):
+                accepted += 1
+            else:
+                rejected += 1
+
+    if buffer.strip():
+        try:
+            payload_raw = json.loads(buffer)
+        except json.JSONDecodeError:
+            global_ingestor.mark_rejected()
+            rejected += 1
+        else:
+            try:
+                payload = AnalyticsEventPayload.model_validate(payload_raw)
+            except Exception as exc:  # noqa: BLE001 - convert validation errors to rejection
+                logger.debug("Rejected trailing analytics event", extra={"error": str(exc)})
+                global_ingestor.mark_rejected()
+                rejected += 1
+            else:
+                if global_ingestor.ingest_mapping(payload.model_dump()):
+                    accepted += 1
+                else:
+                    rejected += 1
+
+    snapshot = global_ingestor.snapshot()
+    summary = {
+        "total_events": snapshot.total_events,
+        "accepted": snapshot.accepted,
+        "rejected": snapshot.rejected,
+        "kinds": snapshot.kinds,
+        "sources": snapshot.sources,
+    }
+
+    return AnalyticsIngestResponse(accepted=accepted, rejected=rejected, summary=summary)
 
 
 @app.get("/api/v1/analytics/rankings")
@@ -305,6 +394,7 @@ async def stream_task_progress(
         import json
 
         try:
+            deadline = time.monotonic() + DEFAULT_TASK_TIMEOUT
             while True:
                 status = await task_manager.get_task_status(task_id)
 
@@ -319,6 +409,11 @@ async def stream_task_progress(
                 yield f"data: {json_str}\n\n".encode()
 
                 if status.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
+                    break
+
+                if time.monotonic() >= deadline:
+                    timeout_data = {"status": "timeout", "error": "Task stream timed out"}
+                    yield f"data: {json.dumps(timeout_data)}\n\n".encode()
                     break
 
                 await asyncio.sleep(1)
@@ -344,7 +439,7 @@ async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
 
     # Simulate guard-rails execution
     # In production, this would call actual Hephaestus commands
-    gates = []
+    gates: list[dict[str, Any]] = []
 
     # Cleanup step
     if not request.no_format:
@@ -366,8 +461,8 @@ async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
         ]
     )
 
-    success = all(gate["passed"] for gate in gates)
-    total_duration = sum(gate.get("duration", 0) for gate in gates)
+    success = all(bool(gate.get("passed", False)) for gate in gates)
+    total_duration = sum(float(gate.get("duration", 0)) for gate in gates)
 
     return {
         "success": success,

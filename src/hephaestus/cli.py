@@ -14,18 +14,14 @@ from rich.table import Table
 
 from hephaestus import (
     __version__,
-)
-from hephaestus import cleanup as cleanup_module
-from hephaestus import drift as drift_module
-from hephaestus import events as telemetry
-from hephaestus import logging as logging_utils
-from hephaestus import planning as planning_module
-from hephaestus import release as release_module
-from hephaestus import (
+    cleanup as cleanup_module,
+    drift as drift_module,
+    events as telemetry,
+    logging as logging_utils,
+    planning as planning_module,
+    release as release_module,
     resource_forks,
-)
-from hephaestus import schema as schema_module
-from hephaestus import (
+    schema as schema_module,
     toolbox,
 )
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
@@ -541,7 +537,7 @@ def _run_cleanup_pipeline(  # NOSONAR(S3776)
 
 
 @release_app.command("backfill")
-@trace_command()
+@trace_command("release.backfill")
 def release_backfill(
     version: Annotated[
         str | None,
@@ -936,7 +932,7 @@ def schema(
 
 
 @app.command()
-@trace_command()
+@trace_command("cleanup")
 def cleanup(
     root: Annotated[
         Path | None,
@@ -1049,7 +1045,6 @@ def cleanup(
         command="cleanup",
         root=str(root) if root else None,
     ):
-
         telemetry.emit_event(
             logger,
             telemetry.CLI_CLEANUP_START,
@@ -1074,7 +1069,7 @@ def cleanup(
 # --- Guard rails helpers ---
 
 
-def _run_drift_detection() -> None:
+def _run_drift_detection(*, auto_remediate: bool = False) -> None:
     """Detect tool version drift and exit with status if drift is found."""
     console.print("[cyan]Checking for tool version drift...[/cyan]")
     with trace_operation("drift-detection", check_drift=True):
@@ -1117,6 +1112,34 @@ def _run_drift_detection() -> None:
                         console.print(f"[dim]{cmd}[/dim]")
                     else:
                         console.print(f"  {cmd}")
+
+                remediation_results = []
+                if auto_remediate:
+                    console.print("\n[cyan]Applying remediation commands...[/cyan]")
+                    with trace_operation("drift-remediation", auto=True):
+                        remediation_results = drift_module.apply_remediation_commands(commands)
+
+                    for result in remediation_results:
+                        status = "green" if result.exit_code == 0 else "red"
+                        console.print(
+                            f"[{status}]• {result.command} (exit {result.exit_code})[/]"
+                        )
+                        if result.stdout.strip():
+                            console.print(result.stdout.strip())
+                        if result.stderr.strip():
+                            console.print(f"[red]{result.stderr.strip()}[/red]")
+
+                    if remediation_results and all(r.exit_code == 0 for r in remediation_results):
+                        console.print(
+                            "\n[green]✓ Applied remediation commands successfully.[/green]"
+                        )
+                        telemetry.emit_event(
+                            logger,
+                            telemetry.CLI_GUARD_RAILS_REMEDIATED,
+                            message="Drift remediated automatically",
+                            commands=[r.command for r in remediation_results],
+                        )
+                        return
 
                 telemetry.emit_event(
                     logger,
@@ -1396,7 +1419,7 @@ def plan() -> None:
 
 
 @app.command("guard-rails")
-@trace_command()
+@trace_command("guard-rails")
 def guard_rails(
     no_format: Annotated[
         bool,
@@ -1406,6 +1429,14 @@ def guard_rails(
         bool,
         typer.Option(
             "--drift", help="Check for tool version drift and show remediation.", show_default=False
+        ),
+    ] = False,
+    auto_remediate: Annotated[
+        bool,
+        typer.Option(
+            "--auto-remediate",
+            help="Automatically apply remediation commands when drift is detected.",
+            show_default=False,
         ),
     ] = False,
     use_plugins: Annotated[
@@ -1426,6 +1457,7 @@ def guard_rails(
         command="guard-rails",
         skip_format=no_format,
         check_drift=drift,
+        auto_remediate=auto_remediate,
     ):
         telemetry.emit_event(
             logger,
@@ -1435,7 +1467,7 @@ def guard_rails(
         )
 
         if drift:
-            _run_drift_detection()
+            _run_drift_detection(auto_remediate=auto_remediate)
             return
 
         if use_plugins and _run_guard_rails_plugin_mode(no_format):

@@ -174,6 +174,57 @@ def test_release_install_forwards_sigstore_options(
     assert install_kwargs["cleanup"] is False
 
 
+def test_release_install_can_remove_archive(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Ensure --remove-archive deletes the downloaded artefact."""
+
+    _, cli = _load_modules()
+
+    archive_path = tmp_path / "hephaestus-9.9.9-wheelhouse.tar.gz"
+    archive_path.write_bytes(b"wheelhouse")
+
+    def fake_download_wheelhouse(**_kwargs: Any) -> Any:
+        asset = cli.release_module.ReleaseAsset(
+            name=archive_path.name,
+            download_url="https://example.invalid/archive.tar.gz",
+            size=archive_path.stat().st_size,
+        )
+        return cli.release_module.ReleaseDownload(
+            asset=asset,
+            archive_path=archive_path,
+            extracted_path=None,
+            manifest_path=None,
+            sigstore_path=None,
+        )
+
+    monkeypatch.setattr(
+        cli.release_module,
+        "download_wheelhouse",
+        fake_download_wheelhouse,
+    )
+
+    monkeypatch.setattr(
+        cli.release_module,
+        "install_from_archive",
+        lambda *_args, **_kwargs: None,
+    )
+
+    result = runner.invoke(
+        cli.app,
+        [
+            "release",
+            "install",
+            "--destination",
+            str(tmp_path),
+            "--remove-archive",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert not archive_path.exists()
+
+
 def test_release_install_help_succeeds() -> None:
     """Ensure release install help renders despite complex option wiring."""
 
@@ -185,8 +236,56 @@ def test_release_install_help_succeeds() -> None:
     assert "Download the Hephaestus wheelhouse" in result.stdout
     # Check for sigstore-identity without ANSI codes by removing color codes
     import re
-    clean_stdout = re.sub(r'\x1b\[[0-9;]*m', '', result.stdout)
+
+    clean_stdout = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
     assert "--sigstore-identity" in clean_stdout
+
+
+def test_release_backfill_requires_token() -> None:
+    """The backfill command should fail fast without credentials."""
+
+    _, cli = _load_modules()
+
+    result = runner.invoke(
+        cli.app,
+        ["release", "backfill"],
+        env={"GITHUB_TOKEN": ""},
+    )
+
+    assert result.exit_code == 1
+    assert "GITHUB_TOKEN" in result.stdout
+
+
+def test_release_backfill_invokes_script(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Backfill command should invoke the sigstore helper script."""
+
+    _, cli = _load_modules()
+
+    calls: list[list[str]] = []
+
+    class Result:
+        def __init__(self, returncode: int = 0) -> None:
+            self.returncode = returncode
+
+    def fake_run(cmd: list[str], *, check: bool, env: dict[str, str]) -> Result:
+        calls.append(cmd)
+        assert check is False
+        assert "GITHUB_TOKEN" in env
+        return Result(returncode=0)
+
+    monkeypatch.setattr("subprocess.run", fake_run)
+
+    result = runner.invoke(
+        cli.app,
+        ["release", "backfill", "--dry-run"],
+        env={"GITHUB_TOKEN": "token-123"},
+    )
+
+    assert result.exit_code == 0
+    assert "Backfill completed successfully" in result.stdout
+    assert calls, "Expected subprocess.run to be invoked"
+    script = Path(calls[0][1])
+    assert script.name == "backfill_sigstore_bundles.py"
 
 
 def test_qa_coverage_command_displays_gaps() -> None:
@@ -315,6 +414,7 @@ def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> 
 
     # Patch subprocess module globally since it's imported locally in the function
     import subprocess
+
     monkeypatch.setattr(subprocess, "run", _fake_run)
 
     result = runner.invoke(cli.app, ["guard-rails"])
@@ -359,6 +459,7 @@ def test_guard_rails_can_skip_format(monkeypatch: pytest.MonkeyPatch) -> None:
 
     # Patch subprocess module globally since it's imported locally in the function
     import subprocess
+
     monkeypatch.setattr(subprocess, "run", _fake_run)
 
     result = runner.invoke(cli.app, ["guard-rails", "--no-format"])
@@ -387,6 +488,7 @@ def test_guard_rails_plugin_mode_with_no_plugins(monkeypatch: pytest.MonkeyPatch
 
     # Patch subprocess module globally since it's imported locally in the function
     import subprocess
+
     monkeypatch.setattr(subprocess, "run", _fake_run)
 
     result = runner.invoke(cli.app, ["guard-rails", "--use-plugins"])
@@ -522,6 +624,36 @@ def test_guard_rails_drift_mode_no_drift() -> None:
         assert "All tools are up to date" in result.stdout
     finally:
         drift_mod.detect_drift = original_detect
+
+
+def test_guard_rails_drift_mode_auto_remediate(monkeypatch: pytest.MonkeyPatch) -> None:
+    """guard-rails --drift --auto-remediate should execute remediation commands."""
+
+    _, cli = _load_modules()
+    from hephaestus.drift import ToolVersion
+
+    def _fake_detect(_path: Path | None = None) -> list[ToolVersion]:
+        return [ToolVersion(name="ruff", expected="0.14.0", actual="0.13.0")]
+
+    class _Result:
+        command = "uv sync"
+        exit_code = 0
+        stdout = "synced"
+        stderr = ""
+
+    def _fake_apply(commands: list[str]) -> list[Any]:
+        assert commands
+        return [_Result()]
+
+    import hephaestus.drift as drift_mod
+
+    monkeypatch.setattr(drift_mod, "detect_drift", _fake_detect)
+    monkeypatch.setattr(drift_mod, "apply_remediation_commands", _fake_apply)
+
+    result = runner.invoke(cli.app, ["guard-rails", "--drift", "--auto-remediate"])
+
+    assert result.exit_code == 0
+    assert "Applied remediation" in result.stdout
 
 
 def test_refactor_opportunities_command() -> None:
