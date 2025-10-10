@@ -112,6 +112,9 @@ def _create_sigstore_bundle(
 
 
 def test_download_wheelhouse_happy_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    release._load_sigstore_inventory.cache_clear()
+    monkeypatch.delenv("HEPHAESTUS_SIGSTORE_INVENTORY", raising=False)
+
     tar_path = _make_wheelhouse_tarball(tmp_path)
 
     digest = hashlib.sha256(tar_path.read_bytes()).hexdigest()
@@ -806,6 +809,7 @@ def test_download_wheelhouse_without_extract(
 def test_download_wheelhouse_with_sigstore_attestation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    release._load_sigstore_inventory.cache_clear()
     tar_path = _make_wheelhouse_tarball(tmp_path)
     digest = hashlib.sha256(tar_path.read_bytes()).hexdigest()
     identity = "https://example.invalid/repos/IAmJonoBo/Hephaestus/actions/workflows/release.yml@refs/tags/v1.2.3"

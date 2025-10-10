@@ -243,22 +243,44 @@ message QualityGateResult {
 }
 ```
 
-### Authentication
+### Authentication & Authorization
 
-```python
-# API Key authentication
-from fastapi import Security, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+- **Service Accounts**: API clients authenticate using HMAC signed bearer tokens. Keys are
+  provisioned as JSON under `.hephaestus/service-accounts.json` (or via the
+  `HEPHAESTUS_SERVICE_ACCOUNT_KEYS_PATH` override):
 
-security = HTTPBearer()
+  ```json
+  {
+    "keys": [
+      {
+        "key_id": "ops-cleanup",
+        "principal": "cleanup@hephaestus",
+        "roles": ["cleanup"],
+        "secret": "<base64-url-encoded-secret>",
+        "expires_at": null
+      }
+    ]
+  }
+  ```
 
-async def verify_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
-    """Verify API key from header."""
-    api_key = credentials.credentials
-    if not validate_api_key(api_key):
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    return api_key
-```
+- **Token Format**: Tokens follow compact JWS semantics (`header.payload.signature`). Headers use
+  `{"alg": "HS256", "typ": "JWT", "kid": "<key_id>"}`. Payload claims include `sub`,
+  `roles`, `iat`, and `exp`. Tokens are rejected if the signature is invalid, expired, or asserts
+  roles not granted to the originating key.
+
+- **REST Enforcement**: FastAPI dependencies verify bearer tokens and inject an
+  `AuthenticatedPrincipal`. Role checks are performed at the service layer before executing
+  guard-rails, cleanup, or analytics operations. Unauthorized requests return 401/403 with
+  structured audit trails.
+
+- **gRPC Enforcement**: A `ServiceAccountAuthInterceptor` validates the `authorization` metadata on
+  every RPC, attaches the principal to the `ServicerContext`, and aborts unauthenticated calls with
+  `UNAUTHENTICATED`. Individual service methods enforce role-specific permissions and emit audit
+  events on success or denial.
+
+- **Audit Logging**: Every REST/gRPC operation records a JSONL entry under `.hephaestus/audit/` and
+  emits a telemetry event (`api.audit`) with the principal, operation, parameters, and outcome. Logs
+  fail closed—authorization failures are always captured prior to returning an error.
 
 ### Async Task Management
 

@@ -6,8 +6,8 @@ import json
 import logging
 import sys
 from collections.abc import Iterator
-from typing import Any, cast
 from types import ModuleType
+from typing import Any, cast
 
 import pytest
 
@@ -181,7 +181,7 @@ def test_configure_telemetry_respects_parentbased_ratio_sampler(monkeypatch: pyt
     _reload_telemetry()
     telemetry.configure_telemetry()
 
-    provider_store = cast(dict[str, Any], getattr(trace_mod, "_provider_store"))
+    provider_store = cast(dict[str, Any], trace_mod._provider_store)
     provider = cast(Any, provider_store["provider"])
     assert isinstance(provider.sampler, _FakeParentBased)
     delegate = provider.sampler.delegate
@@ -199,7 +199,7 @@ def test_configure_telemetry_defaults_to_parentbased(monkeypatch: pytest.MonkeyP
     _reload_telemetry()
     telemetry.configure_telemetry()
 
-    provider_store = cast(dict[str, Any], getattr(trace_mod, "_provider_store"))
+    provider_store = cast(dict[str, Any], trace_mod._provider_store)
     provider = cast(Any, provider_store["provider"])
     assert isinstance(provider.sampler, _FakeParentBased)
     delegate = provider.sampler.delegate
@@ -217,7 +217,7 @@ def test_configure_telemetry_handles_invalid_ratio(monkeypatch: pytest.MonkeyPat
     _reload_telemetry()
     telemetry.configure_telemetry()
 
-    provider_store = cast(dict[str, Any], getattr(trace_mod, "_provider_store"))
+    provider_store = cast(dict[str, Any], trace_mod._provider_store)
     provider = cast(Any, provider_store["provider"])
     assert isinstance(provider.sampler, _FakeTraceIdRatioBased)
     assert provider.sampler.ratio == pytest.approx(telemetry.DEFAULT_TRACE_SAMPLER_RATIO)

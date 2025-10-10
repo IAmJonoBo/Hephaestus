@@ -13,6 +13,45 @@
 
 This guide explains safety constraints, guard-rail workflows, and secure operational practices when using the Hephaestus toolkit.
 
+## Service-Account Authentication
+
+Hephaestus APIs (REST and gRPC) now require signed service-account bearer tokens instead of static environment keys.
+
+- **Credential format**: Tokens are compact JSON Web Tokens (JWT) signed with `HS256`. Each token encodes the issuing key ID (`kid`), the service-account principal (`sub`), and an allow-listed set of roles in the `roles` claim. Tokens expire by default after one hour.
+- **Key material**: Operators provision keys in `.hephaestus/service-accounts.json` (or the path specified by `HEPHAESTUS_SERVICE_ACCOUNT_KEYS_PATH`). Each entry records the key ID, principal, granted roles, shared secret, and optional key expiry.
+- **Supported roles**: `guard-rails`, `cleanup`, and `analytics`. REST and gRPC handlers deny any request whose token does not include the role required by the operation. Shared helpers inside `src/hephaestus/api/service.py` enforce these checks to keep parity between transport layers.
+- **Verification pipeline**: REST endpoints rely on FastAPI security dependencies; gRPC requests pass through `ServiceAccountAuthInterceptor`. Both surfaces share the same verifier so rotating keys affects all protocols simultaneously.
+
+### Deployment Guidance
+
+1. **Store keystores securely**: Check in only the schema, not live secrets. In production, fetch the JSON payload from your secret manager at deploy time and write to the path referenced by `HEPHAESTUS_SERVICE_ACCOUNT_KEYS_PATH`.
+2. **Mount read-only**: Ensure the keystore file is read-only for the service user. The verifier reloads data on process start; if you rotate keys, redeploy or send `SIGHUP` to trigger an application reload.
+3. **Propagate to all surfaces**: REST, gRPC, and background workers share the same keystore loader. Keep file paths consistent across containers or set the environment variable per process.
+4. **Client token minting**: Operators should mint tokens via a secure tooling workflow or offline script using `generate_service_account_token`. Never embed raw secrets in CI logs—issue ephemeral tokens instead.
+
+### Key Rotation Procedure
+
+1. Add the replacement key entry (new key ID, secret, and optional expiry) to the keystore file.
+2. Roll out the updated keystore to all API instances (e.g., update Kubernetes Secret, redeploy pods).
+3. Issue new tokens from the replacement key. Confirm existing clients switch to the new token.
+4. Remove the old key entry and redeploy. Any requests signed with retired keys will now fail with `401 Unauthorized` and appear as denied audit events.
+5. (Optional) Set the `expires_at` field for temporary keys to enforce automatic revocation.
+
+## Audit Logging and Telemetry
+
+- **Structured sink**: All API operations emit JSONL audit records to `.hephaestus/audit/` by default (overridable via `HEPHAESTUS_AUDIT_LOG_DIR`). Each entry captures timestamp, principal, key ID, operation, parameters, outcome, and protocol.
+- **Durability**: Ensure the audit directory resides on persistent storage. In containerized environments, mount a durable volume or route logs to centralized storage (e.g., Fluent Bit tailing the directory).
+- **Telemetry integration**: Every audit record is mirrored as an `api.audit` OpenTelemetry event so observability pipelines can correlate API calls with traces or alerts.
+- **Retention**: Adopt retention policies aligned with your compliance requirements. A common pattern is rotating daily files into cold storage (object store or SIEM) and expiring local copies after X days.
+
+## Incident Response Playbook
+
+1. **Detection**: Monitor audit events for repeated denials, unknown principals, or high-volume ingestion attempts. Use telemetry dashboards to surface anomalies.
+2. **Containment**: Remove compromised keys from the keystore and redeploy. Tokens signed with removed keys will fail verification immediately.
+3. **Eradication**: Rotate credentials for affected services, investigate associated audit logs, and revoke any downstream credentials minted using the compromised key.
+4. **Recovery**: Issue fresh tokens, confirm role assignments, and validate the service resumes normal operation. Continue monitoring audit logs for regressions.
+5. **Post-incident review**: Document findings, update runbooks, and consider tightening default expirations or enabling mandatory role scoping for automation accounts.
+
 ## Cleanup Safety
 
 The `hephaestus cleanup` command removes files and directories from your workspace. Understanding its safety features is critical to avoiding accidental data loss.
