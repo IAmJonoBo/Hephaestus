@@ -214,6 +214,7 @@ The release command includes several security features:
 - **Retries**: Automatic retry with exponential backoff (default: 3 attempts)
 - **Checksum verification**: SHA-256 manifests are required unless you pass `--allow-unsigned`
 - **Sigstore attestation**: Sigstore bundles are downloaded and validated automatically; use `--require-sigstore` to fail closed if an attestation is missing, `--sigstore-identity` to pin trusted identities, and `--sigstore-pattern` to override bundle discovery when repositories publish custom naming schemes
+- **Sigstore inventory**: Reference [`ops/attestations/sigstore-inventory.json`](../../ops/attestations/sigstore-inventory.json) after each [`sigstore-backfill`](../../.github/workflows/sigstore-backfill.yml) run to confirm which historical releases include backfilled bundles, checksum verification results, and bundle metadata
 - **Token security**: Use environment variables for GitHub tokens
 
 ```bash
@@ -225,13 +226,19 @@ hephaestus release install
 hephaestus release install --token ghp_your_token_here
 ```
 
+### Rolling Back Safely
+
+1. Confirm the target tag is present in the [Sigstore inventory](../../ops/attestations/sigstore-inventory.json) with `status` other than `pending` and a `bundle.url` recorded.
+2. Run `hephaestus release install --tag <tag> --require-sigstore --sigstore-identity <trusted-identity>` to enforce attestation validation during rollback.
+3. If the inventory entry reports `checksum.verified: false` or lacks `bundle` metadata, abort the rollback and re-run the [`sigstore-backfill`](../../.github/workflows/sigstore-backfill.yml) workflow to regenerate bundles before proceeding.
+
 ## Future Verification Features
 
 The following security enhancements are planned:
 
 - **Sigstore transparency policy enforcement**: Record attestation metadata in audit logs and require identity policies per environment profile
 - **Signed cleanup manifests**: Attach Sigstore attestations to cleanup JSON manifests for tamper detection
-- **Automated attestation publication**: Backfill Sigstore bundles for historical releases and verify during CI before upload
+- **Automated attestation publication**: Expand Sigstore backfill automation to refresh the inventory on each historical release update
 
 ## Secure Development Workflow
 
