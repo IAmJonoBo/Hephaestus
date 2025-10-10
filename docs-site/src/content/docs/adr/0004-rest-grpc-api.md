@@ -2,6 +2,7 @@
 title: "ADR 0004: REST/gRPC API for Remote Invocation"
 description: "- Status: Sprint 3 Complete (2025-01-16) - Date: 2025-01-11 - Last Updated: 2025-01-16 - Supersedes: N/A - Superseded by: N/A Hephaestus is currently a..."
 ---
+
 - Status: Sprint 3 Complete (2025-01-16)
 - Date: 2025-01-11
 - Last Updated: 2025-01-16

@@ -2,6 +2,7 @@
 title: "Tutorial: Getting Started with Hephaestus"
 description: "This tutorial walks through the minimum steps required to install the toolkit, explore the CLI, and ship your first refactoring workflow using the bundled..."
 ---
+
 This tutorial walks through the minimum steps required to install the toolkit, explore the CLI, and
 ship your first refactoring workflow using the bundled wheelhouse distribution.
 
@@ -121,10 +122,11 @@ This runs the full quality pipeline:
 
 1. Deep cleanup of build artifacts
 2. Lint code with ruff
-3. Auto-format code
-4. Type-check with mypy
-5. Run tests with coverage
-6. Audit dependencies for security issues
+3. Validate GitHub Actions with actionlint
+4. Auto-format code
+5. Type-check with mypy
+6. Run tests with coverage
+7. Audit dependencies for security issues
 
 **Get refactoring recommendations**:
 
@@ -282,10 +284,11 @@ This runs all quality gates in order:
 
 1. **Cleanup**: Removes build artifacts
 2. **Lint**: Checks code style and errors (ruff)
-3. **Format**: Auto-formats code (ruff format)
-4. **Type Check**: Validates type annotations (mypy)
-5. **Test**: Runs pytest with coverage reporting
-6. **Security Audit**: Scans for vulnerabilities (pip-audit)
+3. **Workflow Lint**: Validates GitHub Actions via actionlint
+4. **Format**: Auto-formats code (ruff format)
+5. **Type Check**: Validates type annotations (mypy)
+6. **Test**: Runs pytest with coverage reporting
+7. **Security Audit**: Scans for vulnerabilities (pip-audit)
 
 ### Skip Formatting
 

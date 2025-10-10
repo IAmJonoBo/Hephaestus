@@ -2,6 +2,7 @@
 title: "AI Agent Integration Guide"
 description: "This guide helps AI agents (GitHub Copilot, Cursor, Claude, etc.) integrate with Hephaestus CLI commands and REST API safely and predictably. Hephaestus..."
 ---
+
 This guide helps AI agents (GitHub Copilot, Cursor, Claude, etc.) integrate with Hephaestus CLI commands and REST API safely and predictably.
 
 ## Integration Options

@@ -4,8 +4,8 @@
   "features": {
     "ghcr.io/astral-sh/devcontainer-features/uv:latest": {}
   },
-  "postCreateCommand": "uv sync --extra dev --extra qa && uv run pre-commit install",
-  "updateContentCommand": "uv sync --extra dev --extra qa",
+  "postCreateCommand": "uv sync --extra dev --extra qa --extra grpc && uv run pre-commit install",
+  "updateContentCommand": "uv sync --extra dev --extra qa --extra grpc",
   "mounts": [
     "source=${localWorkspaceFolder}/.venv,target=/workspace/.venv,type=bind,consistency=cached"
   ],

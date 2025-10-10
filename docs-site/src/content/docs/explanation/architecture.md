@@ -2,6 +2,7 @@
 title: "Architecture Overview"
 description: "Hephaestus packages a set of CLI workflows, automation helpers, and refactoring scripts that can be adopted project by project. The repository is organised to..."
 ---
+
 Hephaestus packages a set of CLI workflows, automation helpers, and refactoring scripts that can be
 adopted project by project. The repository is organised to reflect the separation between the
 Python package (distributed as wheels) and the supporting toolkit assets.
