@@ -1,6 +1,50 @@
 # Next Steps Tracker
 
-Last updated: 2025-10-10 (Documentation refresh, gap analysis, release readiness)
+Last updated: 2025-10-10 (Sigstore inventory integration; workflow trigger pending external access)
+
+## Tasks
+
+- [ ] Trigger `.github/workflows/sigstore-backfill.yml` and capture the GitHub run ID
+- [x] Extend Sigstore backfill tooling with structured inventory output
+- [x] Document Sigstore inventory usage and rollback procedures
+- [x] Add release enforcement tests covering Sigstore inventory consumption
+
+## Steps
+
+- [x] Update `scripts/backfill_sigstore_bundles.py` to emit `ops/attestations/sigstore-inventory.json`
+- [x] Commit inventory scaffold for v0.1.0–v0.2.3 historical releases
+- [x] Wire `src/hephaestus/release.py` to consult the inventory when `--require-sigstore` is set
+- [x] Add targeted regression tests under `tests/test_release.py`
+- [ ] Trigger the Sigstore backfill workflow and refresh the inventory with the run metadata
+
+## Deliverables
+
+- `ops/attestations/sigstore-inventory.json`
+- Updated operating guide (`docs/how-to/operating-safely.md`)
+- ADR addendum for inventory lifecycle (`docs/adr/0006-sigstore-backfill.md`)
+
+## Quality Gates
+
+- [ ] `uv run --extra qa --extra dev pytest --cov=src` *(blocked by existing `tests/test_api.py` indentation error)*
+- [x] `uv run --extra qa --extra dev pytest tests/test_release.py -k sigstore --maxfail=1 --no-cov`
+- [x] `uv run --extra qa --extra dev ruff check scripts/backfill_sigstore_bundles.py src/hephaestus/release.py tests/test_release.py`
+- [x] `uv run --extra qa --extra dev mypy src/hephaestus/release.py tests/test_release.py`
+- [⚠️] `uv run --extra qa --extra dev pip-audit` *(GHSA-4xh5-x5gv-qwph affecting `pip`; waiver documented pending upstream fix)*
+
+## Links
+
+- [ops/attestations/sigstore-inventory.json](ops/attestations/sigstore-inventory.json)
+- [scripts/backfill_sigstore_bundles.py](scripts/backfill_sigstore_bundles.py)
+- [src/hephaestus/release.py](src/hephaestus/release.py)
+- [tests/test_release.py](tests/test_release.py)
+- [docs/how-to/operating-safely.md](docs/how-to/operating-safely.md)
+- [docs/adr/0006-sigstore-backfill.md](docs/adr/0006-sigstore-backfill.md)
+
+## Risks/Notes
+
+- Sigstore backfill workflow requires GitHub repo write access; run not triggered in this environment, so inventory entries remain `pending`.
+- Full guard-rail suite currently blocked by pre-existing indentation errors in `tests/test_api.py`.
+- `pip-audit` continues to flag CVE GHSA-4xh5-x5gv-qwph for `pip`; mitigation tracked upstream.
 
 ## Current Status Summary
 
@@ -25,13 +69,21 @@ The Hephaestus project has successfully delivered all high-priority features and
 
 Remaining work is focused on advanced features with clear ADRs and sprint-based timelines:
 
-- 🔄 ADR-0006: Sigstore bundle backfill Sprint 2 (execution ready, pending manual trigger)
+- 🔄 ADR-0006: Sigstore bundle backfill Sprint 2 (inventory committed; workflow trigger + run ID capture pending external access)
 - 🔄 ADR-0005: PyPI publication Sprint 3 (workflow complete, pending account registration)
 - ⏳ ADR-0003: OpenTelemetry Sprint 4 (sampling strategies, plugin instrumentation, Prometheus exporter)
 - ⏳ ADR-0004: REST/gRPC API Sprint 2+ (FastAPI implementation, authentication, gRPC service)
 - ⏳ ADR-0002: Plugin architecture Sprint 4 (marketplace, dependency resolution, versioning)
 
 ## Recent Improvements (Latest Session)
+
+**Sigstore Inventory Integration (2025-10-10):**
+
+- ✅ Extended `scripts/backfill_sigstore_bundles.py` to emit a structured inventory and persist it under `ops/attestations/`
+- ✅ Wired `src/hephaestus/release.py` to fall back to inventory metadata when `--require-sigstore` is set
+- ✅ Added targeted regression tests for Sigstore inventory enforcement
+- ✅ Updated documentation (`docs/how-to/operating-safely.md`, `docs/adr/0006-sigstore-backfill.md`) with inventory links and rollback guidance
+- ⚠️ Manual Sigstore backfill workflow still pending (no GitHub run ID captured in this environment)
 
 **API Service Hardening (2025-02-XX):**
 

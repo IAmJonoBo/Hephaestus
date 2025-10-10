@@ -51,6 +51,9 @@ HISTORICAL_VERSIONS = [
 REPO_OWNER = "IAmJonoBo"
 REPO_NAME = "Hephaestus"
 GITHUB_API_BASE = "https://api.github.com"
+INVENTORY_PATH = Path(
+    os.environ.get("SIGSTORE_INVENTORY_PATH", "ops/attestations/sigstore-inventory.json")
+)
 
 # Configure logging
 logging.basicConfig(
@@ -64,6 +67,74 @@ class BackfillError(Exception):
     """Raised when backfill operation fails."""
 
     pass
+
+
+def compute_sha256(path: Path) -> str:
+    """Compute the SHA-256 digest for *path*."""
+
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(8192), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_inventory(path: Path) -> dict[str, Any]:
+    """Load the structured Sigstore inventory from *path*."""
+
+    if not path.exists():
+        return {"versions": {}}
+
+    try:
+        with path.open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except json.JSONDecodeError as exc:  # pragma: no cover - defensive
+        raise BackfillError(f"Inventory file {path} is not valid JSON") from exc
+
+    versions = payload.get("versions")
+    if not isinstance(versions, dict):
+        versions = {}
+
+    payload["versions"] = versions
+    return payload
+
+
+def write_inventory(
+    *,
+    inventory_path: Path,
+    successes: list[dict[str, Any]],
+    failures: list[dict[str, Any]],
+) -> None:
+    """Persist the Sigstore backfill inventory to disk."""
+
+    payload = load_inventory(inventory_path)
+    existing_versions = payload.get("versions", {})
+
+    for entry in successes:
+        existing_versions[entry["version"]] = entry
+
+    for failure in failures:
+        failure_entry = {
+            "version": failure["version"],
+            "status": "error",
+            "error": failure["error"],
+            "timestamp": failure["timestamp"],
+        }
+        existing_versions[failure_entry["version"]] = failure_entry
+
+    payload["versions"] = dict(sorted(existing_versions.items()))
+    payload["generated_at"] = datetime.now(UTC).isoformat()
+    payload["workflow"] = {
+        "run_id": os.getenv("GITHUB_RUN_ID"),
+        "run_attempt": os.getenv("GITHUB_RUN_ATTEMPT"),
+        "workflow": os.getenv("GITHUB_WORKFLOW"),
+        "actor": os.getenv("GITHUB_ACTOR"),
+    }
+
+    inventory_path.parent.mkdir(parents=True, exist_ok=True)
+    with inventory_path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+        handle.write("\n")
 
 
 def get_github_headers(token: str) -> dict[str, str]:
@@ -364,7 +435,9 @@ def add_backfill_notice(
     logger.info("Added backfill notice to release notes")
 
 
-def backfill_release(version: str, token: str, dry_run: bool = False) -> None:
+def backfill_release(
+    version: str, token: str, dry_run: bool = False
+) -> dict[str, Any]:
     """Backfill Sigstore bundle for a historical release.
 
     Args:
@@ -374,6 +447,8 @@ def backfill_release(version: str, token: str, dry_run: bool = False) -> None:
 
     Raises:
         BackfillError: If any step fails
+    Returns:
+        Structured summary entry for the Sigstore inventory
     """
     logger.info(f"Processing {version}...")
 
@@ -396,19 +471,33 @@ def backfill_release(version: str, token: str, dry_run: bool = False) -> None:
     for asset in release["assets"]:
         if asset["name"] == sigstore_name:
             logger.warning(f"Sigstore bundle already exists for {version}, skipping")
-            return
+            return {
+                "version": version,
+                "status": "already-present",
+                "release_id": release_id,
+                "release_url": release.get("html_url"),
+                "release_published_at": published_at,
+                "bundle": {
+                    "name": asset["name"],
+                    "url": asset.get("browser_download_url") or asset.get("url"),
+                    "size": asset.get("size"),
+                    "content_type": asset.get("content_type"),
+                },
+            }
 
     # Download archive to temp directory
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         archive_path = download_asset(wheelhouse_asset, token, temp_path)
 
+        archive_digest = compute_sha256(archive_path)
+
         # Verify checksum if available
         checksum = get_published_checksum(release, wheelhouse_asset["name"])
         checksum_verified = False
 
         if checksum:
-            if verify_checksum(archive_path, checksum):
+            if checksum == archive_digest:
                 logger.info("✓ Checksum verified")
                 checksum_verified = True
             else:
@@ -459,7 +548,60 @@ def backfill_release(version: str, token: str, dry_run: bool = False) -> None:
         # Update release notes
         add_backfill_notice(release_id, version, token, dry_run=dry_run)
 
+        bundle_asset: dict[str, Any] | None = None
+        if dry_run:
+            bundle_asset = {
+                "name": sigstore_name,
+                "browser_download_url": (
+                    f"https://github.com/{REPO_OWNER}/{REPO_NAME}/releases/download/"
+                    f"{version}/{sigstore_name}"
+                ),
+                "size": bundle_path.stat().st_size,
+                "content_type": "application/vnd.dev.sigstore.bundle+json",
+            }
+        else:
+            refreshed = get_release_by_tag(version, token)
+            for asset in refreshed.get("assets", []):
+                if asset.get("name") == sigstore_name:
+                    bundle_asset = asset
+                    break
+
+        if not bundle_asset:
+            raise BackfillError(
+                "Uploaded Sigstore bundle metadata not found after refresh; cannot record inventory entry."
+            )
+
     logger.info(f"✓ Backfilled {version}")
+
+    summary = {
+        "version": version,
+        "status": "backfilled",
+        "release_id": release_id,
+        "release_url": release.get("html_url"),
+        "release_published_at": published_at,
+        "archive": {
+            "name": wheelhouse_asset["name"],
+            "sha256": archive_digest,
+            "size": wheelhouse_asset.get("size"),
+        },
+        "checksum": {
+            "expected": checksum,
+            "verified": checksum_verified,
+        },
+        "bundle": {
+            "name": bundle_asset["name"],
+            "url": bundle_asset.get("browser_download_url") or bundle_asset.get("url"),
+            "size": bundle_asset.get("size"),
+            "content_type": bundle_asset.get("content_type"),
+            "uploaded_at": datetime.now(UTC).isoformat(),
+        },
+        "backfill": metadata,
+    }
+
+    if dry_run:
+        summary["status"] = "dry-run"
+
+    return summary
 
 
 def main() -> int:
@@ -497,18 +639,36 @@ def main() -> int:
 
     # Process each version
     success_count = 0
-    failed_versions = []
+    failed_versions: list[str] = []
+    inventory_entries: list[dict[str, Any]] = []
+    inventory_failures: list[dict[str, Any]] = []
 
     for version in versions:
         try:
-            backfill_release(version, token, dry_run=args.dry_run)
+            entry = backfill_release(version, token, dry_run=args.dry_run)
+            if entry:
+                inventory_entries.append(entry)
             success_count += 1
         except BackfillError as e:
             logger.error(f"✗ Failed to backfill {version}: {e}")
             failed_versions.append(version)
+            inventory_failures.append(
+                {
+                    "version": version,
+                    "error": str(e),
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+            )
         except Exception as e:
             logger.exception(f"✗ Unexpected error backfilling {version}: {e}")
             failed_versions.append(version)
+            inventory_failures.append(
+                {
+                    "version": version,
+                    "error": f"Unexpected error: {e}",
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+            )
 
     # Print summary
     logger.info("")
@@ -517,8 +677,26 @@ def main() -> int:
 
     if failed_versions:
         logger.info(f"Failed versions: {', '.join(failed_versions)}")
+        try:
+            write_inventory(
+                inventory_path=INVENTORY_PATH,
+                successes=inventory_entries,
+                failures=inventory_failures,
+            )
+        except BackfillError as exc:
+            logger.error(f"Failed to update Sigstore inventory: {exc}")
         return 1
 
+    try:
+        write_inventory(
+            inventory_path=INVENTORY_PATH,
+            successes=inventory_entries,
+            failures=inventory_failures,
+        )
+    except BackfillError as exc:
+        logger.error(f"Failed to update Sigstore inventory: {exc}")
+        return 1
+    logger.info("Inventory updated at %s", INVENTORY_PATH)
     logger.info("All backfills completed successfully!")
     return 0
 

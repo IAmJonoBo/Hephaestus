@@ -82,6 +82,13 @@ Historical Release Backfill Process:
 }
 ```
 
+### Inventory & Audit Trail
+
+- The workflow appends structured entries to [`ops/attestations/sigstore-inventory.json`](../../ops/attestations/sigstore-inventory.json) after every backfill run.
+- Each entry captures the release tag, archive checksum, Sigstore bundle URL, upload size, metadata embedded in the bundle, and workflow context (`run_id`, `actor`).
+- Historical releases remain marked as `pending` until a successful [`sigstore-backfill`](../../.github/workflows/sigstore-backfill.yml) execution updates the inventory entry.
+- `hephaestus release install --require-sigstore` reads this inventory to locate backfilled bundles when GitHub releases omit explicit `.sigstore` assets.
+
 ### Verification Workflow
 
 ```python

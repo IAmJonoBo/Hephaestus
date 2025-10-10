@@ -1,0 +1,46 @@
+{
+  "generated_at": null,
+  "workflow": {
+    "run_id": null,
+    "run_attempt": null,
+    "workflow": ".github/workflows/sigstore-backfill.yml",
+    "actor": null
+  },
+  "versions": {
+    "v0.1.0": {
+      "version": "v0.1.0",
+      "status": "pending",
+      "notes": "Sigstore backfill workflow has not been executed in this environment."
+    },
+    "v0.1.1": {
+      "version": "v0.1.1",
+      "status": "pending",
+      "notes": "Sigstore backfill workflow has not been executed in this environment."
+    },
+    "v0.1.2": {
+      "version": "v0.1.2",
+      "status": "pending",
+      "notes": "Sigstore backfill workflow has not been executed in this environment."
+    },
+    "v0.2.0": {
+      "version": "v0.2.0",
+      "status": "pending",
+      "notes": "Sigstore backfill workflow has not been executed in this environment."
+    },
+    "v0.2.1": {
+      "version": "v0.2.1",
+      "status": "pending",
+      "notes": "Sigstore backfill workflow has not been executed in this environment."
+    },
+    "v0.2.2": {
+      "version": "v0.2.2",
+      "status": "pending",
+      "notes": "Sigstore backfill workflow has not been executed in this environment."
+    },
+    "v0.2.3": {
+      "version": "v0.2.3",
+      "status": "pending",
+      "notes": "Sigstore backfill workflow has not been executed in this environment."
+    }
+  }
+}
