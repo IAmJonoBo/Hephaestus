@@ -372,6 +372,13 @@ class AnalyticsServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def StreamIngest(self, request_iterator, context):
+        """Stream analytics ingestion events
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AnalyticsServiceServicer_to_server(servicer: AnalyticsServiceServicer, server: grpc.Server):
     rpc_method_handlers = {
@@ -451,6 +458,33 @@ class AnalyticsService:
             "/hephaestus.v1.AnalyticsService/GetHotspots",
             hephaestus__pb2.HotspotsRequest.SerializeToString,
             hephaestus__pb2.HotspotsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def StreamIngest(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_unary(
+            request_iterator,
+            target,
+            '/hephaestus.v1.AnalyticsService/StreamIngest',
+            hephaestus__pb2.AnalyticsEvent.SerializeToString,
+            hephaestus__pb2.AnalyticsIngestResponse.FromString,
             options,
             channel_credentials,
             insecure,

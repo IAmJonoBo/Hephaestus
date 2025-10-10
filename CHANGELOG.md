@@ -9,54 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **E2E Testing & Validation**:
-  - Comprehensive E2E test suite for development environment setup
-  - Regression tests for virtual environment preservation during cleanup
-  - Renovate compatibility tests for dependency update workflows
-  - Setup script validation tests (syntax, existence, permissions)
-  - E2E testing documentation guide (`docs/how-to/e2e-testing.md`)
-- **Sprint 2: PyPI Publication (ADR-0005)**:
-  - Automated PyPI publication workflow via GitHub Actions
-  - Sigstore signing integration for published packages
-  - PyPI Trusted Publishers configuration support
-  - Rich package metadata in `pyproject.toml` (classifiers, URLs, keywords)
-  - PyPI badge in README
-  - Updated installation documentation with pip instructions
-- **Authentication & Authorization Hardening (ADR-0001 Phase 3+)**:
-  - Token validation before GitHub API calls with pattern matching
-  - Support for classic (`ghp_*`), fine-grained (`ghs_*`), and PAT (`github_pat_*`) token formats
-  - Token expiration detection with clear error messages for HTTP 401 responses
-  - `RELEASE_TOKEN_VALIDATION` telemetry event for monitoring token issues
-  - Comprehensive test coverage for token validation scenarios (7 new tests)
-- **Phase 1 ADR Implementations**: Foundation for major architectural features
-  - **ADR-0002 (Plugin Architecture)**: Plugin API specification and base classes
-    - `QualityGatePlugin` abstract base class for custom quality gates
-    - `PluginRegistry` for managing plugin instances
-    - `PluginMetadata` and `PluginResult` data models
-  - **ADR-0003 (OpenTelemetry)**: Optional distributed tracing support
-    - Environment-based configuration (`HEPHAESTUS_TELEMETRY_ENABLED`)
-    - No-op tracer fallback when OpenTelemetry not installed
-    - Graceful degradation on configuration errors
-  - **ADR-0004 (REST/gRPC API)**: API module structure and OpenAPI specification
-  - **ADR-0004 Phase 2 Enhancements**: FastAPI/gRPC streaming ingestion and drift automation
-    - Streaming analytics ingestion endpoint with NDJSON support and shared ingestion buffer
-    - gRPC client-streaming ingestion RPC with integration tests for acceptance/rejection flows
-    - CLI `guard-rails --drift --auto-remediate` to execute remediation commands with telemetry coverage
-    - CI workflow drift gate (`uv run hephaestus guard-rails --drift`) ensuring toolchain parity
-    - FastAPI guard-rails, cleanup, and rankings endpoints backed by shared toolkit helpers with drift remediation toggles and synthetic analytics fallbacks
-    - gRPC guard-rails, drift, cleanup, and analytics services reimplemented on the shared execution engine for parity with REST responses
-    - OpenAPI 3.0 spec in `docs/api/openapi.yaml`
-    - Module structure for future FastAPI implementation
-    - Endpoints for quality gates, cleanup, analytics, and tasks
-  - **ADR-0006 (Sigstore Backfill)**: Metadata schema for historical releases
-    - `BackfillMetadata` dataclass with JSON serialization
-    - Verification status constants for distinguishing backfilled bundles
-- **Documentation Updates**:
-  - Observability guide for OpenTelemetry usage
-  - Plugin development guide with examples
-  - REST API reference documentation
-  - Architecture overview updated with new modules
-- **Optional Dependencies**: `telemetry` and `api` extras in `pyproject.toml`
+- **API & Automation (ADR-0004 Phase 2)**:
+  - FastAPI implementation with shared execution engine for guard-rails, cleanup, analytics rankings, and auto-remediation.
+  - gRPC services refreshed for parity plus client-streaming analytics ingestion with deterministic responses.
+  - Task orchestration hardened with cancellable futures, timeout guards, and SSE-safe streaming payloads.
+- **Analytics & Remediation**:
+  - Shared streaming ingestor accepting NDJSON (REST) and client-streaming gRPC feeds with snapshot inspection hooks.
+  - Drift detection integrates remediation automation (`--auto-remediate`) and telemetry-backed execution manifests.
+  - Analytics rankings now surface plugin/tool readiness alongside hotspot ordering.
+- **Telemetry & Safety (ADR-0003)**:
+  - Command-level OpenTelemetry spans with typed no-op fallbacks and cached module resolution.
+  - Structured logging + audit manifests consolidated across CLI, API, and remediation flows.
+  - Drift gate codified in CI via `uv run hephaestus guard-rails --drift`.
+- **Plugin Ecosystem (ADR-0002)**:
+  - Discovery resets registries to drop disabled built-ins, surfaces capability metadata, and fails closed when tooling missing.
+  - Regression coverage for reload paths and guard-rails service responses when dependencies absent/present.
+- **Documentation & Governance**:
+  - README, Next Steps tracker, and frontier red-team gap analysis refreshed to reflect Phase 2 implementations and outstanding risks.
+  - Release hardening, analytics ingestion, and remediation automation documented in CHANGELOG/Next Steps.
 
 ### Changed
 
@@ -88,12 +58,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned
 
-- REST/gRPC API Phase 2: FastAPI implementation (Q2 2025)
-- Plugin architecture Phase 2: Plugin discovery and built-in plugins (Q2 2025)
-- OpenTelemetry Phase 2: Actual command instrumentation (Q2 2025)
-- Advanced remediation automation (Q2 2025)
-- Streaming ingestion for analytics (Q1 2025)
-- Drift detection in CI pipeline (Q1 2025)
+- ADR-0006: Sigstore bundle backfill Sprint 2 (execute backfill, publish attestation inventory).
+- ADR-0005: PyPI publication Sprint 3 (account registration, dry-run release).
+- ADR-0003: OpenTelemetry Sprint 4 (sampling strategies, Prometheus exporter, dashboards).
+- ADR-0004: REST/gRPC API Sprint 2+ (authentication, RBAC, rate limiting, audit logging).
+- ADR-0002: Plugin architecture Sprint 4 (marketplace metadata, dependency resolution, signed plugins).
+- Analytics streaming retention + telemetry metrics (ingestion persistence, health dashboards).
 
 ## [0.2.0] - 2025-01-11
 

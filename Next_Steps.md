@@ -1,5 +1,11 @@
 # Next Steps Tracker
 
+Last updated: 2025-10-10 (Documentation refresh, gap analysis, release readiness)
+
+## Current Status Summary
+- ✅ Frontier feature set implemented: FastAPI + gRPC parity, streaming analytics ingestion, auto-remediation, Sigstore-gated releases, and plugin discovery resets.
+- ✅ Quality gates enforced via CI (lint, type-check, tests with ≥85% coverage, drift detection, build verification).
+- 🔄 Focus now shifts to production hardening: telemetry sampling/exporters, Sigstore backfill execution, API authentication, and marketplace ecosystem work.
 Last updated: 2025-02-XX (API streaming + remediation automation)
 
 ## Current Status Summary
@@ -229,233 +235,59 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 ---
 
 ## Tasks
-
-### Completed ✅
-
-- [x] (Tooling, completed 2025-01-31) Implement SHA-256 checksum verification + fail-closed wheelhouse installs
-  - Status: ✅ Complete - Verification now required unless `--allow-unsigned`
-- [x] (DX, completed 2025-01-31) Add cleanup dry-run previews, confirmations, and audit manifests
-  - Status: ✅ Complete - Full dry-run preview, typed confirmation, and JSON audit manifest support
-- [x] (Platform, completed 2025-02-15) Ship structured JSON logging across CLI/release/cleanup
-  - Status: ✅ Complete - JSON/text logging with run IDs and telemetry events (spans deferred to Q2 2025)
-- [x] (AI Insights, completed 2025-03-01) Replace synthetic analytics with churn/coverage/embedding adapters and ranking API
-  - Status: ✅ Complete - Ranking API with 4 strategies shipped (`src/hephaestus/analytics.py`, `hephaestus tools refactor rankings`)
-- [x] (AI Workflows, completed 2025-03-15) AI-native command schema export for agent integration
-  - Status: ✅ Complete - Schema export and AI integration guide delivered (`hephaestus schema`, `docs/how-to/ai-agent-integration.md`)
-- [x] (Autonomic Guard Rails, completed 2025-03-15) Tool version drift detection
-  - Status: ✅ Complete - Drift detection with remediation commands shipped (`hephaestus guard-rails --drift`)
-- [x] (Documentation, completed 2025-01-11) MkDocs Material site setup
-  - Status: ✅ Complete - Full Diátaxis-structured documentation with navigation and search
-- [x] (Security, completed 2025-01-11) CodeQL security scans
-  - Status: ✅ Complete - CodeQL workflow runs on push, PR, and weekly schedule
-
-### In Progress 🔄
-
-- [ ] (Tooling, Sprint 2) Backfill Sigstore bundles for historical releases
-  - Status: 🔄 In Progress - Script complete, execution ready (requires manual trigger in GitHub Actions)
-- [ ] (Release, Sprint 3) Publish to PyPI with automated release notes
-  - Status: 🔄 In Progress - Workflow complete, pending PyPI account setup and Trusted Publisher configuration
-
-### Future / Deferred ⏳
-
-- [ ] (Platform, Sprint 4) OpenTelemetry advanced features (sampling strategies, plugin instrumentation, Prometheus exporter)
-  - Status: ⏳ Planned Sprint 4 - Sprint 1-3 complete (foundation, tracing, metrics, custom analytics)
-- [ ] (Platform AI, Sprint 2-4) Expose secured REST/gRPC endpoints for AI/automation clients with policy guard rails
-  - Status: ⏳ Planned - Sprint 1 foundation complete (OpenAPI spec, module structure); implementation in Sprint 2-4
-- [ ] (Extensibility, Sprint 4) Plugin architecture advanced features (marketplace, dependency resolution, versioning)
-  - Status: ⏳ Planned - Sprint 1-3 complete (foundation, built-in plugins, guard-rails integration)
+- [ ] Execute Sigstore bundle backfill runbook and capture attestation inventory (Release Engineering – due 2025-11-01).
+- [ ] Register PyPI publisher account and dry-run publication workflow (Release Engineering – due 2025-10-24).
+- [ ] Implement OpenTelemetry sampling strategies and Prometheus exporter (Observability – due 2025-11-15).
+- [ ] Add API authentication/authorization with service accounts and audit logging (API Team – due 2025-11-08).
+- [ ] Design plugin marketplace metadata (discovery, dependency resolution, version pinning) (Ecosystem – due 2025-11-30).
+- [ ] Ship streaming analytics retention policy and ingestion metrics surfaced via telemetry (Analytics – due 2025-11-22).
+- [ ] Automate drift remediation playbooks for top CI failure signatures (QA – due 2025-11-12).
 
 ## Steps
-
-- [x] Extend release tests to cover retry/backoff propagation and sanitisation edge cases
-- [x] Add CLI regression coverage for release install Sigstore gating options
-- [x] Design telemetry schema + correlation strategy for structured logging rollout _(telemetry module + CLI operation contexts shipped)_
-- [x] Draft UX spec for cleanup dry-run + confirmation workflow _(implemented directly in CLI with preview/confirmation flow)_
-- [x] Evaluate Sigstore tooling + release pipeline hooks for artifact attestation _(verification shipped; publishing pipeline follow-up pending)_
-- [ ] Backfill Sigstore bundles for historical releases (see ADR-0006 for implementation plan)
-- [x] Prototype analytics ingestion adapters against representative repositories
+- [ ] Finalise Sigstore backfill dry-run against staging artifacts, validate manifests, and document rollback.
+- [ ] Draft API auth ADR covering token formats, RBAC, and secret storage requirements.
+- [ ] Prototype OTEL span sampling knobs with CLI + API instrumentation smoke tests.
+- [ ] Document ingestion retention/metrics plan and update analytics configuration schema.
 
 ## Deliverables
-
-- [x] Frontier red team & gap analysis documentation (docs/explanation/frontier-red-team-gap-analysis.md)
-- [x] Strengthened release regression suite (tests/test_release.py)
-- [x] Structured logging instrumentation across CLI/release/cleanup (src/hephaestus/logging.py, tests/test_logging.py)
-- [x] Implementation PR for checksum verification + manifest management (includes Sigstore verification support)
-- [x] Cleanup safety UX spec & implementation plan _(dry-run preview + confirmation shipped)_
-- [x] Cleanup dry-run + audit manifest implementation (src/hephaestus/cleanup.py, src/hephaestus/cli.py, docs/how-to/operating-safely.md)
-- [x] CLI release install regression coverage for Sigstore gating (tests/test_cli.py)
-- [ ] Telemetry instrumentation plan + dashboards for guard-rail health
-- [x] Analytics ingestion module + regression coverage (`src/hephaestus/analytics.py`, `tests/test_analytics.py`, `tests/test_toolbox.py`)
+- 📄 Updated ADRs: 0002 (Marketplace), 0003 (Telemetry Sprint 4), 0004 (API Sprint 2+), 0005 (PyPI release), 0006 (Sigstore backfill execution).
+- 📦 Release candidate with enforced Sigstore backfill, drift gate, and telemetry exporters enabled by default.
+- 📊 Analytics observability dashboard (latency, acceptance rate, remediation outcomes).
+- 🔐 Authenticated API deployment guide with operational runbooks.
 
 ## Quality Gates
-
-- [x] Tests: `uv run pytest`
-- [x] Lint: `uv run ruff check .`
-- [x] Format: `uv run ruff check --select I . && uv run ruff format --check .`
-- [x] YAML Lint: `uv run yamllint -c .trunk/configs/.yamllint.yaml .github/ .pre-commit-config.yaml mkdocs.yml hephaestus-toolkit/`
-- [x] Types: `uv run mypy src tests`
-- [x] Nested Decorators: `python3 scripts/lint_nested_decorators.py src/hephaestus`
-- [ ] Security: `uv run pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (fails: SSL trust chain unavailable in container)
-- [x] Coverage ≥ 85% (enforced by pytest-cov)
-- [x] Build artefacts: `uv run uv build`
-
-**Comprehensive Validation:**
-
-Run all quality gates at once:
-
-```bash
-python3 scripts/validate_quality_gates.py
-```
-
-Or use the guard-rails command (includes cleanup + all checks):
-
-```bash
-uv run hephaestus guard-rails
-```
+- ✅ Test coverage ≥ 85% (current: 86.46%).
+- ✅ Lint (ruff), type-check (mypy), build (uv build) must pass pre-merge.
+- ⚠️ Pip-audit blocked by container SSL trust chain; mitigation tracked in Risks/Notes.
+- 🔄 OTEL sampling + Prometheus exporter to add latency/error SLOs before general release.
 
 ## Links
+- README overview refresh【F:README.md†L1-L120】
+- Frontier red-team gap analysis (updated)【F:docs/explanation/frontier-red-team-gap-analysis.md†L1-L200】
+- Sigstore & release automation code【F:src/hephaestus/release.py†L1-L200】
+- API service parity tests【F:tests/test_api.py†L1-L200】
 
-- Release helpers: src/hephaestus/release.py
-- Cleanup engine: src/hephaestus/cleanup.py
-- CLI entrypoint: src/hephaestus/cli.py
-- Logging utilities: src/hephaestus/logging.py
-- Regression suites: tests/test_release.py, tests/test_cleanup.py
-- Frontier analysis doc: docs/explanation/frontier-red-team-gap-analysis.md
-- Quality gate validator: scripts/validate_quality_gates.py
-- Nested decorator linter: scripts/lint_nested_decorators.py
+## Risks/Notes
+- Pip-audit fails due to missing trust anchor in the container; rerun once trust store is patched or proxy provided.
+- API lacks first-party auth; short-term mitigation relies on network isolation and short-lived tokens.
+- Telemetry exporters absent; downstream observability limited to logs until sampling/export landed.
+- Streaming ingestion stores snapshots in-memory; persistence is required before multi-tenant rollout.
 
-## Frontier Quality Standards
+## Gap Analysis Highlights
+- **Telemetry:** Command spans exist but sampling/export strategies remain manual; need Prometheus + OTLP exporters.
+- **Supply Chain:** Sigstore metadata ready but historical releases still require bundle backfill before GA.
+- **API Security:** FastAPI service lacks auth/RBAC; gRPC lacks channel credentials; need consistent secret rotation story.
+- **Analytics:** Streaming ingestion online yet retention + metrics missing; CLI/API should surface ingestion health and quotas.
+- **Ecosystem:** Plugin discovery resets state but marketplace semantics (versioning, dependency resolution) remain unsolved.
 
-This project enforces frontier-level quality standards through automated gates:
+## Red Team Observations
+- Attack simulations confirm guard-rails fail closed when tooling missing, but API endpoints still trust inbound requests implicitly.
+- Cleanup manifests deter destructive misuse; next escalation involves tampered Sigstore bundles—backfill execution and identity enforcement mitigate.
+- Drift remediation automation needs rate limits and audit trails to prevent runaway fixes triggered by noisy signals.
 
-### Code Quality
-
-- **Linting**: Ruff with strict configuration (E, F, I, UP, B, C4 rules)
-- **Formatting**: Ruff format with 100-character line length
-- **Type Safety**: Mypy strict mode with full coverage of src and tests
-- **Architecture**: Nested decorator linting prevents command registration bugs
-
-### Testing
-
-- **Coverage**: Minimum 85% test coverage enforced by pytest-cov
-- **Randomization**: pytest-randomly ensures test independence
-- **Warnings**: All warnings treated as errors to prevent degradation
-
-### Security
-
-- **Dependency Auditing**: pip-audit with strict mode in CI
-- **Dangerous Path Protection**: Cleanup command guards against data loss
-- **Release Verification**: SHA-256 checksums + Sigstore attestation support
-
-### Automation
-
-- **CI Pipeline**: All checks run on every PR and push to main
-- **Pre-commit Hooks**: Local validation before commits
-- **Guard Rails**: One-command validation via `hephaestus guard-rails`
-
-### Documentation
-
-- **Diátaxis Structure**: How-to guides, explanations, tutorials, reference
-- **Security Policy**: Published disclosure process and SLAs
-- **Threat Model**: STRIDE analysis documented in ADR
-- **Operating Safely**: Comprehensive operational runbooks
-
-## Risks / Notes
-
-- pip-audit currently blocked by SSL trust chain inside container; rerun in CI or with configured cert bundle
-- Attestation coverage: Backfill and enforce Sigstore bundles across historical releases to fully close the supply-chain risk
-- Telemetry backlog blocks observability-driven SLOs; prioritise instrumentation once logging design is ready
-- Monitor operator feedback on new cleanup preview/confirmation flow; extend with undo checkpoints if needed
-
-## Feature Proposals
-
-### 1. Intelligent planning & advisory layer
-
-- Adaptive rollout planner: Upgrade `planning.build_plan` to ingest real churn/coverage metrics and produce prioritised playbooks per repo slice, exporting to JSON for dashboards.
-- Risk radar service: Schedule periodic scans (via `toolbox`) that compute risk scores (coverage deltas, dependency drift) and publish to Ops targets (Slack, Grafana); surface alerts through the `plan` command.
-- Scenario simulation: Provide “what-if” CLI flags (`plan --simulate-new-thresholds`) to model policy changes before touching CI.
-
-### 2. Autonomic guard rails
-
-- Self-healing cleanup agents: Extend `cleanup.run_cleanup` to run in watch mode, auto-reverting risky files and emitting structured reports to CI/CD logs.
-- Policy-as-code bundles: Layer YAML policies on top of guard-rail runs (e.g., forbid certain dependency versions, enforce test naming) with evaluators that gate `guard-rails`.
-
-_Note: Drift reconciliation completed. Use `hephaestus guard-rails --drift` to compare current toolchain versions with golden versions and get remediation commands._
-
-### 3. AI-native workflows
-
-- Agent SDK: Package Typer command schemas plus expected outputs so external agents (Copilot, Cursor, Claude) can invoke Hephaestus safely with predictable prompts and retry hints.
-
-_Note: Agent SDK and command schema export completed. Use `hephaestus schema` command and see `docs/how-to/ai-agent-integration.md` guide._
-
-- Code-mod rehearsal: Couple existing scripts with AI prompts to auto-generate candidate codemods, run dry-runs, and publish synthetic “before/after” diff bundles.
-
-### 4. Release intelligence & supply-chain hardening
-
-- Automated upgrade concierge: Use the existing TurboRepo monitor pattern for Python dependencies—detect vulnerable/outdated packages, open issues with reproduction scripts, and suggest minimal bump PR templates.
-
-_Note: Sigstore attestation verification completed (see ADR-0006 for backfill strategy)._
-
-### 5. Extensibility & ecosystem hooks
-
-- Multi-repo orchestration: Offer `hephaestus plan --workspace <dir>` to cascade analytics and guard rails across fleets, syncing results to a central datastore.
-
-_Note: Plugin architecture planned for Q2-Q3 2025 (see ADR-0002). OpenTelemetry spans planned for Q2 2025 (see ADR-0003)._
-
-### 6. Documentation & knowledge loop
-
-- Living Diátaxis sync: Auto-derive doc stubs from new CLI options/tests and update docs via a `hephaestus docs sync` command to keep instructions in lockstep.
-- Cross-tool tutorials: Generate “playbooks” combining cleanup, planning, release, and refactor scripts for common scenarios (e.g., “ship a refactor in a week”) with CLI commands and expected outputs.
-
-## 🔄 Next Steps
-
-### Immediate Priorities
-
-With all core infrastructure complete, the project is now in maintenance mode with planned future enhancements:
-
-1. **Sprint 2 (Next - Manual Execution Required)**:
-   - Backfill Sigstore bundles for historical releases (ADR-0006 - script ready, requires manual trigger)
-   - PyPI account registration and Trusted Publisher setup (ADR-0005 - workflow ready)
-2. **Sprint 3**: Complete PyPI publication launch (ADR-0005)
-3. **Sprint 4**: Implement OpenTelemetry advanced features (ADR-0003) and plugin marketplace (ADR-0002)
-4. **Future**: Deliver REST/gRPC API implementation (ADR-0004)
-
-### Decision Framework
-
-When prioritizing future features from the proposals above, consider:
-
-- **Impact**: How many users/workflows benefit?
-- **Effort**: Implementation complexity and maintenance burden
-- **Dependencies**: What foundational work is required?
-- **Community**: Is there external demand or contribution interest?
-
-Current recommendation: Focus on completing Sprint 2 manual prerequisites (Sigstore backfill execution, PyPI account setup) before starting Sprint 3 work.
-
-## ✅ Summary: Project Health & Readiness
-
-**Production-Ready Status**: The Hephaestus toolkit is **production-ready** with:
-
-- Comprehensive quality gates and automation
-- Security hardening and supply-chain verification
-- Complete documentation and AI integration
-- Robust testing (87%+ coverage, randomized, warnings-as-errors)
-- Operational excellence (cleanup safety, drift detection, structured logging)
-
-**Deferred Work is Optional Enhancement**: All remaining work items are **future enhancements** with:
-
-- Clear Architecture Decision Records (ADRs 0002, 0003, 0004)
-- Defined implementation phases and timelines
-- No blocking issues for current users
-
-**Recommendation**: The project can confidently serve as a reference implementation for:
-
-- CLI tooling best practices
-- AI agent integration patterns
-- Security-first development workflows
-- Diátaxis documentation structure
-- Comprehensive quality automation
-
----
-
-_For detailed implementation status, see [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)_
-_For frontier-level quality standards, see [docs/explanation/frontier-red-team-gap-analysis.md](docs/explanation/frontier-red-team-gap-analysis.md)_
+## Baseline Validation (current session)
+- ✅ `uv run --extra qa --extra dev pytest --cov=src` (345 passed, 4 skipped, 86.46% coverage)【2bb7ae†L1-L34】
+- ✅ `uv run --extra qa --extra dev ruff check .`【34de62†L1-L2】
+- ✅ `uv run --extra qa --extra dev mypy src tests`【06ed06†L1-L2】
+- ⚠️ `uv run --extra qa --extra dev pip-audit` (fails: SSL certificate verification error against pypi.org)【e8840c†L1-L41】
+- ✅ `uv build`【18f179†L1-L4】
