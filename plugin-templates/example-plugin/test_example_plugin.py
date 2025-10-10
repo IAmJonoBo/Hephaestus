@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from hephaestus.plugins import PluginMetadata, PluginResult
-
 from example_plugin import ExamplePlugin
+
+from hephaestus.plugins import PluginMetadata, PluginResult
 
 
 def test_plugin_metadata() -> None:
