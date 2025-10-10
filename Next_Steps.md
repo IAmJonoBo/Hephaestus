@@ -13,7 +13,7 @@ Last updated: 2025-10-12 (Marketplace sandbox hardening and formatting baseline 
   - [⚠️] Unblock SSL trust chain for pip-audit in constrained environments
   - [x] Relocate curated plugin artefacts inside the registry sandbox and update manifests/tests
 
-## Steps
+## Upcoming Steps
 
 - [x] Design marketplace manifest schema covering compatibility, dependencies, and signature/trust metadata.
 - [x] Author integration tests for marketplace manifest loading and telemetry before implementing loader changes.

@@ -104,8 +104,8 @@ fi
 # Check 8: Validate setup-uv usage
 print_status "Checking setup-uv configurations..."
 MISSING_PYTHON=$(grep -l "setup-uv@v" .github/workflows/*.yml | while read -r file; do
-  if ! grep -q "python-version" "$file"; then
-    echo "$file"
+  if ! grep -q "python-version" "${file}"; then
+    echo "${file}"
   fi
 done)
 if [[ -n ${MISSING_PYTHON} ]]; then

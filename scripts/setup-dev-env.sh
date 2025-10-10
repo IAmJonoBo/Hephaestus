@@ -166,7 +166,7 @@ if [[ ${OSTYPE} == "darwin"* ]]; then
 fi
 
 # Step 2.6: Configure UV for macOS compatibility
-if [[ $OSTYPE == "darwin"* ]]; then
+if [[ ${OSTYPE} == "darwin"* ]]; then
   print_status "Configuring UV for macOS..."
 
   # Prevent reflink issues on cross-filesystem operations
@@ -254,7 +254,7 @@ else
   print_error "Failed to sync dependencies"
 
   # If on macOS and failed, suggest additional cleanup
-  if [[ $OSTYPE == "darwin"* ]]; then
+  if [[ ${OSTYPE} == "darwin"* ]]; then
     print_warning "macOS detected - trying additional cleanup..."
 
     # Strip xattrs from cache

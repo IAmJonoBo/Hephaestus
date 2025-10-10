@@ -259,7 +259,9 @@ def test_ensure_marketplace_dependencies_enforces_python_packages(
             _make_manifest(
                 tmp_path,
                 dependencies=(
-                    MarketplaceDependency(kind="python", name="packaging", version=">=24"),
+                    MarketplaceDependency(
+                        kind="python", name="packaging", version=">=24"
+                    ),
                 ),
             ),
             resolved_plugins={"example-plugin"},

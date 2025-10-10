@@ -852,6 +852,8 @@ def _verify_marketplace_signature(
         raise ValueError(message)
 
     bundle_path = manifest.signature_bundle
+    payload = None
+    expected_digest = None  # Ensure expected_digest is always defined
     if bundle_path is None:
         if trust_policy.require_signature:
             _fail(
@@ -884,7 +886,8 @@ def _verify_marketplace_signature(
             f"Marketplace plugin {manifest.name!r} signature bundle structure was invalid.",
         )
 
-    message_signature = payload.get("messageSignature", {})
+    # Ensure payload is a dict before accessing 'get'
+    message_signature = payload.get("messageSignature", {}) if payload is not None else {}
     if not isinstance(message_signature, dict):
         _fail(
             "missing-messageSignature",
@@ -912,9 +915,22 @@ def _verify_marketplace_signature(
             f"Marketplace plugin {manifest.name!r} signature bundle missing digest value.",
         )
 
+    if not isinstance(digest_value, str) or not digest_value:
+        _fail(
+            "missing-digest-value",
+            f"Marketplace plugin {manifest.name!r} signature bundle missing digest value.",
+        )
+    if not isinstance(digest_value, str):
+        _fail(
+            "invalid-digest-type",
+            f"Marketplace plugin {manifest.name!r} signature bundle digest value is not a string.",
+        )
     try:
+        if not isinstance(digest_value, str):
+            raise TypeError("Digest value must be a string for base64 decoding.")
         expected_digest = base64.b64decode(digest_value).hex()
     except Exception as exc:
+        expected_digest = None
         _fail(
             "invalid-digest-encoding",
             f"Marketplace plugin {manifest.name!r} signature bundle digest was not valid base64.",
@@ -922,24 +938,23 @@ def _verify_marketplace_signature(
         )
 
     artifact_path = manifest.artifact_path()
-    if not artifact_path.is_file():
+    if not artifact_path.exists():
         _fail(
             "missing-artifact",
-            (
-                f"Marketplace plugin {manifest.name!r} entrypoint"
-                f" {artifact_path} is not a regular file."
-            ),
+            f"Marketplace plugin {manifest.name!r} entrypoint {artifact_path} does not exist.",
         )
 
     actual_digest = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
-    if actual_digest != expected_digest:
+    if expected_digest is None or actual_digest != expected_digest:
         _fail(
             "digest-mismatch",
             f"Marketplace plugin {manifest.name!r} signature digest mismatch.",
         )
 
     identities: list[str] = []
-    verification_material = payload.get("verificationMaterial", {})
+    verification_material = {}
+    if isinstance(payload, dict):
+        verification_material = payload.get("verificationMaterial", {})
     if isinstance(verification_material, dict):
         raw_identities = verification_material.get("identities", [])
         if isinstance(raw_identities, list):

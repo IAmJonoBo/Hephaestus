@@ -14,17 +14,22 @@ from rich.table import Table
 
 from hephaestus import (
     __version__,
-    cleanup as cleanup_module,
-    drift as drift_module,
-    events as telemetry,
-    logging as logging_utils,
-    planning as planning_module,
-    release as release_module,
+)
+from hephaestus import cleanup as cleanup_module
+from hephaestus import drift as drift_module
+from hephaestus import events as telemetry
+from hephaestus import logging as logging_utils
+from hephaestus import planning as planning_module
+from hephaestus import release as release_module
+from hephaestus import (
     resource_forks,
-    schema as schema_module,
+)
+from hephaestus import schema as schema_module
+from hephaestus import (
     toolbox,
 )
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
+from hephaestus.command_helpers import build_pip_audit_command
 from hephaestus.logging import LogFormat
 from hephaestus.telemetry import record_histogram, trace_command, trace_operation
 
@@ -1161,7 +1166,7 @@ def _run_drift_detection(*, auto_remediate: bool = False) -> None:
 def _run_guard_rails_plugin_mode(no_format: bool) -> bool:  # NOSONAR(S3776)
     """Run experimental plugin-based pipeline. Returns True if completed, False to fall back."""
     console.print("[cyan]Running guard rails using plugin system (experimental)...[/cyan]")
-    from hephaestus.plugins import discover_plugins, execute_plugin
+    from hephaestus.plugins import discover_plugins
 
     try:
         import time
@@ -1197,7 +1202,7 @@ def _run_guard_rails_plugin_mode(no_format: bool) -> bool:  # NOSONAR(S3776)
             start_time = time.perf_counter()
 
             try:
-                result = execute_plugin(plugin, {})
+                result = plugin.run({})
                 record_histogram(
                     "hephaestus.guard_rails.plugin.duration",
                     time.perf_counter() - start_time,
@@ -1350,14 +1355,10 @@ def _run_guard_rails_standard(no_format: bool) -> None:  # NOSONAR(S3776)
         # Step 7: pip-audit
         console.print("[cyan]→ Running pip-audit...[/cyan]")
         subprocess.run(
-            [
-                "uv",
-                "run",
-                "pip-audit",
-                "--strict",
-                "--ignore-vuln",
-                "GHSA-4xh5-x5gv-qwph",
-            ],
+            build_pip_audit_command(
+                ignore_vulns=["GHSA-4xh5-x5gv-qwph"],
+                prefer_uv_run=True,
+            ),
             check=True,
         )
         record_histogram(
