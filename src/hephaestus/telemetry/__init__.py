@@ -186,6 +186,7 @@ __all__ = [
     "record_counter",
     "record_gauge",
     "record_histogram",
+    "DEFAULT_TRACE_SAMPLER_RATIO",
 ]
 
 # Re-export event definitions for backwards compatibility with the legacy module.
@@ -233,6 +234,64 @@ def get_tracer(name: str) -> Any:
     return otel_trace.get_tracer(name)
 
 
+DEFAULT_TRACE_SAMPLER_RATIO = 0.2
+DEFAULT_TRACE_SAMPLER = "parentbased_traceidratio"
+
+
+def _coerce_ratio(value: str | None) -> float:
+    try:
+        ratio = float(value) if value is not None else DEFAULT_TRACE_SAMPLER_RATIO
+    except ValueError:
+        return DEFAULT_TRACE_SAMPLER_RATIO
+    return min(max(ratio, 0.0), 1.0)
+
+
+def _load_sampling_module(sdk_trace: Any) -> Any | None:
+    sampling = getattr(sdk_trace, "sampling", None)
+    if sampling is not None:
+        return sampling
+    try:
+        return importlib.import_module("opentelemetry.sdk.trace.sampling")
+    except ImportError:
+        return None
+
+
+def _build_sampler(sdk_trace: Any) -> Any | None:
+    sampling = _load_sampling_module(sdk_trace)
+    if sampling is None:
+        return None
+
+    sampler_name = os.getenv("OTEL_TRACES_SAMPLER", DEFAULT_TRACE_SAMPLER).lower()
+    sampler_arg = os.getenv("OTEL_TRACES_SAMPLER_ARG")
+
+    match sampler_name:
+        case "always_on":
+            return getattr(sampling, "ALWAYS_ON", None)
+        case "always_off":
+            return getattr(sampling, "ALWAYS_OFF", None)
+        case "traceidratio":
+            ratio = _coerce_ratio(sampler_arg)
+            if hasattr(sampling, "TraceIdRatioBased"):
+                return sampling.TraceIdRatioBased(ratio)
+        case "parentbased_always_on":
+            parent = getattr(sampling, "ALWAYS_ON", None)
+            if parent is not None and hasattr(sampling, "ParentBased"):
+                return sampling.ParentBased(parent)
+        case "parentbased_always_off":
+            parent = getattr(sampling, "ALWAYS_OFF", None)
+            if parent is not None and hasattr(sampling, "ParentBased"):
+                return sampling.ParentBased(parent)
+        case "parentbased_traceidratio" | "parentbased":
+            if hasattr(sampling, "ParentBased") and hasattr(sampling, "TraceIdRatioBased"):
+                ratio = _coerce_ratio(sampler_arg)
+                return sampling.ParentBased(sampling.TraceIdRatioBased(ratio))
+
+    # Fallback: parentbased traceidratio using default ratio when available.
+    if hasattr(sampling, "ParentBased") and hasattr(sampling, "TraceIdRatioBased"):
+        return sampling.ParentBased(sampling.TraceIdRatioBased(DEFAULT_TRACE_SAMPLER_RATIO))
+    return getattr(sampling, "ALWAYS_ON", None)
+
+
 def configure_telemetry() -> None:
     """Initialize OpenTelemetry providers and exporters."""
 
@@ -268,7 +327,12 @@ def configure_telemetry() -> None:
     service_name = os.getenv("OTEL_SERVICE_NAME", "hephaestus")
     resource = resource_cls(attributes={service_name_attr: service_name})
 
-    provider = tracer_provider_cls(resource=resource)
+    sampler = _build_sampler(sdk_trace)
+
+    if sampler is not None:
+        provider = tracer_provider_cls(resource=resource, sampler=sampler)
+    else:
+        provider = tracer_provider_cls(resource=resource)
 
     endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
     if endpoint:
@@ -276,6 +340,15 @@ def configure_telemetry() -> None:
         provider.add_span_processor(batch_span_processor_cls(otlp_exporter))
 
     otel_trace.set_tracer_provider(provider)
+
+    try:
+        metrics_mod = importlib.import_module("hephaestus.telemetry.metrics")
+    except ImportError:  # pragma: no cover - defensive: metrics module missing in deployment
+        return
+
+    configure_metrics = getattr(metrics_mod, "configure_metrics", None)
+    if callable(configure_metrics):  # pragma: no branch - simple guard
+        configure_metrics(resource)
 
 
 class _NoOpTracer:

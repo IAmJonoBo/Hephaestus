@@ -11,44 +11,31 @@ Hephaestus is a standalone developer toolkit that helps engineering teams priori
 
 ## ✨ Key Features
 
-- **🛡️ Guard Rails**: One-command quality pipeline (lint, format, type-check, test, audit)
-- **📊 Analytics-Driven Rankings**: Data-backed prioritization for refactoring work
-- **🤖 AI-Native**: Export command schemas for seamless AI agent integration
-- **🔒 Safety First**: Dangerous path protection, dry-run previews, audit manifests
-- **🔍 Drift Detection**: Automatic environment validation and remediation
-- **📦 Secure Release**: SHA-256 verification and Sigstore attestation support
-- **📚 Comprehensive Docs**: Diátaxis-structured guides for every use case
-- **🔌 Plugin Architecture**: Extensible quality gates via plugin API (Phase 1)
-- **📈 Observability**: Optional OpenTelemetry integration for tracing (Phase 1)
-- **🌐 REST API**: Remote invocation support via OpenAPI spec (Phase 1)
+- **🛡️ Guard Rails with Auto-Remediation**: Run lint, format, type-check, tests, security scans, and optional drift fixes from a single command.
+- **📊 Analytics & Streaming Ingestion**: Prioritise refactoring with risk-aware rankings backed by churn, coverage, embedding feeds, or live NDJSON ingestion.
+- **🤖 AI-Native Workflows**: Export structured command schemas and telemetry so agents can reason over plans, guard-rails, and remediation manifests.
+- **🔌 Plugin Architecture**: Discover built-in and custom quality gate plugins with registry resets, capability introspection, and fail-closed execution.
+- **🌐 Remote Automation**: FastAPI + gRPC services share a hardened execution engine for guard-rails, cleanup, analytics, and remediation across fleets.
+- **📈 Observability with OpenTelemetry**: Optional tracing instruments CLI, API, and remediation commands with typed fallbacks when disabled.
+- **🔒 Supply-Chain Hardening**: Mandatory SHA-256 manifests, Sigstore bundle verification, and drift detection in CI pipelines.
+- **📚 Operator-Grade Docs**: Diátaxis documentation with safety playbooks, AI integration guides, and red-team assessments.
 
 ## 🎯 What's New in 0.3.0 (Unreleased)
 
-### Architectural Foundations (Phase 1 Implementations)
+### Release Candidate Enhancements (Phase 2 Implementations)
 
-- **Plugin Architecture (ADR-0002)**: Extensible plugin system for custom quality gates
-  - `QualityGatePlugin` base class and registry
-  - Plugin metadata and result schemas
-  - Foundation for future plugin discovery and built-in plugins
-- **OpenTelemetry Integration (ADR-0003)**: Optional distributed tracing support
-  - Environment-based configuration (`HEPHAESTUS_TELEMETRY_ENABLED`)
-  - No-op tracer fallback for graceful degradation
-  - Ready for Phase 2 command instrumentation
-- **REST API (ADR-0004)**: Remote invocation via OpenAPI specification
-  - Complete OpenAPI 3.0 spec for quality gates, cleanup, analytics
-  - Module structure for future FastAPI implementation
-  - Foundation for AI agent integration and dashboards
-- **Sigstore Backfill (ADR-0006)**: Metadata schema for historical releases
-  - `BackfillMetadata` dataclass with JSON serialization
-  - Verification status constants for transparency
-  - Ready for Phase 2 backfill execution
+- **Plugin Architecture (ADR-0002)**: Discovery now resets registries, honours disabled built-ins, and exposes capability metadata for AI consumers.
+- **OpenTelemetry Integration (ADR-0003)**: Command instrumentation captures guard-rails, cleanup, analytics, and remediation spans with graceful no-op fallbacks.
+- **REST & gRPC APIs (ADR-0004)**: FastAPI implementation, client-streaming gRPC analytics ingestion, shared task orchestration, and auto-remediation parity across surfaces.
+- **Sigstore Backfill (ADR-0006)**: Backfill tooling is execution-ready with bundle manifests, CLI integration, and release gating options.
+- **Advanced Remediation Automation**: Drift detection can trigger targeted fixes, emit remediation telemetry, and surface manifests through CLI/API responses.
+- **Streaming Analytics**: Shared ingestor accepts NDJSON over REST or gRPC, snapshots submissions for rankings, and exposes deterministic test hooks.
 
-### Module Reorganization
+### Operational Hardening
 
-- Renamed `telemetry.py` to `events.py` for clarity
-- New `telemetry/` package for OpenTelemetry integration
-- New `plugins/` package for quality gate plugins
-- New `api/` package for REST/gRPC endpoints
+- Refreshed telemetry shims with typed no-op fallbacks and cached module resolution.
+- Guard-rails services fail closed when required tooling is absent and surface actionable remediation.
+- CI pipelines enforce drift detection, coverage ≥ 85%, lint/type gates, and release build validation.
 
 ## 🎯 What's New in 0.2.0
 

@@ -769,7 +769,7 @@ If you've found a bug:
 For security vulnerabilities, **do not open a public issue**. Instead:
 
 - Follow [SECURITY.md](../../SECURITY.md) disclosure process
-- Email: opensource@hephaestus.dev
+- Email: <opensource@hephaestus.dev>
 - Include details and impact assessment
 
 ## Quick Reference

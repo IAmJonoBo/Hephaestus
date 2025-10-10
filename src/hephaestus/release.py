@@ -24,14 +24,14 @@ import urllib.request
 from collections.abc import Sequence
 from dataclasses import dataclass
 from fnmatch import fnmatch
+from functools import lru_cache
 from pathlib import Path, PurePosixPath
-from typing import IO, cast
+from typing import IO, Any, cast
 
 from cryptography import x509
 from cryptography.x509.oid import ExtensionOID
 
-from hephaestus import events as telemetry
-from hephaestus import resource_forks
+from hephaestus import events as telemetry, resource_forks
 from hephaestus.logging import log_context
 
 __all__ = [
@@ -77,6 +77,10 @@ _GITHUB_TOKEN_PATTERNS = (
 
 DEFAULT_TIMEOUT = 10.0
 DEFAULT_MAX_RETRIES = 3
+
+
+_SIGSTORE_INVENTORY_ENV = "HEPHAESTUS_SIGSTORE_INVENTORY"
+_DEFAULT_SIGSTORE_INVENTORY = Path("ops/attestations/sigstore-inventory.json")
 
 
 logger = logging.getLogger(__name__)
@@ -170,6 +174,76 @@ def _sanitize_asset_name(name: str) -> str:
         )
 
     return candidate
+
+
+@lru_cache(maxsize=1)
+def _load_sigstore_inventory(path: str | Path | None = None) -> dict[str, Any]:
+    """Load the Sigstore inventory mapping version tags to bundle metadata."""
+
+    if path is not None:
+        raw_path = path
+    else:
+        raw_path = os.environ.get(_SIGSTORE_INVENTORY_ENV) or _DEFAULT_SIGSTORE_INVENTORY
+
+    resolved = Path(raw_path)
+    if not resolved.exists():
+        return {}
+
+    try:
+        with resolved.open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except json.JSONDecodeError as exc:
+        raise ReleaseError(
+            f"Sigstore inventory at {resolved} is not valid JSON; rerun the backfill workflow."
+        ) from exc
+
+    versions = payload.get("versions")
+    if not isinstance(versions, dict):
+        return {}
+
+    return {str(key): value for key, value in versions.items() if isinstance(value, dict)}
+
+
+def _resolve_inventory_entry(tag: str, inventory: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the inventory entry for *tag* (accepting optional ``v`` prefix)."""
+
+    if not tag:
+        return None
+
+    entry = inventory.get(tag)
+    if isinstance(entry, dict):
+        return entry
+
+    if tag.startswith("v"):
+        alternate = inventory.get(tag[1:])
+        if isinstance(alternate, dict):
+            return alternate
+
+    return None
+
+
+def _asset_from_inventory(
+    entry: dict[str, Any],
+    default_name: str,
+) -> ReleaseAsset | None:
+    """Construct a ``ReleaseAsset`` from inventory metadata when possible."""
+
+    bundle_info = entry.get("bundle")
+    if not isinstance(bundle_info, dict):
+        return None
+
+    download_url = bundle_info.get("url")
+    if not download_url:
+        return None
+
+    name = bundle_info.get("name") or f"{default_name}.sigstore"
+    size = int(bundle_info.get("size") or 0)
+
+    return ReleaseAsset(
+        name=_sanitize_asset_name(name),
+        download_url=str(download_url),
+        size=size,
+    )
 
 
 def _sanitize_release_path(root: Path, *, action: str) -> None:
@@ -749,6 +823,8 @@ def download_wheelhouse(
     extract_dir = options.extract_dir
     timeout = options.timeout
     max_retries = options.max_retries
+    release_tag = ""
+    inventory_entry: dict[str, Any] | None = None
 
     if allow_unsigned and require_sigstore:
         raise ReleaseError(
@@ -770,6 +846,16 @@ def download_wheelhouse(
             timeout=timeout,
             max_retries=max_retries,
         )
+        release_tag = str(release_data.get("tag_name") or tag or "")
+        try:
+            inventory_entry = _resolve_inventory_entry(
+                release_tag,
+                _load_sigstore_inventory(),
+            )
+        except ReleaseError:
+            if require_sigstore:
+                raise
+            inventory_entry = None
         asset = _pick_asset(release_data, asset_pattern)
         telemetry.emit_event(
             logger,
@@ -852,6 +938,22 @@ def download_wheelhouse(
             raise ReleaseError(f"Checksum manifest does not include an entry for {asset.name!r}.")
 
         actual_digest = _hash_file(archive_path)
+        if inventory_entry:
+            checksum_info = inventory_entry.get("checksum", {})
+            recorded_digest = (
+                checksum_info.get("expected")
+                or checksum_info.get("value")
+                or inventory_entry.get("archive", {}).get("sha256")
+            )
+            if recorded_digest and recorded_digest != actual_digest:
+                raise ReleaseError(
+                    "Sigstore inventory digest mismatch; release artefact does not match recorded checksum."
+                )
+            if require_sigstore and checksum_info:
+                if not bool(checksum_info.get("verified")):
+                    raise ReleaseError(
+                        "Sigstore inventory reports checksum verification failure for this release."
+                    )
         if actual_digest != expected_digest:
             raise ReleaseError(
                 "Checksum verification failed for asset "
@@ -866,6 +968,13 @@ def download_wheelhouse(
             digest=actual_digest,
         )
 
+        sigstore_inventory_asset: ReleaseAsset | None = None
+        if inventory_entry:
+            sigstore_inventory_asset = _asset_from_inventory(inventory_entry, asset.name)
+
+        sigstore_asset: ReleaseAsset | None = None
+        sigstore_source = "release"
+
         if sigstore_bundle_pattern is not None:
             telemetry.emit_event(
                 logger,
@@ -876,52 +985,73 @@ def download_wheelhouse(
             try:
                 sigstore_asset = _pick_asset(release_data, sigstore_bundle_pattern)
             except ReleaseError as exc:
-                if require_sigstore:
-                    raise ReleaseError(
-                        "Sigstore attestation required but not found; rerun with --allow-unsigned "
-                        "if you explicitly trust the source."
-                    ) from exc
-                telemetry.emit_event(
-                    logger,
-                    telemetry.RELEASE_SIGSTORE_MISSING,
-                    level=logging.WARNING,
-                    message=(
-                        "Sigstore bundle not published for this release; continuing after checksum "
-                        "verification."
-                    ),
-                    pattern=sigstore_bundle_pattern,
-                )
+                sigstore_error = exc
+                if sigstore_inventory_asset is not None:
+                    sigstore_asset = sigstore_inventory_asset
+                    sigstore_source = "inventory"
+                else:
+                    if require_sigstore:
+                        raise ReleaseError(
+                            "Sigstore attestation required but not found; rerun with --allow-unsigned "
+                            "if you explicitly trust the source or re-run the backfill workflow."
+                        ) from sigstore_error
+                    telemetry.emit_event(
+                        logger,
+                        telemetry.RELEASE_SIGSTORE_MISSING,
+                        level=logging.WARNING,
+                        message=(
+                            "Sigstore bundle not published for this release; continuing after checksum "
+                            "verification."
+                        ),
+                        pattern=sigstore_bundle_pattern,
+                    )
             else:
-                sigstore_path = destination_dir / sigstore_asset.name
-                telemetry.emit_event(
-                    logger,
-                    telemetry.RELEASE_SIGSTORE_DOWNLOAD,
-                    message=f"Downloading Sigstore bundle to {sigstore_path}",
-                    bundle=sigstore_asset.name,
-                    destination=str(sigstore_path),
+                sigstore_source = "release"
+        elif require_sigstore:
+            if sigstore_inventory_asset is None:
+                raise ReleaseError(
+                    "Sigstore attestation required but no bundle metadata found in the inventory; "
+                    "rerun the sigstore-backfill workflow."
                 )
-                _download_asset(
-                    sigstore_asset,
-                    sigstore_path,
-                    token,
-                    overwrite=True,
-                    timeout=timeout,
-                    max_retries=max_retries,
-                )
+            sigstore_asset = sigstore_inventory_asset
+            sigstore_source = "inventory"
 
-                verification = _verify_sigstore_bundle(
-                    sigstore_path,
-                    archive_path,
-                    identity_patterns=sigstore_identities,
-                )
-                telemetry.emit_event(
-                    logger,
-                    telemetry.RELEASE_SIGSTORE_VERIFIED,
-                    message="Sigstore attestation verified",
-                    subject=verification.certificate_subject,
-                    issuer=verification.certificate_issuer,
-                    identities=list(verification.identities),
-                )
+        if sigstore_asset is not None:
+            sigstore_path = destination_dir / sigstore_asset.name
+            telemetry.emit_event(
+                logger,
+                telemetry.RELEASE_SIGSTORE_DOWNLOAD,
+                message=(
+                    f"Downloading Sigstore bundle ({sigstore_source}) to {sigstore_path}"
+                ),
+                bundle=sigstore_asset.name,
+                destination=str(sigstore_path),
+            )
+            _download_asset(
+                sigstore_asset,
+                sigstore_path,
+                token,
+                overwrite=True,
+                timeout=timeout,
+                max_retries=max_retries,
+            )
+
+            verification = _verify_sigstore_bundle(
+                sigstore_path,
+                archive_path,
+                identity_patterns=sigstore_identities,
+            )
+            telemetry.emit_event(
+                logger,
+                telemetry.RELEASE_SIGSTORE_VERIFIED,
+                message=(
+                    "Sigstore attestation verified"
+                    f" using {sigstore_source} metadata"
+                ),
+                subject=verification.certificate_subject,
+                issuer=verification.certificate_issuer,
+                identities=list(verification.identities),
+            )
         elif require_sigstore:
             raise ReleaseError("Sigstore attestation required but no bundle pattern was provided.")
     else:

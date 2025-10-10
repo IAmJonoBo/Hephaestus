@@ -1,0 +1,164 @@
+:root {
+    --font-family-sans:
+        "Inter", "Inter var", -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    --sl-text-5xl: clamp(2.75rem, 6vw, 4.25rem);
+}
+
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/inter/v13/UcCO3FwrKJGXSf.ttf")
+        format("truetype");
+}
+
+body {
+    font-family: var(--font-family-sans);
+    font-feature-settings:
+        "ss01",
+        "ss02",
+        "tnum" 1;
+}
+
+:root[data-theme="dark"] {
+    --sl-color-bg: oklch(0.14 0.02 240);
+    --sl-color-bg-nav: var(--sl-color-bg);
+    --sl-color-bg-sidebar: color-mix(
+        in oklch,
+        var(--sl-color-bg) 85%,
+        var(--sl-color-accent-low) 15%
+    );
+    --sl-color-text: oklch(0.92 0.02 240);
+    --sl-color-gray-6: oklch(0.55 0.02 240);
+    --sl-color-gray-5: oklch(0.35 0.02 240);
+    --sl-color-accent-low: oklch(0.35 0.09 180);
+    --sl-color-accent: oklch(0.7 0.15 180);
+    --sl-color-accent-high: oklch(0.87 0.06 180);
+    --sl-border-radius: 12px;
+    --sl-content-width: 72rem;
+}
+
+:root[data-theme="light"] {
+    --sl-color-bg: oklch(0.96 0.02 240);
+    --sl-color-text: oklch(0.15 0.02 240);
+    --sl-color-gray-6: oklch(0.5 0.02 240);
+    --sl-color-gray-5: oklch(0.75 0.02 240);
+    --sl-color-accent-low: oklch(0.88 0.08 180);
+    --sl-color-accent: oklch(0.6 0.15 180);
+    --sl-color-accent-high: oklch(0.45 0.1 180);
+    --sl-border-radius: 12px;
+    --sl-content-width: 72rem;
+}
+
+.hero {
+    padding: 8rem 0 3rem;
+}
+
+.hero h1 {
+    line-height: 1.05;
+    margin: 0 0 1rem;
+}
+
+.hero .lede {
+    color: var(--sl-color-gray-6);
+    max-width: 48ch;
+}
+
+.hero .cta {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.9rem 1.1rem;
+    border-radius: 12px;
+    background: var(--sl-color-accent);
+    color: black;
+    font-weight: 600;
+    box-shadow: 0 20px 60px
+        color-mix(in oklch, var(--sl-color-accent) 35%, transparent);
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.hero .cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 30px 80px
+        color-mix(in oklch, var(--sl-color-accent) 45%, transparent);
+}
+
+.solutions-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.solutions-grid .card {
+    padding: 1.25rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 12px;
+    background: color-mix(
+        in oklch,
+        var(--sl-color-bg) 90%,
+        var(--sl-color-accent-low) 10%
+    );
+    transition:
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.solutions-grid .card:hover {
+    border-color: var(--sl-color-accent);
+    transform: translateY(-2px);
+}
+
+.solutions-grid .card h3 {
+    margin: 0 0 0.25rem;
+    font-size: 1.25rem;
+}
+
+.solutions-grid .card p {
+    margin: 0;
+    color: var(--sl-color-gray-6);
+}
+
+.value-drivers {
+    margin-top: 4rem;
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.value-drivers details {
+    border-radius: 12px;
+    border: 1px solid
+        color-mix(in oklch, var(--sl-color-accent-low) 20%, transparent);
+    padding: 1.25rem 1.5rem;
+    background: color-mix(
+        in oklch,
+        var(--sl-color-bg) 80%,
+        var(--sl-color-accent-low) 20%
+    );
+}
+
+.value-drivers summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+@media (max-width: 960px) {
+    .hero {
+        padding: 5rem 0 2rem;
+    }
+
+    .solutions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .value-drivers {
+        grid-template-columns: 1fr;
+    }
+}

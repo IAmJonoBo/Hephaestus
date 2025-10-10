@@ -628,6 +628,36 @@ def test_guard_rails_drift_mode_no_drift() -> None:
         drift_mod.detect_drift = original_detect
 
 
+def test_guard_rails_drift_mode_auto_remediate(monkeypatch: pytest.MonkeyPatch) -> None:
+    """guard-rails --drift --auto-remediate should execute remediation commands."""
+
+    _, cli = _load_modules()
+    from hephaestus.drift import ToolVersion
+
+    def _fake_detect(_path: Path | None = None) -> list[ToolVersion]:
+        return [ToolVersion(name="ruff", expected="0.14.0", actual="0.13.0")]
+
+    class _Result:
+        command = "uv sync"
+        exit_code = 0
+        stdout = "synced"
+        stderr = ""
+
+    def _fake_apply(commands: list[str]) -> list[Any]:
+        assert commands
+        return [_Result()]
+
+    import hephaestus.drift as drift_mod
+
+    monkeypatch.setattr(drift_mod, "detect_drift", _fake_detect)
+    monkeypatch.setattr(drift_mod, "apply_remediation_commands", _fake_apply)
+
+    result = runner.invoke(cli.app, ["guard-rails", "--drift", "--auto-remediate"])
+
+    assert result.exit_code == 0
+    assert "Applied remediation" in result.stdout
+
+
 def test_refactor_opportunities_command() -> None:
     """Test refactor opportunities command."""
     _, cli = _load_modules()

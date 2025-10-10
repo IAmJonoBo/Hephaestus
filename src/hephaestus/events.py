@@ -20,6 +20,7 @@ __all__ = [
     "generate_run_id",
     "generate_operation_id",
     # Event definitions
+    "API_AUDIT_EVENT",
     "CLI_CLEANUP_START",
     "CLI_CLEANUP_COMPLETE",
     "CLI_CLEANUP_FAILED",
@@ -194,6 +195,17 @@ def emit_event(
     log_event(logger, event.name, level=level, message=message, **payload)
 
 
+# API telemetry events
+API_AUDIT_EVENT = _register(
+    TelemetryEvent(
+        "api.audit",
+        "Audit log emitted from REST or gRPC API surfaces.",
+        required_fields=("principal", "operation", "status", "key_id"),
+        optional_fields=("parameters", "outcome", "protocol"),
+    )
+)
+
+
 # CLI telemetry events
 CLI_CLEANUP_START = _register(
     TelemetryEvent(
@@ -267,6 +279,14 @@ CLI_GUARD_RAILS_DRIFT_OK = _register(
     TelemetryEvent(
         "cli.guard-rails.drift.ok",
         "No tool version drift detected.",
+    )
+)
+
+CLI_GUARD_RAILS_REMEDIATED = _register(
+    TelemetryEvent(
+        "cli.guard-rails.drift.remediated",
+        "Tool version drift remediated automatically.",
+        required_fields=("commands",),
     )
 )
 

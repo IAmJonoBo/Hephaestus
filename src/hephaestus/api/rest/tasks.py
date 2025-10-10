@@ -1,15 +1,13 @@
-"""Async task management for long-running operations."""
-
 from __future__ import annotations
 
 import asyncio
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
@@ -29,6 +27,10 @@ class TaskStatus(Enum):
     FAILED = "failed"
 
 
+if TYPE_CHECKING:  # pragma: no cover - import for typing only
+    from hephaestus.api.auth import AuthenticatedPrincipal
+
+
 @dataclass
 class Task:
     """Represents an async task."""
@@ -42,6 +44,8 @@ class Task:
     created_at: float = field(default_factory=time.time)
     completed_at: float | None = None
     handle: asyncio.Task[Any] | None = field(default=None, repr=False)
+    principal_id: str | None = None
+    required_roles: frozenset[str] = field(default_factory=frozenset)
 
 
 class TaskManager:
@@ -62,6 +66,8 @@ class TaskManager:
         func: Callable[..., Any],
         *args: Any,
         timeout: float | None = DEFAULT_TASK_TIMEOUT,
+        principal: "AuthenticatedPrincipal" | None = None,  # noqa: UP037
+        required_roles: Iterable[str] | None = None,
         **kwargs: Any,
     ) -> str:
         """Create and start a new async task.
@@ -71,6 +77,8 @@ class TaskManager:
             func: Async function to execute
             *args: Positional arguments for func
             timeout: Task timeout in seconds (None for no timeout)
+            principal: Authenticated principal initiating the task
+            required_roles: Roles required to observe the task outcome
             **kwargs: Keyword arguments for func
 
         Returns:
@@ -91,13 +99,19 @@ class TaskManager:
                 raise ValueError(f"Maximum number of tasks ({self._max_tasks}) exceeded")
 
         task_id = str(uuid4())
+        role_set = frozenset(required_roles or ())
         task = Task(
             id=task_id,
             name=name,
             status=TaskStatus.PENDING,
             progress=0.0,
+            principal_id=principal.principal if principal else None,
+            required_roles=role_set,
         )
         self._tasks[task_id] = task
+
+        if principal is not None and "principal" not in kwargs:
+            kwargs["principal"] = principal
 
         # Start task in background with timeout
         handle = asyncio.create_task(
@@ -178,22 +192,31 @@ class TaskManager:
             if task_id in self._tasks:
                 self._tasks[task_id].handle = None
 
-    async def get_task_status(self, task_id: str) -> Task:
+    async def get_task_status(
+        self,
+        task_id: str,
+        *,
+        principal: "AuthenticatedPrincipal" | None = None,  # noqa: UP037
+    ) -> Task:
         """Get status of a task.
 
         Args:
             task_id: Task identifier
+            principal: Principal requesting access
 
         Returns:
             Task object
 
         Raises:
             KeyError: If task not found
+            PermissionError: If principal lacks access
         """
         if task_id not in self._tasks:
             raise KeyError(f"Task {task_id} not found")
 
-        return self._tasks[task_id]
+        task = self._tasks[task_id]
+        self._ensure_access(task, principal)
+        return task
 
     async def update_progress(self, task_id: str, progress: float) -> None:
         """Update task progress.
@@ -217,8 +240,10 @@ class TaskManager:
     async def wait_for_completion(
         self,
         task_id: str,
+        *,
         poll_interval: float = 0.5,
         timeout: float | None = None,
+        principal: "AuthenticatedPrincipal" | None = None,  # noqa: UP037
     ) -> Task:
         """Wait for a task to finish, polling until completion or timeout."""
 
@@ -229,7 +254,7 @@ class TaskManager:
         deadline = time.monotonic() + timeout_seconds
 
         while True:
-            task = await self.get_task_status(task_id)
+            task = await self.get_task_status(task_id, principal=principal)
             if task.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
                 return task
 
@@ -268,6 +293,21 @@ class TaskManager:
             List of all tasks
         """
         return list(self._tasks.values())
+
+    def _ensure_access(
+        self, task: Task, principal: "AuthenticatedPrincipal" | None  # noqa: UP037
+    ) -> None:
+        if task.principal_id is None and not task.required_roles:
+            return
+
+        if principal is None:
+            raise PermissionError("Authentication required to access task state")
+
+        if task.required_roles and not task.required_roles.issubset(principal.roles):
+            raise PermissionError("Principal lacks required role for task")
+
+        if task.principal_id and task.principal_id != principal.principal:
+            raise PermissionError("Principal cannot access tasks created by others")
 
     def cleanup_completed_tasks(self, max_age_seconds: int = MAX_TASK_AGE) -> int:
         """Clean up old completed/failed tasks.

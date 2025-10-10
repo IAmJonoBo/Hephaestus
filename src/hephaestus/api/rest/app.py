@@ -11,6 +11,7 @@ Example:
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import time
 from collections.abc import AsyncIterator
@@ -18,7 +19,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 try:
-    from fastapi import FastAPI, HTTPException, Security
+    from fastapi import FastAPI, HTTPException, Request, Security
     from fastapi.responses import StreamingResponse
     from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 except ImportError as exc:
@@ -26,7 +27,11 @@ except ImportError as exc:
         "FastAPI is not installed. Install with: pip install 'hephaestus-toolkit[api]'"
     ) from exc
 
+from hephaestus.analytics_streaming import global_ingestor
+from hephaestus.api import auth
 from hephaestus.api.rest.models import (
+    AnalyticsEventPayload,
+    AnalyticsIngestResponse,
     CleanupRequest,
     CleanupResponse,
     GuardRailsRequest,
@@ -36,6 +41,12 @@ from hephaestus.api.rest.models import (
     TaskStatusResponse,
 )
 from hephaestus.api.rest.tasks import DEFAULT_TASK_TIMEOUT, TaskManager, TaskStatus
+from hephaestus.api.service import (
+    compute_rankings,
+    evaluate_guard_rails_async,
+    run_cleanup_summary,
+)
+from hephaestus.audit import AuditStatus, record_audit_event
 
 logger = logging.getLogger(__name__)
 
@@ -43,46 +54,19 @@ logger = logging.getLogger(__name__)
 security = HTTPBearer(auto_error=False)
 
 
-def verify_api_key(
+def get_authenticated_principal(
     credentials: HTTPAuthorizationCredentials | None = Security(security),  # noqa: B008
-) -> str:
-    """Verify API key from Authorization header.
+) -> auth.AuthenticatedPrincipal:
+    """Return the authenticated principal for the current request."""
 
-    Args:
-        credentials: HTTP bearer credentials from request
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Missing bearer token")
 
-    Returns:
-        API key if valid
-
-    Raises:
-        HTTPException: If API key is missing or invalid
-
-    Note:
-        This is a development-only implementation. Sprint 4 (ADR-0004) will add:
-        - Secure API key storage and validation
-        - JWT token support
-        - mTLS authentication
-        - Role-based authorization
-        - Rate limiting per key
-    """
-    if credentials is None:
-        credentials = Security(security)
-        if credentials is None:
-            raise HTTPException(status_code=401, detail="Missing API key")
-
-    api_key = credentials.credentials
-
-    # Secure key validation against environment variable or vault
-    import os
-
-    # Load valid API keys from environment variable (comma-separated)
-    valid_keys = os.environ.get("HEPHAESTUS_API_KEYS", "")
-    valid_keys_set = {k.strip() for k in valid_keys.split(",") if k.strip()}
-
-    if not api_key or api_key not in valid_keys_set:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-
-    return api_key
+    verifier = auth.get_default_verifier()
+    try:
+        return verifier.verify_bearer_token(credentials.credentials)
+    except auth.AuthenticationError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
 # Global task manager instance
@@ -127,172 +111,377 @@ async def health_check() -> dict[str, str]:
 @app.post("/api/v1/quality/guard-rails")
 async def run_guard_rails(
     request: GuardRailsRequest,
-    api_key: str = Security(verify_api_key),
+    principal: auth.AuthenticatedPrincipal = Security(  # noqa: B008
+        get_authenticated_principal
+    ),
 ) -> GuardRailsResponse:
-    """Execute comprehensive quality pipeline.
+    """Execute comprehensive quality pipeline."""
 
-    Args:
-        request: Guard-rails configuration
-        api_key: Validated API key
-
-    Returns:
-        Guard-rails execution results
-
-    Raises:
-        HTTPException: On execution error
-    """
-    _ = api_key  # API key validated by dependency
+    operation = "rest.guard-rails.run"
+    parameters = request.model_dump(exclude_none=True)
 
     try:
-        # Start async task for guard-rails execution
-        task_id = await task_manager.create_task("guard-rails", _execute_guard_rails, request)
+        task_id = await task_manager.create_task(
+            "guard-rails",
+            _execute_guard_rails,
+            request,
+            principal=principal,
+            required_roles={auth.Role.GUARD_RAILS.value},
+        )
 
         try:
             status = await task_manager.wait_for_completion(
                 task_id,
                 poll_interval=0.5,
                 timeout=DEFAULT_TASK_TIMEOUT,
+                principal=principal,
             )
         except TimeoutError as exc:
-            logger.error(
-                "Guard-rails task timed out",
-                extra={"task_id": task_id},
+            record_audit_event(
+                principal,
+                operation=operation,
+                parameters=parameters,
+                outcome={"task_id": task_id, "error": "timeout"},
+                status=AuditStatus.FAILED,
+                protocol="rest",
             )
+            logger.error("Guard-rails task timed out", extra={"task_id": task_id})
             raise HTTPException(status_code=504, detail="Guard-rails execution timed out") from exc
 
         if status.status == TaskStatus.FAILED:
-            raise HTTPException(status_code=500, detail=status.error)
+            error_detail = status.error or "Guard-rails execution failed"
+            record_audit_event(
+                principal,
+                operation=operation,
+                parameters=parameters,
+                outcome={"task_id": task_id, "error": error_detail},
+                status=AuditStatus.FAILED,
+                protocol="rest",
+            )
+            raise HTTPException(status_code=500, detail=error_detail)
 
         result = status.result
         if not isinstance(result, dict):
+            record_audit_event(
+                principal,
+                operation=operation,
+                parameters=parameters,
+                outcome={"task_id": task_id, "error": "invalid-result"},
+                status=AuditStatus.FAILED,
+                protocol="rest",
+            )
             raise HTTPException(status_code=500, detail="Invalid task result")
-        data = result
-        return GuardRailsResponse(
-            success=data.get("success", False),
-            gates=data.get("gates", []),
-            duration=data.get("duration", 0.0),
+
+        response = GuardRailsResponse(
+            success=result.get("success", False),
+            gates=result.get("gates", []),
+            duration=result.get("duration", 0.0),
             task_id=task_id,
         )
+        record_audit_event(
+            principal,
+            operation=operation,
+            parameters=parameters,
+            outcome={"task_id": task_id, "success": response.success},
+            status=AuditStatus.SUCCESS,
+            protocol="rest",
+        )
+        return response
 
+    except (auth.AuthorizationError, PermissionError) as exc:
+        record_audit_event(
+            principal,
+            operation=operation,
+            parameters=parameters,
+            outcome={"error": str(exc)},
+            status=AuditStatus.DENIED,
+            protocol="rest",
+        )
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception as exc:  # pragma: no cover - defensive guard
+        record_audit_event(
+            principal,
+            operation=operation,
+            parameters=parameters,
+            outcome={"error": str(exc)},
+            status=AuditStatus.FAILED,
+            protocol="rest",
+        )
         logger.exception("Error executing guard-rails")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.post("/api/v1/cleanup")
 async def cleanup(
     request: CleanupRequest,
-    api_key: str = Security(verify_api_key),
+    principal: auth.AuthenticatedPrincipal = Security(  # noqa: B008
+        get_authenticated_principal
+    ),
 ) -> CleanupResponse:
-    """Clean workspace artifacts.
+    """Clean workspace artifacts."""
 
-    Args:
-        request: Cleanup configuration
-        api_key: Validated API key
-
-    Returns:
-        Cleanup results
-
-    Raises:
-        HTTPException: On execution error
-    """
-    _ = api_key
+    operation = "rest.cleanup.run"
+    parameters = request.model_dump(exclude_none=True)
 
     try:
-        # Start async task
-        task_id = await task_manager.create_task("cleanup", _execute_cleanup, request)
+        task_id = await task_manager.create_task(
+            "cleanup",
+            _execute_cleanup,
+            request,
+            principal=principal,
+            required_roles={auth.Role.CLEANUP.value},
+        )
 
         try:
             status = await task_manager.wait_for_completion(
                 task_id,
                 poll_interval=0.5,
                 timeout=DEFAULT_TASK_TIMEOUT,
+                principal=principal,
             )
         except TimeoutError as exc:
-            logger.error(
-                "Cleanup task timed out",
-                extra={"task_id": task_id},
+            record_audit_event(
+                principal,
+                operation=operation,
+                parameters=parameters,
+                outcome={"task_id": task_id, "error": "timeout"},
+                status=AuditStatus.FAILED,
+                protocol="rest",
             )
+            logger.error("Cleanup task timed out", extra={"task_id": task_id})
             raise HTTPException(status_code=504, detail="Cleanup execution timed out") from exc
 
         if status.status == TaskStatus.FAILED:
-            raise HTTPException(status_code=500, detail=status.error)
+            error_detail = status.error or "Cleanup execution failed"
+            record_audit_event(
+                principal,
+                operation=operation,
+                parameters=parameters,
+                outcome={"task_id": task_id, "error": error_detail},
+                status=AuditStatus.FAILED,
+                protocol="rest",
+            )
+            raise HTTPException(status_code=500, detail=error_detail)
 
         result = status.result
         if not isinstance(result, dict):
+            record_audit_event(
+                principal,
+                operation=operation,
+                parameters=parameters,
+                outcome={"task_id": task_id, "error": "invalid-result"},
+                status=AuditStatus.FAILED,
+                protocol="rest",
+            )
             raise HTTPException(status_code=500, detail="Invalid task result")
-        data = result
-        return CleanupResponse(
-            files_deleted=data.get("files_deleted", 0),
-            size_freed=data.get("size_freed", 0),
-            manifest=data.get("manifest", {}),
-        )
 
+        response = CleanupResponse(**result)
+        record_audit_event(
+            principal,
+            operation=operation,
+            parameters=parameters,
+            outcome={"task_id": task_id, "files_deleted": response.files_deleted},
+            status=AuditStatus.SUCCESS,
+            protocol="rest",
+        )
+        return response
+
+    except (auth.AuthorizationError, PermissionError) as exc:
+        record_audit_event(
+            principal,
+            operation=operation,
+            parameters=parameters,
+            outcome={"error": str(exc)},
+            status=AuditStatus.DENIED,
+            protocol="rest",
+        )
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception as exc:  # pragma: no cover - defensive guard
+        record_audit_event(
+            principal,
+            operation=operation,
+            parameters=parameters,
+            outcome={"error": str(exc)},
+            status=AuditStatus.FAILED,
+            protocol="rest",
+        )
         logger.exception("Error executing cleanup")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/analytics/ingest", response_model=AnalyticsIngestResponse)
+async def ingest_analytics_stream(
+    request: Request,
+    principal: auth.AuthenticatedPrincipal = Security(  # noqa: B008
+        get_authenticated_principal
+    ),
+) -> AnalyticsIngestResponse:
+    """Ingest analytics events via NDJSON streaming."""
+
+    auth.ServiceAccountVerifier.require_role(principal, auth.Role.ANALYTICS.value)
+
+    operation = "rest.analytics.ingest"
+    accepted = 0
+    rejected = 0
+    buffer = ""
+
+    try:
+        async for chunk in request.stream():
+            buffer += chunk.decode("utf-8")
+            *lines, buffer = buffer.split("\n")
+            for line in lines:
+                if not line.strip():
+                    continue
+                try:
+                    payload_raw = json.loads(line)
+                except json.JSONDecodeError:
+                    global_ingestor.mark_rejected()
+                    rejected += 1
+                    continue
+
+                try:
+                    payload = AnalyticsEventPayload.model_validate(payload_raw)
+                except Exception as exc:  # noqa: BLE001 - convert validation errors to rejection
+                    logger.debug("Rejected analytics event", extra={"error": str(exc)})
+                    global_ingestor.mark_rejected()
+                    rejected += 1
+                    continue
+
+                if global_ingestor.ingest_mapping(payload.model_dump()):
+                    accepted += 1
+                else:
+                    rejected += 1
+
+        if buffer.strip():
+            try:
+                payload_raw = json.loads(buffer)
+            except json.JSONDecodeError:
+                global_ingestor.mark_rejected()
+                rejected += 1
+            else:
+                try:
+                    payload = AnalyticsEventPayload.model_validate(payload_raw)
+                except Exception as exc:  # noqa: BLE001 - convert validation errors to rejection
+                    logger.debug("Rejected trailing analytics event", extra={"error": str(exc)})
+                    global_ingestor.mark_rejected()
+                    rejected += 1
+                else:
+                    if global_ingestor.ingest_mapping(payload.model_dump()):
+                        accepted += 1
+                    else:
+                        rejected += 1
+    except HTTPException:
+        raise
+    except Exception as exc:  # pragma: no cover - defensive guard
+        record_audit_event(
+            principal,
+            operation=operation,
+            parameters={"bytes": request.headers.get("content-length", "unknown")},
+            outcome={"error": str(exc)},
+            status=AuditStatus.FAILED,
+            protocol="rest",
+        )
+        logger.exception("Error ingesting analytics stream")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    snapshot = global_ingestor.snapshot()
+    summary = {
+        "total_events": snapshot.total_events,
+        "accepted": snapshot.accepted,
+        "rejected": snapshot.rejected,
+        "kinds": snapshot.kinds,
+        "sources": snapshot.sources,
+    }
+
+    record_audit_event(
+        principal,
+        operation=operation,
+        parameters={"events_received": accepted + rejected},
+        outcome={"accepted": accepted, "rejected": rejected},
+        status=AuditStatus.SUCCESS,
+        protocol="rest",
+    )
+
+    return AnalyticsIngestResponse(accepted=accepted, rejected=rejected, summary=summary)
 
 
 @app.get("/api/v1/analytics/rankings")
 async def get_rankings(
     strategy: str = "risk_weighted",
     limit: int = 20,
-    api_key: str = Security(verify_api_key),
+    principal: auth.AuthenticatedPrincipal = Security(  # noqa: B008
+        get_authenticated_principal
+    ),
 ) -> RankingsResponse:
-    """Get refactoring priority rankings.
+    """Get refactoring priority rankings."""
 
-    Args:
-        strategy: Ranking strategy to use
-        limit: Maximum number of results
-        api_key: Validated API key
+    operation = "rest.analytics.rankings"
 
-    Returns:
-        Module rankings
-
-    Raises:
-        HTTPException: On execution error
-    """
-    _ = api_key
+    from hephaestus.api.rest.models import RankingStrategy
 
     try:
-        request = RankingsRequest(strategy=strategy, limit=limit)
-        result = _execute_rankings(request)
+        try:
+            strategy_enum = RankingStrategy(strategy)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid strategy: {strategy}") from None
 
-        return RankingsResponse(
+        request = RankingsRequest(strategy=strategy_enum, limit=limit)
+        result = _execute_rankings(request, principal=principal)
+
+        response = RankingsResponse(
             rankings=result.get("rankings", []),
             strategy=strategy,
         )
+        record_audit_event(
+            principal,
+            operation=operation,
+            parameters={"strategy": strategy, "limit": limit},
+            outcome={"count": len(response.rankings)},
+            status=AuditStatus.SUCCESS,
+            protocol="rest",
+        )
+        return response
 
-    except Exception as e:
+    except auth.AuthorizationError as exc:
+        record_audit_event(
+            principal,
+            operation=operation,
+            parameters={"strategy": strategy, "limit": limit},
+            outcome={"error": str(exc)},
+            status=AuditStatus.DENIED,
+            protocol="rest",
+        )
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:  # pragma: no cover - defensive guard
+        record_audit_event(
+            principal,
+            operation=operation,
+            parameters={"strategy": strategy, "limit": limit},
+            outcome={"error": str(exc)},
+            status=AuditStatus.FAILED,
+            protocol="rest",
+        )
         logger.exception("Error getting rankings")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.get("/api/v1/tasks/{task_id}")
 async def get_task_status(
     task_id: str,
-    api_key: str = Security(verify_api_key),
+    principal: auth.AuthenticatedPrincipal = Security(  # noqa: B008
+        get_authenticated_principal
+    ),
 ) -> TaskStatusResponse:
-    """Get status of an async task.
-
-    Args:
-        task_id: Task identifier
-        api_key: Validated API key
-
-    Returns:
-        Task status and results
-
-    Raises:
-        HTTPException: If task not found
-    """
-    _ = api_key
+    """Get status of an async task."""
 
     try:
-        status = await task_manager.get_task_status(task_id)
+        status = await task_manager.get_task_status(task_id, principal=principal)
         return TaskStatusResponse(
             task_id=task_id,
             status=status.status.value,
@@ -302,26 +491,18 @@ async def get_task_status(
         )
     except KeyError:
         raise HTTPException(status_code=404, detail="Task not found") from None
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
 
 
 @app.get("/api/v1/tasks/{task_id}/stream")
 async def stream_task_progress(
     task_id: str,
-    api_key: str = Security(verify_api_key),
+    principal: auth.AuthenticatedPrincipal = Security(  # noqa: B008
+        get_authenticated_principal
+    ),
 ) -> StreamingResponse:
-    """Stream task progress updates using Server-Sent Events.
-
-    Args:
-        task_id: Task identifier
-        api_key: Validated API key
-
-    Returns:
-        Streaming response with progress updates
-
-    Raises:
-        HTTPException: If task not found
-    """
-    _ = api_key
+    """Stream task progress updates using Server-Sent Events."""
 
     async def event_generator() -> AsyncIterator[bytes]:
         """Generate server-sent events for task progress."""
@@ -330,7 +511,9 @@ async def stream_task_progress(
         try:
             deadline = time.monotonic() + DEFAULT_TASK_TIMEOUT
             while True:
-                status = await task_manager.get_task_status(task_id)
+                status = await task_manager.get_task_status(
+                    task_id, principal=principal
+                )
 
                 event_data = {
                     "status": status.status.value,
@@ -355,159 +538,91 @@ async def stream_task_progress(
         except KeyError:
             error_data = {"error": "Task not found"}
             yield f"data: {json.dumps(error_data)}\n\n".encode()
+        except PermissionError as exc:
+            error_data = {"error": str(exc)}
+            yield f"data: {json.dumps(error_data)}\n\n".encode()
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 # Task execution functions
-def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
-    """Execute guard-rails quality pipeline.
+async def _execute_guard_rails(
+    request: GuardRailsRequest, *, principal: auth.AuthenticatedPrincipal
+) -> dict[str, Any]:
+    """Execute guard-rails quality pipeline using shared helpers."""
 
-    Args:
-        request: Guard-rails configuration
-
-    Returns:
-        Execution results
-    """
-    # Import here to avoid circular dependency
-
-    # Simulate guard-rails execution
-    # In production, this would call actual Hephaestus commands
-    gates: list[dict[str, Any]] = []
-
-    # Cleanup step
-    if not request.no_format:
-        try:
-            # Note: This is a simplified execution for API purposes
-            # Full implementation would use proper subprocess calls
-            gates.append({"name": "cleanup", "passed": True, "duration": 0.5})
-        except Exception as e:
-            gates.append({"name": "cleanup", "passed": False, "error": str(e)})
-
-    # Additional gates would be executed here
-    gates.extend(
-        [
-            {"name": "ruff-check", "passed": True, "duration": 1.2},
-            {"name": "ruff-format", "passed": True, "duration": 0.8},
-            {"name": "mypy", "passed": True, "duration": 3.5},
-            {"name": "pytest", "passed": True, "duration": 10.2},
-            {"name": "pip-audit", "passed": True, "duration": 2.1},
-        ]
+    execution = await evaluate_guard_rails_async(
+        principal=principal,
+        no_format=request.no_format,
+        workspace=request.workspace,
+        drift_check=request.drift_check,
+        auto_remediate=request.auto_remediate,
     )
 
-    success = all(bool(gate.get("passed", False)) for gate in gates)
-    total_duration = sum(float(gate.get("duration", 0)) for gate in gates)
-
-    return {
-        "success": success,
-        "gates": gates,
-        "duration": total_duration,
-    }
-
-    async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
-        """Execute guard-rails quality pipeline asynchronously.
-
-        Args:
-            request: Guard-rails configuration
-
-        Returns:
-            Execution results
-        """
-        # Simulate async guard-rails execution
-        gates = []
-
-        # Cleanup step
-        if not request.no_format:
-            try:
-                # Simulate async cleanup
-                await asyncio.sleep(0.5)
-                gates.append({"name": "cleanup", "passed": True, "duration": 0.5})
-            except Exception as e:
-                gates.append({"name": "cleanup", "passed": False, "error": str(e)})
-
-        # Simulate other gates asynchronously
-        other_gates = [
-            ("ruff-check", 1.2),
-            ("ruff-format", 0.8),
-            ("mypy", 3.5),
-            ("pytest", 10.2),
-            ("pip-audit", 2.1),
-        ]
-        for name, duration in other_gates:
-            await asyncio.sleep(0)  # Yield control, simulate async
-            gates.append({"name": name, "passed": True, "duration": duration})
-
-        success = all(gate["passed"] for gate in gates)
-        total_duration = sum(gate.get("duration", 0) for gate in gates)
-
-        return {
-            "success": success,
-            "gates": gates,
-            "duration": total_duration,
+    gates = [
+        {
+            "name": gate.name,
+            "passed": gate.passed,
+            "message": gate.message,
+            "duration": gate.duration,
+            "metadata": gate.metadata,
         }
-
-
-def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
-    """Execute cleanup operation.
-
-    Args:
-        request: Cleanup configuration
-
-    Returns:
-        Cleanup results
-    """
-    # Simulate cleanup execution
-    # In production, this would call actual cleanup logic
-    return {
-        "files_deleted": 42,
-        "size_freed": 15728640,  # ~15MB
-        "manifest": {
-            "python_cache": 15,
-            "build_artifacts": 20,
-            "resource_forks": 7,
-        },
-    }
-
-    async def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
-        """Execute cleanup operation asynchronously.
-
-        Args:
-            request: Cleanup configuration
-
-        Returns:
-            Cleanup results
-        """
-        # Simulate async cleanup execution
-        await asyncio.sleep(0.2)  # Simulate delay
-        return {
-            "files_deleted": 42,
-            "size_freed": 15728640,  # ~15MB
-            "manifest": {
-                "python_cache": 15,
-                "build_artifacts": 20,
-                "resource_forks": 7,
-            },
-        }
-
-
-def _execute_rankings(request: RankingsRequest) -> dict[str, Any]:
-    """Execute analytics rankings.
-
-    Args:
-        request: Rankings configuration
-
-    Returns:
-        Rankings results
-    """
-    # Simulate rankings execution
-    # In production, this would call actual analytics
-    rankings = [
-        {"rank": 1, "path": "src/module_a.py", "score": 0.85},
-        {"rank": 2, "path": "src/module_b.py", "score": 0.72},
-        {"rank": 3, "path": "src/module_c.py", "score": 0.68},
+        for gate in execution.gates
     ]
 
+    if execution.remediation_results:
+        gates.append(
+            {
+                "name": "remediation-results",
+                "passed": all(result.exit_code == 0 for result in execution.remediation_results),
+                "message": "Recorded remediation outcomes",
+                "duration": 0.0,
+                "metadata": {
+                    "commands": execution.remediation_commands,
+                },
+            }
+        )
+
     return {
-        "rankings": rankings[: request.limit],
-        "strategy": request.strategy,
+        "success": execution.success,
+        "gates": gates,
+        "duration": execution.duration,
+    }
+
+
+async def _execute_cleanup(
+    request: CleanupRequest, *, principal: auth.AuthenticatedPrincipal
+) -> dict[str, Any]:
+    """Execute cleanup operation via the toolkit cleanup module."""
+
+    summary = await asyncio.to_thread(
+        run_cleanup_summary,
+        principal=principal,
+        root=request.root,
+        deep_clean=request.deep_clean,
+        dry_run=request.dry_run,
+    )
+
+    return {
+        "files_deleted": summary["files"],
+        "size_freed": summary["bytes"],
+        "manifest": summary["manifest"],
+    }
+
+
+def _execute_rankings(
+    request: RankingsRequest, *, principal: auth.AuthenticatedPrincipal
+) -> dict[str, Any]:
+    """Execute analytics rankings using toolkit analytics."""
+
+    strategy = request.strategy
+    rankings = compute_rankings(
+        principal=principal,
+        strategy=strategy,
+        limit=request.limit,
+    )
+
+    return {
+        "rankings": rankings,
+        "strategy": strategy.value,
     }

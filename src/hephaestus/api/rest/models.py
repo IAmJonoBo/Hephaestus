@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
+
+from hephaestus.analytics import RankingStrategy
 
 
 class GuardRailsRequest(BaseModel):
@@ -21,6 +24,10 @@ class GuardRailsRequest(BaseModel):
     drift_check: bool = Field(
         default=False,
         description="Check for tool version drift",
+    )
+    auto_remediate: bool = Field(
+        default=False,
+        description="Automatically apply remediation commands when drift is detected",
     )
 
     @field_validator("workspace")
@@ -90,9 +97,9 @@ class CleanupResponse(BaseModel):
 class RankingsRequest(BaseModel):
     """Request schema for rankings endpoint."""
 
-    strategy: str = Field(
-        default="risk_weighted",
-        description="Ranking strategy (risk_weighted, coverage_first, churn_based, composite)",
+    strategy: RankingStrategy = Field(
+        default=RankingStrategy.RISK_WEIGHTED,
+        description="Ranking strategy",
     )
     limit: int = Field(
         default=20,
@@ -100,15 +107,6 @@ class RankingsRequest(BaseModel):
         le=100,
         description="Maximum number of results",
     )
-
-    @field_validator("strategy")
-    @classmethod
-    def validate_strategy(cls, v: str) -> str:
-        """Validate ranking strategy."""
-        allowed = ["risk_weighted", "coverage_first", "churn_based", "composite"]
-        if v not in allowed:
-            raise ValueError(f"Strategy must be one of {allowed}, got {v}")
-        return v
 
 
 class RankingsResponse(BaseModel):
@@ -126,3 +124,33 @@ class TaskStatusResponse(BaseModel):
     progress: float = Field(description="Progress percentage (0.0 to 1.0)")
     result: dict[str, Any] | None = Field(default=None, description="Task result if completed")
     error: str | None = Field(default=None, description="Error message if failed")
+
+
+class AnalyticsEventPayload(BaseModel):
+    """Streaming analytics event payload."""
+
+    source: str = Field(description="Event source (e.g. ci, agent, user)")
+    kind: str = Field(description="Event type (coverage, latency, etc)")
+    value: float | None = Field(default=None, description="Primary numeric value")
+    unit: str | None = Field(default=None, description="Value unit")
+    metrics: dict[str, float] = Field(
+        default_factory=dict, description="Additional numeric metrics"
+    )
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Supplemental metadata")
+    timestamp: datetime | None = Field(default=None, description="ISO-8601 timestamp for the event")
+
+    @field_validator("source", "kind")
+    @classmethod
+    def _validate_non_empty(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Value cannot be empty")
+        return value
+
+
+class AnalyticsIngestResponse(BaseModel):
+    """Response schema for analytics streaming ingestion."""
+
+    accepted: int = Field(description="Number of ingested events")
+    rejected: int = Field(description="Number of rejected events")
+    summary: dict[str, Any] = Field(description="Ingestion summary statistics")

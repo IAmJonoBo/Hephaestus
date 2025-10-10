@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -13,6 +14,7 @@ from hephaestus.plugins import (
     PluginResult,
     QualityGatePlugin,
     discover_plugins,
+    execute_plugin,
     load_plugin_config,
 )
 
@@ -45,6 +47,100 @@ class MockPlugin(QualityGatePlugin):
             message="Mock plugin executed",
             exit_code=0,
         )
+
+
+def test_execute_plugin_records_success_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
+    counters: list[tuple[str, int, dict[str, str]]] = []
+    histograms: list[tuple[str, float, dict[str, str]]] = []
+    traces: list[tuple[str, dict[str, str]]] = []
+
+    class _Span:
+        def __enter__(self) -> _Span:  # noqa: D401 - trivial context manager
+            traces.append(("enter", {}))
+            return self
+
+        def __exit__(self, *args: object) -> None:  # noqa: D401 - trivial context manager
+            traces.append(("exit", {}))
+
+    def fake_trace_operation(name: str, **attributes: str) -> _Span:
+        traces.append((name, {k: str(v) for k, v in attributes.items()}))
+        return _Span()
+
+    def fake_record_counter(
+        name: str,
+        value: int = 1,
+        attributes: dict[str, str] | None = None,
+    ) -> None:
+        counters.append((name, value, attributes or {}))
+
+    def fake_record_histogram(
+        name: str,
+        value: float,
+        attributes: dict[str, str] | None = None,
+    ) -> None:
+        histograms.append((name, value, attributes or {}))
+
+    clock = iter([100.0, 100.25])
+
+    monkeypatch.setattr("hephaestus.telemetry.trace_operation", fake_trace_operation)
+    monkeypatch.setattr("hephaestus.telemetry.record_counter", fake_record_counter)
+    monkeypatch.setattr("hephaestus.telemetry.record_histogram", fake_record_histogram)
+    monkeypatch.setattr("time.perf_counter", lambda: next(clock))
+
+    plugin = MockPlugin()
+    result = execute_plugin(plugin, {})
+
+    assert result.success is True
+    assert counters[0][0] == "hephaestus.plugins.invocations"
+    assert counters[-1][0] == "hephaestus.plugins.success"
+    assert any(name == "hephaestus.plugins.duration" for name, _, _ in histograms)
+    assert traces[0][0] == "plugins.execute"
+
+
+def test_execute_plugin_records_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+    counters: list[tuple[str, int, dict[str, str]]] = []
+    histograms: list[tuple[str, float, dict[str, str]]] = []
+
+    class _Span:
+        def __enter__(self) -> _Span:  # noqa: D401
+            return self
+
+        def __exit__(self, *args: object) -> None:  # noqa: D401
+            return None
+
+    def fake_record_counter(
+        name: str,
+        value: int = 1,
+        attributes: dict[str, str] | None = None,
+    ) -> None:
+        counters.append((name, value, attributes or {}))
+
+    def fake_record_histogram(
+        name: str,
+        value: float,
+        attributes: dict[str, str] | None = None,
+    ) -> None:
+        histograms.append((name, value, attributes or {}))
+
+    clock = iter([200.0, 200.1])
+
+    monkeypatch.setattr("hephaestus.telemetry.trace_operation", lambda *_, **__: _Span())
+    monkeypatch.setattr("hephaestus.telemetry.record_counter", fake_record_counter)
+    monkeypatch.setattr("hephaestus.telemetry.record_histogram", fake_record_histogram)
+    monkeypatch.setattr("time.perf_counter", lambda: next(clock))
+
+    class ExplodingPlugin(MockPlugin):
+        def run(self, config: dict[str, Any]) -> PluginResult:
+            raise RuntimeError("boom")
+
+    exploding = ExplodingPlugin()
+
+    with pytest.raises(RuntimeError):
+        execute_plugin(exploding, {})
+
+    assert counters[0][0] == "hephaestus.plugins.invocations"
+    assert any(name == "hephaestus.plugins.errors" for name, _, _ in counters)
+    assert any(name == "hephaestus.plugins.duration" for name, _, _ in histograms)
 
 
 def test_plugin_metadata_creation() -> None:
@@ -339,6 +435,33 @@ mypy = false
     assert registry_instance.is_registered("ruff-check")
     # mypy should NOT be registered
     assert not registry_instance.is_registered("mypy")
+
+
+def test_discover_plugins_clears_disabled_builtins(tmp_path: Path) -> None:
+    """Disabled built-ins should be removed on subsequent discovery runs."""
+
+    enabled_config = tmp_path / "plugins_enabled.toml"
+    enabled_config.write_text(
+        """
+[builtin]
+ruff-check = true
+"""
+    )
+
+    disabled_config = tmp_path / "plugins_disabled.toml"
+    disabled_config.write_text(
+        """
+[builtin]
+ruff-check = false
+"""
+    )
+
+    registry_instance = PluginRegistry()
+    discover_plugins(enabled_config, registry_instance)
+    assert registry_instance.is_registered("ruff-check")
+
+    discover_plugins(disabled_config, registry_instance)
+    assert not registry_instance.is_registered("ruff-check")
 
 
 def test_load_plugin_config_edge_case_empty_file(tmp_path: Path) -> None:
