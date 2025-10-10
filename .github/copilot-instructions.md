@@ -1,44 +1,47 @@
 # Copilot Instructions
 
-## Quick orientation
+## Quick Orientation
 
-- Hephaestus is a Typer-based CLI plus refactoring toolkit; the main package lives in `src/hephaestus/`, while automation assets and configs sit under `hephaestus-toolkit/refactoring/`.
-- CLI behaviour is exhaustively documented in `docs/reference/cli.md` and covered by `tests/test_cli.py`; use those fixtures when extending commands.
-- Docs follow Diátaxis, with architecture context in `docs/explanation/architecture.md` and AI usage patterns in `docs/how-to/ai-agent-integration.md`.
+- Hephaestus is a Typer CLI plus automation runtime; core code lives in `src/hephaestus/`, packaged tooling and configs under `hephaestus-toolkit/refactoring/`.
+- CLI contracts are documented in `docs/reference/cli.md` and mirrored by `tests/test_cli.py`; use them to understand required flags and console layout.
+- Remote surfaces (FastAPI + gRPC) reuse the same orchestration layer in `src/hephaestus/api/service.py`, so CLI and services stay behaviourally identical.
+- Diátaxis docs highlight domain context (`docs/explanation/architecture.md`) and AI playbooks (`docs/how-to/ai-agent-integration.md`).
 
-## Architecture essentials
+## Architecture Map
 
-- `cli.py` centralises command wiring (`cleanup`, `guard-rails`, `tools`, `plan`, `release`, `schema`) and shares a single `rich.Console` for consistent tables/logs.
-- `toolbox.py` and `schema.py` expose deterministic synthetic analytics so tests stay stable; introduce new data via `ToolkitSettings` models instead of ad-hoc dicts.
-- `cleanup.py` wraps all filesystem operations with `CleanupOptions` guards (path normalisation, deny-list, audit callbacks). Reuse `run_cleanup` rather than shelling out.
-- `release.py` handles wheelhouse downloads with retry/backoff, checksum + Sigstore verification, and cache management (`HEPHAESTUS_RELEASE_CACHE`).
-- `telemetry.py` defines structured events used across commands; respect the schema when logging so guard-rail correlation IDs propagate.
+- `cli.py` wires commands (`cleanup`, `guard-rails`, `tools`, `plan`, `release`, `schema`) and shares one `rich.Console`; follow the existing Typer patterns when adding commands.
+- `guard-rails` execution funnels through `api/service.py` to evaluate cleanup, plugin gates, drift checks, and optional remediation; replicate that flow instead of inlining logic.
+- Analytics ranking lives in `analytics.py` with deterministic fixtures from `toolbox.py`; streaming ingestion for APIs is handled by `analytics_streaming.py`'s thread-safe buffer.
+- Plugins are discovered via the registry in `plugins/__init__.py` and surfaced through the guard-rails gate evaluation; keep metadata accurate so missing tooling is reported.
+- Release automation (`release.py`) combines wheelhouse downloads, Sigstore verification, and cache management via `ReleaseVerifier` and env var `HEPHAESTUS_RELEASE_CACHE`.
 
-## Workflow shortcuts
+## Workflow Essentials
 
-- Bootstrap with UV: `uv sync --extra dev --extra qa --extra grpc`, then always run commands through `uv run hephaestus …` to pick up the managed env.
-- `uv run hephaestus guard-rails` performs the entire quality pipeline (cleanup → ruff check → ruff isort → ruff format → mypy on `src` + `tests` → pytest with ≥85% coverage → `pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph`).
-- For focused checks, use the same tooling individually: `uv run ruff check .`, `uv run ruff check --select I --fix .`, `uv run ruff format .`, `uv run mypy src tests`, `uv run pytest`, `uv run pip-audit --strict`.
-- Build docs via `uv run mkdocs serve` and keep navigation wired in `mkdocs.yml`.
-- Analytics demos live in `tests/test_analytics.py`; mirror those patterns when adding ranking strategies or schema fields.
+- Sync the dev environment with `uv sync --extra dev --extra qa --extra grpc`; prefer `uv run hephaestus …` to inherit the managed interpreter.
+- The happy path quality sweep is `uv run hephaestus guard-rails`, which chains cleanup → ruff lint/isort/format → mypy (`src` + `tests`) → pytest (≥85% coverage) → `pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph`.
+- Targeted checks use the same tooling individually: `uv run ruff check .`, `uv run ruff check --select I --fix .`, `uv run ruff format .`, `uv run mypy src tests`, `uv run pytest`, `uv run pip-audit --strict`.
+- Docs are built with `uv run mkdocs serve`; keep navigation synced in `mkdocs.yml` before publishing.
+- Mac-specific cleanup scripts (`cleanup-macos-cruft.sh`, `docs/how-to/troubleshooting.md`) handle resource forks—lean on them instead of reimplementing.
 
-## Implementation patterns
+## Patterns & Conventions
 
-- Prefer Typer command functions that return `int | None` and print via the shared console; table layouts in `cli.py` show the expected Rich API usage.
-- Tests rely on `typer.testing.CliRunner` and patching utilities (see `tests/test_guard_rails_runs_expected_commands`); keep command ordering stable or update assertions.
-- Synthetic datasets come from `toolbox.py`; extend via Pydantic models and update `tests/test_toolbox.py` to keep determinism.
-- Drift detection is orchestrated in `drift.py` and surfaced through `guard-rails --drift`; reuse helpers instead of invoking subprocesses directly.
-- Release automation expects SHA and Sigstore checks through `ReleaseVerifier`; raise `ReleaseError` for all user-facing failures.
+- Command functions return `int | None`, log via the shared console, and delegate work to module helpers (`command_helpers.py` for subprocess payloads, `cleanup.run_cleanup` for filesystem ops).
+- `CleanupOptions.normalize` is mandatory; it guards against accidental deletions and ships audit manifests when configured.
+- Telemetry integrations sit in `telemetry/metrics.py` and `telemetry/tracing.py`; route events through `telemetry.emit_event` and the shared registry to preserve correlation IDs and no-op fallbacks.
+- Analytics and schema data derive from Pydantic models in `schema.py` and `toolbox.py`; extend models before injecting new dict literals so tests remain deterministic.
+- Drift detection (`drift.py`) and remediation surfaces share helpers exposed through `api/service.py`; reuse them for consistency across CLI and API flows.
 
-## Safety rails & pitfalls
+## Testing Touchpoints
 
-- Never skip `CleanupOptions.normalize`; it prevents wiping virtualenvs or system paths. Out-of-root targets require explicit confirmation.
-- `guard-rails` already embeds a cleanup step—avoid nesting manual cleanup calls to prevent duplicate prompts and log spam.
-- Wheelhouse installers assume HTTPS URLs only; tests enforce this via `tests/test_release.py`.
-- Coverage artefacts must land in `coverage.xml`; CI and the guard-rails command read that file directly.
+- CLI behaviour is asserted with `typer.testing.CliRunner` fixtures in `tests/test_cli.py`; preserve command ordering or update expectations.
+- `tests/test_api_service.py` and `tests/test_api.py` ensure REST/gRPC parity and cover streaming ingestion—update both when changing orchestration.
+- Analytics ranking tweaks must update `tests/test_analytics.py` plus any schema exports in `tests/test_schema.py` to keep deterministic outputs.
+- Release hardening is covered by `tests/test_release.py`; maintain HTTPS-only downloads, checksum enforcement, and Sigstore bundle verification.
+- Toolbox data or fixtures need mirrored assertions in `tests/test_toolbox.py` alongside any updates in `tests/conftest.py`.
 
-## Quick references
+## Reference Hints
 
-- Quality gates + troubleshooting: `docs/how-to/quality-gates.md`, `docs/how-to/troubleshooting.md`.
-- Refactoring playbooks and default knobs: `hephaestus-toolkit/refactoring/docs/`, `hephaestus-toolkit/refactoring/config/refactor.config.yaml`.
-- Ops automation touchpoints: `.github/workflows/`, `ops/turborepo-release.json`, and `scripts/validate_quality_gates.py`.
+- Quality gate guides live in `docs/how-to/quality-gates.md`; troubleshooting tips in `docs/how-to/troubleshooting.md`.
+- Refactoring playbooks: `hephaestus-toolkit/refactoring/docs/` and default knobs in `hephaestus-toolkit/refactoring/config/refactor.config.yaml`.
+- Observability setup and OpenTelemetry toggles reside in `docs/adr/0003-opentelemetry-integration.md` and code under `telemetry/`.
+- Ops automation touchpoints: `.github/workflows/`, `scripts/validate_quality_gates.py`, and `ops/turborepo-release.json` for release orchestration.
