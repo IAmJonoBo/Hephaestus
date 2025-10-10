@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import pytest
 
 from hephaestus.command_helpers import build_pip_audit_command
 
 
-def _resolver(mapping: dict[str, str | None]):
+def _resolver(mapping: dict[str, str | None]) -> Callable[[str], str | None]:
     def _inner(name: str) -> str | None:
         return mapping.get(name)
 
