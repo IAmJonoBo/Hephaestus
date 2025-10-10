@@ -38,6 +38,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - No-op tracer fallback when OpenTelemetry not installed
     - Graceful degradation on configuration errors
   - **ADR-0004 (REST/gRPC API)**: API module structure and OpenAPI specification
+  - **ADR-0004 Phase 2 Enhancements**: FastAPI/gRPC streaming ingestion and drift automation
+    - Streaming analytics ingestion endpoint with NDJSON support and shared ingestion buffer
+    - gRPC client-streaming ingestion RPC with integration tests for acceptance/rejection flows
+    - CLI `guard-rails --drift --auto-remediate` to execute remediation commands with telemetry coverage
+    - CI workflow drift gate (`uv run hephaestus guard-rails --drift`) ensuring toolchain parity
+    - FastAPI guard-rails, cleanup, and rankings endpoints backed by shared toolkit helpers with drift remediation toggles and synthetic analytics fallbacks
+    - gRPC guard-rails, drift, cleanup, and analytics services reimplemented on the shared execution engine for parity with REST responses
     - OpenAPI 3.0 spec in `docs/api/openapi.yaml`
     - Module structure for future FastAPI implementation
     - Endpoints for quality gates, cleanup, analytics, and tasks
@@ -61,6 +68,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Existing telemetry event definitions moved to `events.py`
   - New `telemetry/` package for OpenTelemetry integration
   - All imports updated (`from hephaestus import events as telemetry`)
+- **REST API Hardening**: Background task orchestration now enforces bounded wait times, cancellation, and deterministic
+  streaming responses to prevent socket leaks and test hangs. Task manager utilities gained cancellation helpers,
+  pollable completion waits, and expanded regression coverage for timeouts, limits, and validation logic.
+- **Release Automation & Plugins**: CLI regression coverage now exercises archive cleanup, Sigstore backfill flows, and Ruff
+  plugin failure handling while lint gates exclude generated protobuf stubs and adopt modern typing annotations.
 
 ### Fixed
 

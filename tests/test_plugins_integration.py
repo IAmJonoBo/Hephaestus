@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, NoReturn
 
 import pytest
 
@@ -73,24 +74,24 @@ def test_plugin_config_validation() -> None:
         plugin.validate_config({"paths": "not-a-list"})
 
 
-def test_plugin_execution_with_missing_tool() -> None:
+def test_plugin_execution_with_missing_tool(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that plugins handle missing tools gracefully."""
     from hephaestus.plugins import PluginResult
     from hephaestus.plugins.builtin import RuffCheckPlugin
 
     plugin = RuffCheckPlugin()
 
-    # Run with unlikely command that won't exist
-    result = plugin.run({"command": "/nonexistent/ruff/binary"})
+    def raise_missing(*_args: Any, **_kwargs: Any) -> NoReturn:
+        raise FileNotFoundError("ruff command not found")
 
-    # Should return failure, not raise exception
+    monkeypatch.setattr("subprocess.run", raise_missing)
+
+    result = plugin.run({})
+
     assert isinstance(result, PluginResult)
     assert result.success is False
-    # Check for various failure messages
-    message_lower = result.message.lower()
-    assert any(
-        keyword in message_lower for keyword in ["not found", "failed", "not installed", "error"]
-    )
+    assert result.exit_code == 127
+    assert "not" in result.message.lower()
 
 
 def test_plugin_discovery_with_no_config() -> None:

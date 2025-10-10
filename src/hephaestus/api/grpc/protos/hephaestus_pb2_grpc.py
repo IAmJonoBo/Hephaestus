@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from hephaestus.api.grpc.protos import hephaestus_pb2 as hephaestus__pb2
+from . import hephaestus_pb2 as hephaestus__pb2
 
 GRPC_GENERATED_VERSION = '1.75.1'
 GRPC_VERSION = grpc.__version__
@@ -329,6 +329,11 @@ class AnalyticsServiceStub(object):
                 request_serializer=hephaestus__pb2.HotspotsRequest.SerializeToString,
                 response_deserializer=hephaestus__pb2.HotspotsResponse.FromString,
                 _registered_method=True)
+        self.StreamIngest = channel.stream_unary(
+                '/hephaestus.v1.AnalyticsService/StreamIngest',
+                request_serializer=hephaestus__pb2.AnalyticsEvent.SerializeToString,
+                response_deserializer=hephaestus__pb2.AnalyticsIngestResponse.FromString,
+                _registered_method=True)
 
 
 class AnalyticsServiceServicer(object):
@@ -349,6 +354,13 @@ class AnalyticsServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def StreamIngest(self, request_iterator, context):
+        """Stream analytics ingestion events
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AnalyticsServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -361,6 +373,11 @@ def add_AnalyticsServiceServicer_to_server(servicer, server):
                     servicer.GetHotspots,
                     request_deserializer=hephaestus__pb2.HotspotsRequest.FromString,
                     response_serializer=hephaestus__pb2.HotspotsResponse.SerializeToString,
+            ),
+            'StreamIngest': grpc.stream_unary_rpc_method_handler(
+                    servicer.StreamIngest,
+                    request_deserializer=hephaestus__pb2.AnalyticsEvent.FromString,
+                    response_serializer=hephaestus__pb2.AnalyticsIngestResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -418,6 +435,33 @@ class AnalyticsService(object):
             '/hephaestus.v1.AnalyticsService/GetHotspots',
             hephaestus__pb2.HotspotsRequest.SerializeToString,
             hephaestus__pb2.HotspotsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def StreamIngest(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_unary(
+            request_iterator,
+            target,
+            '/hephaestus.v1.AnalyticsService/StreamIngest',
+            hephaestus__pb2.AnalyticsEvent.SerializeToString,
+            hephaestus__pb2.AnalyticsIngestResponse.FromString,
             options,
             channel_credentials,
             insecure,

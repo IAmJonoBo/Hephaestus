@@ -7,6 +7,7 @@ import logging
 import grpc
 
 from hephaestus.api.grpc.protos import hephaestus_pb2, hephaestus_pb2_grpc
+from hephaestus.api.service import run_cleanup_summary
 
 logger = logging.getLogger(__name__)
 
@@ -33,24 +34,23 @@ class CleanupServiceServicer(hephaestus_pb2_grpc.CleanupServiceServicer):
             f"dry_run={request.dry_run}"
         )
 
-        # Simulate cleanup execution
+        summary = run_cleanup_summary(
+            root=request.root or None,
+            deep_clean=request.deep_clean,
+            dry_run=request.dry_run,
+        )
+
+        deleted_paths = summary["removed_paths"] if not request.dry_run else summary["preview_paths"]
+
         manifest = {
-            "__pycache__": 15,
-            ".pytest_cache": 8,
-            "*.pyc": 42,
-            ".mypy_cache": 5,
+            key: int(value)
+            for key, value in summary["manifest"].items()
+            if isinstance(value, (int, float))
         }
 
-        deleted_paths = [
-            "src/__pycache__",
-            "tests/__pycache__",
-            ".pytest_cache",
-            ".mypy_cache",
-        ]
-
         return hephaestus_pb2.CleanupResponse(
-            files_deleted=70,
-            size_freed=1024000,  # 1MB
+            files_deleted=summary["files"],
+            size_freed=summary["bytes"],
             deleted_paths=deleted_paths,
             manifest=manifest,
         )
@@ -71,24 +71,21 @@ class CleanupServiceServicer(hephaestus_pb2_grpc.CleanupServiceServicer):
         """
         logger.info(f"PreviewCleanup called: root={request.root}")
 
-        # Simulate preview
-        preview_manifest = {
-            "__pycache__": 15,
-            ".pytest_cache": 8,
-            "*.pyc": 42,
-            ".mypy_cache": 5,
+        summary = run_cleanup_summary(
+            root=request.root or None,
+            deep_clean=request.deep_clean,
+            dry_run=True,
+        )
+
+        manifest = {
+            key: int(value)
+            for key, value in summary["manifest"].items()
+            if isinstance(value, (int, float))
         }
 
-        paths = [
-            "src/__pycache__",
-            "tests/__pycache__",
-            ".pytest_cache",
-            ".mypy_cache",
-        ]
-
         return hephaestus_pb2.CleanupPreview(
-            files_to_delete=70,
-            size_to_free=1024000,
-            paths=paths,
-            preview_manifest=preview_manifest,
+            files_to_delete=summary["files"],
+            size_to_free=summary["bytes"],
+            paths=summary["preview_paths"],
+            preview_manifest=manifest,
         )

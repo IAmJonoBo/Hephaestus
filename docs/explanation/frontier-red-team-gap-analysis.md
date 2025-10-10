@@ -45,6 +45,7 @@ Refactor planning utilities load YAML configuration, generate deterministic hots
 ### Quality & Coverage
 
 - Test coverage enforces an 85% floor via pytest-cov defaults in `pyproject.toml`, yet release retry/backoff logic and cleanup safety rails were under-tested. New regression tests now exercise timeout validation, retry escalation, and sanitisation edge cases to prevent silent regressions (`tests/test_release.py`).
+- Release CLI workflows now cover archive cleanup, Sigstore backfill command wiring, and Ruff plugin failure handling, pushing total coverage to 86.95% and guarding against packaging regressions (`tests/test_cli.py`, `tests/test_plugins_integration.py`).
 - CLI release install wiring now has regression coverage for Sigstore pattern/identity flags (`tests/test_cli.py`), including multi-pattern identity matching to guard against accidental bypasses of the supply-chain gates.
 - Characterisation tests remain sparse for cleanup and planning flows; add scenario suites to lock down failure semantics before shipping automation.
 
@@ -67,6 +68,12 @@ Refactor planning utilities load YAML configuration, generate deterministic hots
 - Toolkit analytics can now ingest churn, coverage, and embedding exports, providing data-backed hotspots and refactor suggestions when telemetry files are present. Next steps include streaming ingestion, prompt-ready summaries, and API endpoints so AI agents can query tasks programmatically.
 - Introduce policy-based guard rails allowing AI operators to request automation only within whitelisted directories or branches, enforced via CLI and cleanup options.
 
+### Remote API, Deployment, and Sync
+
+- The REST API skeleton now offers authenticated guard-rails, cleanup, and rankings endpoints, but background task orchestration still relied on unbounded polling loops that could hang clients and leak sockets. Recent hardening layers cancellable tasks, bounded wait timeouts, and streaming safeguards, yet production deployments still require distributed task backends, persistence of task metadata, and health probes that cover both the FastAPI process and worker pool.
+- Remote/local environment sync remains largely manual. Operators must trigger `guard-rails` locally before invoking the remote API; there is no bidirectional sync of manifests, cleanup audit logs, or telemetry. A deployment-grade solution should replicate manifests and task audit trails to shared storage, enforce version pinning between local CLI and remote API, and supply migration tooling when schema changes occur.
+- Dev/stage/prod parity is partially addressed via `uv` lockfiles and setup scripts, but the API server lacks declarative configuration for feature flags, telemetry endpoints, and network policies. Harden deployment descriptors (Helm charts, Docker Compose) with environment validation, secret management, and automated smoke checks that mirror the local guard-rail pipeline.
+
 ## Frontier-Grade Roadmap Recommendations
 
 1. **Supply-Chain Hardening:** Enforce Sigstore identity policies, publish attestations for every release, and surface attestation metadata in audit logs so operators can trace provenance end-to-end. Provide continuous scanning of release archives post-download.
@@ -74,8 +81,9 @@ Refactor planning utilities load YAML configuration, generate deterministic hots
 3. **Refactor Intelligence Platform:** Replace synthetic analytics with adapters that ingest git churn, coverage heatmaps, static analysis (Ruff/Mypy), and ML embeddings. Offer ranking APIs and CLI visualisations for hotspots, risk scores, and effort models.
 4. **AI Co-Pilot Interfaces:** Publish a gRPC/REST layer enabling autonomous agents to request refactor plans, QA profiles, and guard-rail enforcement. Include sandboxed “what-if” simulators to rehearse rollout plans and evaluate blast radius before execution.
 5. **Progressive Safety Controls:** Add dry-run manifests, undo checkpoints, and interactive confirmations for cleanup and release installation. Provide emergency stop commands wired into guard-rail pipelines.
-6. **Integrated Quality Console:** Bundle a Rich- or Textual-based TUI that aggregates guard-rail status, coverage deltas, dependency risks, and release readiness in one place for operators.
-7. **Continuous Gap Audits:** Automate periodic red-team exercises that run scripted adversarial scenarios against cleanup, release, and analytics modules, logging drift from expected controls.
+6. **Resilient Remote Tasking:** Replace in-memory task tracking with a distributed queue (e.g., Redis, Postgres, or durable message bus), surface task heartbeats, and expose cancel/retry semantics through the API. Synchronise audit manifests between local runs and remote executions so operators can trace outcomes regardless of origin.
+7. **Integrated Quality Console:** Bundle a Rich- or Textual-based TUI that aggregates guard-rail status, coverage deltas, dependency risks, and release readiness in one place for operators.
+8. **Continuous Gap Audits:** Automate periodic red-team exercises that run scripted adversarial scenarios against cleanup, release, and analytics modules, logging drift from expected controls.
 
 ## Quality Gates & Next Steps
 

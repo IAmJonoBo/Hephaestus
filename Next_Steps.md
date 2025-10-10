@@ -1,6 +1,6 @@
 # Next Steps Tracker
 
-Last updated: 2025-01-XX (Documentation alignment and status consolidation)
+Last updated: 2025-02-XX (API streaming + remediation automation)
 
 ## Current Status Summary
 
@@ -25,6 +25,38 @@ Remaining work is focused on advanced features with clear ADRs and sprint-based 
 - ⏳ ADR-0002: Plugin architecture Sprint 4 (marketplace, dependency resolution, versioning)
 
 ## Recent Improvements (Latest Session)
+
+**API Service Hardening (2025-02-XX):**
+
+- ✅ Replaced REST and gRPC guard-rails and cleanup stubs with shared execution helpers exposing real cleanup manifests, plugin readiness, and drift summaries.
+- ✅ Unified analytics rankings and hotspot outputs across REST and gRPC by routing through the toolkit analytics pipeline with synthetic fallbacks when no datasets are configured.
+- ✅ Regenerated protobuf definitions to add `auto_remediate` support and aligned CI-safe cleanup previews between HTTP and gRPC flows.
+- 🔄 Follow-up: persist streaming analytics snapshots for ranking inputs and emit remediation telemetry for API consumers.
+
+**API Streaming & Remediation Automation (2025-02-XX):**
+
+- ✅ Implemented FastAPI analytics streaming ingestion with NDJSON parsing, bounded buffering, and shared ingestion telemetry for REST and gRPC surfaces.
+- ✅ Extended gRPC analytics service with client-streaming ingestion RPC and regression coverage for acceptance/rejection flows.
+- ✅ Added automated drift remediation path (`--auto-remediate`) with command execution telemetry, plus CI drift gate (`uv run hephaestus guard-rails --drift`).
+- ✅ Introduced shared streaming analytics ingestor with snapshot API and reset hooks for deterministic testing.
+- 🔄 Follow-up: expand analytics streaming persistence/retention policies and surface ingestion metrics over OpenTelemetry exporters.
+
+**Release & Plugin Hardening (2025-02-XX):**
+
+- ✅ Expanded CLI coverage to exercise `release install --remove-archive` cleanup and Sigstore backfill flows, lifting overall coverage to 86.95% (338 passed, 4 skipped).
+- ✅ Added regression tests for Ruff plugin failure handling and gRPC optional dependencies, ensuring modules skip cleanly when toolchains are absent.
+- ✅ Tightened lint gates by excluding generated protobuf stubs, modernising typing usage, and fixing import ordering across telemetry/plugin scaffolding.
+- ✅ Documented security scan limitations (pip-audit SSL chain) and kept build pipeline (`uv build`) green for release packaging.
+- 🔄 Follow-up: extend CLI cleanup pipeline tests to cover confirmation prompts/out-of-root warnings and plug remaining uncovered branches.
+
+**Telemetry Fallback Hardening (2025-02-XX):**
+
+- ✅ Rebuilt `hephaestus.telemetry` shims to provide typed fallbacks with deterministic no-op behaviour when OpenTelemetry is absent.
+- ✅ Re-ran type checking (`uv run mypy src tests`) to confirm the TaskManager and REST changes compile cleanly.
+- ✅ Re-validated REST regression suites (`uv run pytest`) to ensure SSE/task polling updates remain green (345 passed, 3 skipped, 85.51% coverage).
+- ✅ Targeted lint pass for the touched telemetry module (`uv run ruff check src/hephaestus/telemetry/__init__.py`).
+- ⚠️ `uv run pip-audit` blocked by container SSL trust chain; document waiver and retry once trust store is patched.
+- 🔄 Follow-up: reconcile repository-wide Ruff violations in generated gRPC assets without regressing proto sync (coordinate with tooling owner).
 
 **E2E Testing & Validation (2025-10-09):**
 
@@ -85,11 +117,11 @@ Remaining work is focused on advanced features with clear ADRs and sprint-based 
 
 ## Baseline Validation (current session)
 
-- ✅ `uv run --extra dev --extra qa pytest` (85 passed, coverage 87.29%)
-- ✅ `uv run --extra dev --extra qa ruff check .`
-- ✅ `uv run --extra dev --extra qa mypy src tests`
-- ⚠️ `uv run --extra dev --extra qa pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (fails: SSL trust chain unavailable in container)
-- ✅ `uv run --extra dev --extra qa uv build`
+- ✅ `uv run pytest --cov=src` (353 passed, 3 skipped, 86.83% coverage)【0721dc†L1-L33】
+- ✅ `uv run ruff check .`【6253c8†L1-L2】
+- ✅ `uv run mypy src tests`【fbca24†L1-L2】
+- ⚠️ `uv run pip-audit` (fails: SSL certificate verification error against pypi.org; trust store remediation still required)【80a602†L1-L41】
+- ✅ `uv build`【ced701†L1-L4】
 
 ## Implementation Status Summary
 
@@ -185,6 +217,13 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 - [x] Define telemetry event registry with operation/run correlation contexts across CLI + release flows
 - [x] Replace synthetic analytics with pluggable churn/coverage/embedding adapters
 - [ ] Expose an API surface (REST/gRPC) for AI/automation clients with policy guard rails
+
+8. **Telemetry shim hardening** – keep typed fallbacks aligned with OTEL integrations and tooling gates.
+
+- [x] Rebuild telemetry shims with typed no-op paths and cached module resolution.
+- [x] Verify mypy + pytest green against updated shims.
+- [ ] Update Ruff configuration or proto generation pipeline to silence deterministic lint noise for gRPC artefacts.
+- [ ] Re-run `pip-audit` once container trust store is refreshed; capture waiver scope if issues persist.
 
 ---
 

@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+
 import pytest
 
-# Skip all tests if grpc is not installed
-grpc = pytest.importorskip("grpc")
-
-from hephaestus.api.grpc.protos import hephaestus_pb2, hephaestus_pb2_grpc
-from hephaestus.api.grpc.services import (
-    AnalyticsServiceServicer,
-    CleanupServiceServicer,
-    QualityServiceServicer,
-)
+try:
+    from hephaestus.api.grpc.protos import hephaestus_pb2
+    from hephaestus.api.grpc.services import (
+        AnalyticsServiceServicer,
+        CleanupServiceServicer,
+        QualityServiceServicer,
+    )
+except ModuleNotFoundError as exc:  # pragma: no cover - exercised via pytest skip
+    missing_module = exc.name or ""
+    if missing_module in {"grpc", "google"} or missing_module.startswith(("grpc.", "google.")):
+        pytest.skip("could not import 'grpc': module unavailable", allow_module_level=True)
+    raise
 
 
 class MockContext:
@@ -173,6 +178,30 @@ async def test_analytics_service_get_hotspots() -> None:
         assert hotspot.risk_score >= 0
 
 
+@pytest.mark.asyncio
+async def test_analytics_service_stream_ingest() -> None:
+    """Test AnalyticsService StreamIngest RPC."""
+
+    service = AnalyticsServiceServicer()
+    context = MockContext()
+
+    from hephaestus.analytics_streaming import global_ingestor
+
+    global_ingestor.reset()
+
+    async def _generate() -> AsyncIterator[hephaestus_pb2.AnalyticsEvent]:
+        yield hephaestus_pb2.AnalyticsEvent(
+            source="ci", kind="coverage", value=0.95, unit="ratio"
+        )
+        yield hephaestus_pb2.AnalyticsEvent(source="", kind="")
+
+    response = await service.StreamIngest(_generate(), context)
+
+    assert isinstance(response, hephaestus_pb2.AnalyticsIngestResponse)
+    assert response.accepted == 1
+    assert response.rejected == 1
+
+
 def test_grpc_services_import() -> None:
     """Test that gRPC services can be imported."""
     from hephaestus.api.grpc.services import (
@@ -188,10 +217,7 @@ def test_grpc_services_import() -> None:
 
 def test_grpc_protos_import() -> None:
     """Test that generated proto files can be imported."""
-    from hephaestus.api.grpc.protos import (
-        hephaestus_pb2,
-        hephaestus_pb2_grpc,
-    )
+    from hephaestus.api.grpc.protos import hephaestus_pb2, hephaestus_pb2_grpc
 
     assert hephaestus_pb2 is not None
     assert hephaestus_pb2_grpc is not None
