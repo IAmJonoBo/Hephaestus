@@ -15,9 +15,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from hephaestus import drift as drift_module
-from hephaestus import toolbox
+from hephaestus import drift as drift_module, toolbox
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
+from hephaestus.api import auth
 from hephaestus.cleanup import CleanupOptions, run_cleanup
 from hephaestus.plugins import PluginRegistry, discover_plugins
 
@@ -57,8 +57,16 @@ def _size_estimate(paths: Iterable[Path]) -> int:
     return total
 
 
-def run_cleanup_summary(*, root: str | None, deep_clean: bool, dry_run: bool) -> dict[str, Any]:
+def run_cleanup_summary(
+    *,
+    principal: auth.AuthenticatedPrincipal,
+    root: str | None,
+    deep_clean: bool,
+    dry_run: bool,
+) -> dict[str, Any]:
     """Execute the cleanup routine and return a serialisable summary."""
+
+    auth.ServiceAccountVerifier.require_role(principal, auth.Role.CLEANUP.value)
 
     options = CleanupOptions(
         root=Path(root).resolve() if root else None,
@@ -91,9 +99,16 @@ def run_cleanup_summary(*, root: str | None, deep_clean: bool, dry_run: bool) ->
     }
 
 
-def _evaluate_cleanup_gate(workspace: Path, *, dry_run: bool) -> GuardRailGate:
+def _evaluate_cleanup_gate(
+    principal: auth.AuthenticatedPrincipal, workspace: Path, *, dry_run: bool
+) -> GuardRailGate:
     start = time.perf_counter()
-    summary = run_cleanup_summary(root=str(workspace), deep_clean=True, dry_run=dry_run)
+    summary = run_cleanup_summary(
+        principal=principal,
+        root=str(workspace),
+        deep_clean=True,
+        dry_run=dry_run,
+    )
     duration = time.perf_counter() - start
     return GuardRailGate(
         name="cleanup",
@@ -187,6 +202,7 @@ def _evaluate_drift_gate(workspace: Path) -> tuple[GuardRailGate, list[drift_mod
 
 def evaluate_guard_rails(
     *,
+    principal: auth.AuthenticatedPrincipal,
     no_format: bool,
     workspace: str | None,
     drift_check: bool,
@@ -195,6 +211,8 @@ def evaluate_guard_rails(
 ) -> GuardRailExecution:
     """Evaluate guard-rails gates using the local toolkit primitives."""
 
+    auth.ServiceAccountVerifier.require_role(principal, auth.Role.GUARD_RAILS.value)
+
     root = Path(workspace).resolve() if workspace else Path.cwd().resolve()
     start = time.perf_counter()
 
@@ -202,7 +220,7 @@ def evaluate_guard_rails(
     remediation_commands: list[str] = []
     remediation_results: list[drift_module.RemediationResult] = []
 
-    gates.append(_evaluate_cleanup_gate(root, dry_run=dry_run_cleanup))
+    gates.append(_evaluate_cleanup_gate(principal, root, dry_run=dry_run_cleanup))
 
     registry = discover_plugins()
     gates.extend(_evaluate_plugin_gates(registry, no_format=no_format))
@@ -244,6 +262,7 @@ def evaluate_guard_rails(
 
 async def evaluate_guard_rails_async(
     *,
+    principal: auth.AuthenticatedPrincipal,
     no_format: bool,
     workspace: str | None,
     drift_check: bool,
@@ -254,6 +273,7 @@ async def evaluate_guard_rails_async(
 
     return await asyncio.to_thread(
         evaluate_guard_rails,
+        principal=principal,
         no_format=no_format,
         workspace=workspace,
         drift_check=drift_check,
@@ -262,8 +282,15 @@ async def evaluate_guard_rails_async(
     )
 
 
-def compute_rankings(*, strategy: RankingStrategy, limit: int) -> list[dict[str, Any]]:
+def compute_rankings(
+    *,
+    principal: auth.AuthenticatedPrincipal,
+    strategy: RankingStrategy,
+    limit: int,
+) -> list[dict[str, Any]]:
     """Return ranking payloads compatible with REST and gRPC surfaces."""
+
+    auth.ServiceAccountVerifier.require_role(principal, auth.Role.ANALYTICS.value)
 
     try:
         settings = toolbox.load_settings()
@@ -320,6 +347,8 @@ def compute_rankings(*, strategy: RankingStrategy, limit: int) -> list[dict[str,
 def compute_hotspots(*, principal: auth.AuthenticatedPrincipal, limit: int) -> list[dict[str, Any]]:
     """Return hotspot payloads derived from the toolkit configuration."""
 
+    auth.ServiceAccountVerifier.require_role(principal, auth.Role.ANALYTICS.value)
+
     try:
         settings = toolbox.load_settings()
     except FileNotFoundError:
@@ -337,8 +366,12 @@ def compute_hotspots(*, principal: auth.AuthenticatedPrincipal, limit: int) -> l
     ]
 
 
-def detect_drift_summary(workspace: str | None) -> dict[str, Any]:
+def detect_drift_summary(
+    principal: auth.AuthenticatedPrincipal, *, workspace: str | None
+) -> dict[str, Any]:
     """Return a serialisable drift detection summary."""
+
+    auth.ServiceAccountVerifier.require_role(principal, auth.Role.GUARD_RAILS.value)
 
     root = Path(workspace).resolve() if workspace else Path.cwd().resolve()
     versions = drift_module.detect_drift(project_root=root)

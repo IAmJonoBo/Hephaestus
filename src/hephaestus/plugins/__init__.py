@@ -944,6 +944,15 @@ def _verify_marketplace_signature(
             f"Marketplace plugin {manifest.name!r} entrypoint {artifact_path} does not exist.",
         )
 
+    if not artifact_path.is_file():
+        _fail(
+            "invalid-artifact",
+            (
+                f"Marketplace plugin {manifest.name!r} entrypoint {artifact_path} "
+                "is not a regular file."
+            ),
+        )
+
     actual_digest = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
     if expected_digest is None or actual_digest != expected_digest:
         _fail(

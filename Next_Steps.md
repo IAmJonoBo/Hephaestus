@@ -1,13 +1,13 @@
 # Next Steps Tracker
 
-Last updated: 2025-10-12 (PyPI publication enablement baseline + guard-rail status captured)
+Last updated: 2025-10-13 (Service auth gating restored + guard-rail suite green locally)
 
 ## Tasks
 
 - [ ] Restore guard-rail baselines for release pipeline work (tests, lint, typecheck, security scan) _(Owner: Agent, Due: 2025-10-13)_
-  - [ ] Address API service principal argument regressions blocking pytest. _(Owner: Agent)_
-  - [ ] Reformat `tests/test_plugins_marketplace.py` per Ruff. _(Owner: Agent)_
-  - [ ] Resolve lint/type failures triggered by new auth signature expectations. _(Owner: Agent)_
+  - [x] Address API service principal argument regressions blocking pytest. _(Owner: Agent)_
+  - [x] Reformat `tests/test_plugins_marketplace.py` per Ruff. _(Owner: Agent)_
+  - [x] Resolve lint/type failures triggered by new auth signature expectations. _(Owner: Agent)_
   - [ ] Document pip-audit limitation (package absent on PyPI until publish). _(Owner: Agent)_
 - [ ] Implement PyPI/Test PyPI publication automation per ADR-0005. _(Owner: Agent, Due: 2025-10-14)_
   - [x] Extend `hephaestus release install` to support PyPI/Test PyPI sources. _(Owner: Agent)_
@@ -23,7 +23,7 @@ Last updated: 2025-10-12 (PyPI publication enablement baseline + guard-rail stat
 - [x] Implement CLI + `release` module changes to satisfy new tests.
 - [x] Author Test PyPI smoke script (pytest gated + standalone entrypoint) and wire into workflow.
 - [x] Update docs/ADR + README to document publisher configuration, 2FA, and install flows.
-- [ ] Validate workflow locally (lint) then via prerelease tag once GitHub access available.
+- [x] Validate guard-rail tooling locally (pytest, Ruff, mypy) after auth hardening; prerelease tag execution still pending external access.
 - [ ] Record GitHub Actions log links + Test PyPI artifact references post-run.
 
 ## Deliverables
@@ -36,13 +36,12 @@ Last updated: 2025-10-12 (PyPI publication enablement baseline + guard-rail stat
 
 ## Quality Gates
 
-- [ ] `uv run --extra qa --extra dev pytest --cov=src` (fails: API service auth signature regressions, coverage 83.50%).【877f14†L1-L121】
-- [ ] `uv run --extra qa --extra dev pytest tests/test_release.py::test_install_from_pypi_invokes_pip tests/test_cli.py::test_release_install_supports_test_pypi_source` (fails: coverage gate when running subset, total 15.47%).【6b8b13†L1-L36】
-- [ ] `uv run --extra qa --extra dev ruff check .` (fails: import ordering + undefined name).【93514f†L1-L38】
-- [ ] `uv run --extra qa --extra dev ruff format --check .` (fails: requires formatting).【ff2acb†L1-L3】
-- [ ] `uv run --extra qa --extra dev mypy src tests` (fails: auth principal signature mismatches).【17e094†L1-L12】
-- [ ] `uv run --extra qa --extra dev pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (fails: package not yet on PyPI).【ad29bf†L1-L2】
-- [x] `uv build` (pass).【29d88a†L1-L4】
+- [x] `uv run --extra qa --extra dev pytest --cov=src` (pass: 400 passed, coverage 85.30%).【7dee58†L1-L61】
+- [x] `uv run --extra qa --extra dev ruff check .` (pass).【78ed7a†L1-L2】
+- [x] `uv run --extra qa --extra dev ruff format --check .` (pass).【53663b†L1-L2】
+- [x] `uv run --extra qa --extra dev mypy src tests` (pass).【283f4e†L1-L2】
+- [ ] `uv run --extra qa --extra dev pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (fails: package not yet on PyPI).【85d439†L1-L2】
+- [x] `uv build` (pass).【78c9c0†L1-L3】
 
 ## Links
 
@@ -56,7 +55,7 @@ Last updated: 2025-10-12 (PyPI publication enablement baseline + guard-rail stat
 
 ## Risks/Notes
 
-- Baseline guard-rails currently failing due to prior auth signature refactors; must be resolved or documented before release tagging.
+- Guard-rail suite now passes locally (tests/coverage/lint/type); ensure future changes maintain ≥85% coverage before tagging releases.
 - PyPI registration + 2FA require external maintainer action; document completion steps once access is available.
 - pip-audit will fail until package exists on PyPI/Test PyPI; treat as expected until first publish.
 - Test PyPI smoke test requires network + credentials; gate via env var to avoid local CI failures.
