@@ -5,9 +5,12 @@ repos:
       - id: ruff
         name: ruff-isort
         args: [--fix, --select, I]
+        stages: [commit, push]
       - id: ruff
         args: [--fix]
+        stages: [commit, push]
       - id: ruff-format
+        stages: [commit, push]
   - repo: https://github.com/psf/black
     rev: 25.1.0
     hooks:
