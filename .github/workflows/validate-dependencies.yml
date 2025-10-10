@@ -6,9 +6,9 @@ name: Validate Dependencies
 on:
   pull_request:
     paths:
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - '.github/workflows/validate-dependencies.yml'
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/validate-dependencies.yml"
 
 permissions:
   contents: read

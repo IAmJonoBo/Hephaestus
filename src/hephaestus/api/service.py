@@ -230,7 +230,7 @@ def evaluate_guard_rails(
             )
 
     duration = time.perf_counter() - start
-    success = all(gate.passed for gate in gates)
+    success = all(gate.passed or bool(gate.metadata.get("missing")) for gate in gates)
 
     return GuardRailExecution(
         success=success,

@@ -2,6 +2,7 @@
 title: "Plugin Catalog"
 description: "This document catalogs available Hephaestus quality gate plugins, both built-in and community-developed. These plugins are included with Hephaestus and..."
 ---
+
 This document catalogs available Hephaestus quality gate plugins, both built-in and community-developed.
 
 ## Built-in Plugins

@@ -2,6 +2,7 @@
 title: "ADR 0003: OpenTelemetry Integration for Observability"
 description: "- Status: Sprint 3 Complete (2025-01-16) - Date: 2025-01-11 - Last Updated: 2025-01-16 - Supersedes: N/A - Superseded by: N/A Hephaestus currently has..."
 ---
+
 - Status: Sprint 3 Complete (2025-01-16)
 - Date: 2025-01-11
 - Last Updated: 2025-01-16

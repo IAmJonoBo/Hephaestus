@@ -2,6 +2,7 @@
 title: "Release Process Guide"
 description: "This guide explains how to release new versions of Hephaestus. Hephaestus uses automated release workflows with manual preparation steps. The release process..."
 ---
+
 This guide explains how to release new versions of Hephaestus.
 
 ## Overview
