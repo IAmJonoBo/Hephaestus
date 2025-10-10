@@ -131,6 +131,7 @@ async def test_task_manager_executes_real_task(
     assert status.status == TaskStatus.COMPLETED
     assert status.result == {"success": True}
 
+    assert response.status_code == 403
 
 @pytest.mark.asyncio
 async def test_guard_rails_endpoint_forbidden_without_role(
@@ -325,3 +326,11 @@ async def test_analytics_ingest_handles_chunk_boundaries(
     body = response.json()
     assert body["accepted"] == 2
     assert body["rejected"] == 0
+
+    entries = _load_audit_entries(service_account_environment.audit_dir)
+    assert any(
+        entry.get("operation") == "rest.analytics.ingest"
+        and entry.get("principal") == "svc-omni@example.com"
+        and entry.get("status") == "success"
+        for entry in entries
+    )

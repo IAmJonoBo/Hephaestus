@@ -69,6 +69,12 @@ class MockContext:
     def invocation_metadata(self) -> tuple[Any, ...]:  # pragma: no cover - interface parity
         return ()
 
+    for path in sorted(audit_dir.glob("*.jsonl")):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            entries.append(json.loads(line))
+    return entries
 
 @pytest.mark.asyncio
 async def test_quality_service_guard_rails_success(
@@ -98,6 +104,8 @@ async def test_quality_service_guard_rails_success(
     assert isinstance(response, hephaestus_pb2.GuardRailsResponse)
     assert response.success is True
 
+    def details(self) -> str:
+        return self._details
 
 @pytest.mark.asyncio
 async def test_quality_service_guard_rails_permission_denied(
@@ -194,9 +202,7 @@ async def test_analytics_service_stream_ingest_audit(
     verifier = auth_module.get_default_verifier()
     principal = verifier.verify_bearer_token(service_account_environment.omni_token)
 
-    from hephaestus.analytics_streaming import global_ingestor
-
-    global_ingestor.reset()
+    monkeypatch.setattr(service_module, "compute_rankings", fake_rankings)
 
     async def event_generator() -> AsyncIterator[hephaestus_pb2.AnalyticsEvent]:
         yield hephaestus_pb2.AnalyticsEvent(source="ci", kind="coverage", value=0.95)
