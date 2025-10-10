@@ -197,6 +197,14 @@ name = "org-compliance-check"
 enabled = true
 module = "myorg.hephaestus_plugins.compliance"
 config = { policy_version = "2024.1" }
+
+# Enable curated marketplace plugins
+[[marketplace]]
+name = "example-plugin"
+version = "1.0.0"
+registry = "default"
+enabled = true
+config = { severity = "high" }
 ```
 
 ### Plugin Discovery
@@ -219,6 +227,67 @@ configs = load_plugin_config(config_path)
 for config in configs:
     print(f"Plugin: {config.name}, Enabled: {config.enabled}")
 ```
+
+## Marketplace Plugins
+
+The marketplace packages curated plugins together with manifests, dependency metadata, and
+Sigstore bundles. Discovery resolves marketplace entries automatically when they are listed under
+`[[marketplace]]` in `.hephaestus/plugins.toml`.
+
+### Enabling Marketplace Plugins
+
+1. Add a `[[marketplace]]` entry with the plugin name and requested version.
+2. Run `hephaestus guard-rails --use-plugins` (or invoke `discover_plugins`) to validate manifests,
+   dependencies, and signatures.
+3. Monitor telemetry counters in your observability backend: successful loads emit
+   `hephaestus.plugins.marketplace.{fetch,verified,dependencies_resolved,registered}` while trust
+   failures increment `hephaestus.plugins.marketplace.errors` with a reason tag.
+
+### Publishing to the Marketplace
+
+1. **Author the plugin** – implement `QualityGatePlugin` in a dedicated module or package.
+2. **Create a manifest** – add a new `*.toml` file under `plugin-templates/registry/` with
+   metadata, compatibility constraints, dependencies, and entrypoint information (see
+   `example-plugin.toml`).
+3. **Generate a Sigstore bundle** – sign the plugin artefact (path-based entrypoints are supported
+   today) and drop the resulting bundle alongside the manifest
+   (`plugin-templates/registry/<name>.sigstore`). The digest must cover the artefact referenced by
+   the manifest.
+4. **Update the trust policy** – append approved identities to
+   `plugin-templates/registry/trust-policy.toml` so only vetted maintainers can ship updates.
+5. **Open a pull request** – include updated manifests, bundles, and trust policy entries together
+   with validation evidence (tests, manual verification output, Sigstore metadata).
+
+### Security Review Checklist
+
+- Confirm compatibility constraints restrict the plugin to supported Hephaestus and Python ranges.
+- Verify dependency blocks only include approved plugins and pinned Python packages.
+- Inspect Sigstore bundle metadata (digest, issuer, subject) and confirm it matches the trust
+  policy.
+- Review plugin code for privileged operations, network access, or filesystem writes.
+- Ensure telemetry counters are observed in staging before promoting to production.
+
+### Rollback Playbook
+
+1. Disable the plugin by setting `enabled = false` for the corresponding `[[marketplace]]` entry.
+2. Re-run `hephaestus guard-rails --use-plugins` to confirm the rollback configuration takes
+   effect.
+3. Revert or patch the manifest/trust-policy files in `plugin-templates/registry/` if the rollback
+   should be permanent.
+4. Monitor `hephaestus.plugins.marketplace.errors` for any lingering dependency issues.
+
+### Telemetry Signals
+
+- `hephaestus.plugins.marketplace.fetch` – manifest/Signature fetch attempts (expect one per
+  plugin).
+- `hephaestus.plugins.marketplace.verified` – successful signature verification including the
+  trusted identity.
+- `hephaestus.plugins.marketplace.dependencies_resolved` – dependency and compatibility checks
+  passed.
+- `hephaestus.plugins.marketplace.registered` – plugin successfully registered with the runtime
+  registry.
+- `hephaestus.plugins.marketplace.errors` – grouped by failure reason (missing signature, identity
+  mismatch, dependency failure, etc.).
 
 ## Built-in Plugins
 

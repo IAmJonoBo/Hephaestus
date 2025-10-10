@@ -34,8 +34,13 @@ def test_prometheus_endpoint_exposes_metrics(monkeypatch: pytest.MonkeyPatch) ->
 
     importlib.reload(metrics)
 
+    class Resource:
+        attributes = {"service.name": "hephaestus-test", "service.instance.id": "123"}
+
+    metrics.configure_metrics(Resource())
+
     metrics.record_counter(
-        "hephaestus.test.counter",
+        "hephaestus test counter",
         value=3,
         attributes={"plugin": "example", "result": "success"},
     )
@@ -69,5 +74,17 @@ def test_prometheus_endpoint_exposes_metrics(monkeypatch: pytest.MonkeyPatch) ->
     assert response.status_code == 200
     body = response.text
     assert "hephaestus_test_counter_total" in body
+    assert "hephaestus_" in body  # sanitized metric prefix present
     assert "hephaestus_test_histogram_bucket" in body
     assert "hephaestus_test_gauge" in body
+
+
+def test_metrics_disabled_is_noop(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("HEPHAESTUS_TELEMETRY_ENABLED", raising=False)
+    importlib.reload(metrics)
+
+    metrics.record_counter("disabled.counter")
+    metrics.record_gauge("disabled.gauge", 1.0)
+    metrics.record_histogram("disabled.histogram", 1.0)
+
+    assert metrics.get_prometheus_endpoint() is None

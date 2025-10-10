@@ -131,8 +131,6 @@ async def test_task_manager_executes_real_task(
     assert status.status == TaskStatus.COMPLETED
     assert status.result == {"success": True}
 
-    assert response.status_code == 403
-
 @pytest.mark.asyncio
 async def test_guard_rails_endpoint_forbidden_without_role(
     rest_app_client: tuple[Any, Any],
