@@ -82,6 +82,7 @@ def _fake_rankings(**_: Any) -> list[dict[str, Any]]:
         }
     ]
 
+
 @pytest.mark.asyncio
 async def test_quality_service_guard_rails_success(
     service_account_environment: ServiceAccountContext,
@@ -109,6 +110,7 @@ async def test_quality_service_guard_rails_success(
 
     assert isinstance(response, hephaestus_pb2.GuardRailsResponse)
     assert response.success is True
+
 
 @pytest.mark.asyncio
 async def test_quality_service_guard_rails_permission_denied(

@@ -295,7 +295,9 @@ class TaskManager:
         return list(self._tasks.values())
 
     def _ensure_access(
-        self, task: Task, principal: "AuthenticatedPrincipal" | None  # noqa: UP037
+        self,
+        task: Task,
+        principal: "AuthenticatedPrincipal" | None,  # noqa: UP037
     ) -> None:
         if task.principal_id is None and not task.required_roles:
             return

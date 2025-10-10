@@ -248,7 +248,11 @@ def test_detect_drift_summary_requires_guard_role(
         is_missing=False,
     )
     monkeypatch.setattr(service.drift_module, "detect_drift", lambda project_root: [tool])
-    monkeypatch.setattr(service.drift_module, "generate_remediation_commands", lambda tools: ["pip install ruff==0.4.0"])
+    monkeypatch.setattr(
+        service.drift_module,
+        "generate_remediation_commands",
+        lambda tools: ["pip install ruff==0.4.0"],
+    )
 
     summary = service.detect_drift_summary(guard_principal, workspace=None)
     assert summary["has_drift"] is True

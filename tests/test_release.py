@@ -415,7 +415,9 @@ def test_download_wheelhouse_rejects_inventory_checksum_failure(
     monkeypatch.setattr(release, "_fetch_release", fake_fetch_release)
     monkeypatch.setattr(release, "_download_asset", fake_download_asset)
 
-    with pytest.raises(release.ReleaseError, match="inventory reports checksum verification failure"):
+    with pytest.raises(
+        release.ReleaseError, match="inventory reports checksum verification failure"
+    ):
         release.download_wheelhouse(
             release.WheelhouseDownloadOptions(
                 repository="IAmJonoBo/Hephaestus",
@@ -1508,7 +1510,10 @@ abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd  example2.whl
 """.strip()
 
     checksums = release._parse_checksum_manifest(manifest)
-    assert checksums["example.whl"] == "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    assert (
+        checksums["example.whl"]
+        == "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    )
     assert "example2.whl" in checksums
 
     with pytest.raises(release.ReleaseError):

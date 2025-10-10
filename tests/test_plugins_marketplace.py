@@ -21,6 +21,7 @@ from hephaestus.plugins import (
     TrustPolicy,
     _ensure_marketplace_compatibility,
     _ensure_marketplace_dependencies,
+    _load_marketplace_manifests,
     _load_marketplace_plugins,
     _load_trust_policy,
     _parse_marketplace_dependency,
@@ -82,9 +83,7 @@ def test_parse_marketplace_dependency_aliases() -> None:
         {"type": "python", "name": "packaging", "version": ">=23"}
     )
 
-    assert dependency == MarketplaceDependency(
-        kind="python", name="packaging", version=">=23"
-    )
+    assert dependency == MarketplaceDependency(kind="python", name="packaging", version=">=23")
 
 
 def test_parse_marketplace_dependency_invalid_payload() -> None:
@@ -117,6 +116,67 @@ registry = "embedded"
     configs = load_plugin_config(config_path)
     marketplace_configs = [cfg for cfg in configs if cfg.source == "marketplace"]
     assert marketplace_configs and marketplace_configs[0].name == "market-example"
+
+
+def test_load_marketplace_manifests_enforces_registry_boundaries(tmp_path: Path) -> None:
+    registry_root = tmp_path / "registry"
+    registry_root.mkdir()
+
+    safe_plugins = registry_root / "plugins"
+    safe_plugins.mkdir()
+    (safe_plugins / "safe.py").write_text("print('safe')\n", encoding="utf-8")
+
+    (registry_root / "safe.toml").write_text(
+        """
+[plugin]
+name = "safe"
+version = "1.0.0"
+description = "Safe plugin"
+author = "Quality Team"
+category = "custom"
+
+[plugin.entrypoint]
+path = "plugins/safe.py"
+        """.strip(),
+        encoding="utf-8",
+    )
+
+    (registry_root / "escape-entry.toml").write_text(
+        """
+[plugin]
+name = "escape-entry"
+version = "1.0.0"
+description = "Escape entry"
+author = "Quality Team"
+category = "custom"
+
+[plugin.entrypoint]
+path = "../outside.py"
+        """.strip(),
+        encoding="utf-8",
+    )
+
+    (registry_root / "escape-signature.toml").write_text(
+        """
+[plugin]
+name = "escape-signature"
+version = "1.0.0"
+description = "Escape signature"
+author = "Quality Team"
+category = "custom"
+
+[plugin.entrypoint]
+module = "escape.module"
+
+[plugin.signature]
+bundle = "../outside.sigstore"
+        """.strip(),
+        encoding="utf-8",
+    )
+
+    manifests = _load_marketplace_manifests(registry_root)
+
+    assert set(manifests) == {"safe"}
 
 
 def test_discover_plugins_uses_defaults(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -152,12 +212,8 @@ allowed_identities = ["mailto:plugins@example.com"]
 def test_ensure_marketplace_compatibility_validates_versions(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr(
-        "hephaestus.plugins._current_hephaestus_version", lambda: "1.2.3"
-    )
-    monkeypatch.setattr(
-        "hephaestus.plugins._python_version_string", lambda: "3.12.1"
-    )
+    monkeypatch.setattr("hephaestus.plugins._current_hephaestus_version", lambda: "1.2.3")
+    monkeypatch.setattr("hephaestus.plugins._python_version_string", lambda: "3.12.1")
 
     manifest = _make_manifest(
         tmp_path,
@@ -262,7 +318,9 @@ def test_load_marketplace_plugins_registers_plugin(
                 requires=[],
             )
 
-        def validate_config(self, config: dict[str, object]) -> bool:  # pragma: no cover - simple stub
+        def validate_config(
+            self, config: dict[str, object]
+        ) -> bool:  # pragma: no cover - simple stub
             return True
 
         def run(self, config: dict[str, object]) -> PluginResult:
@@ -336,6 +394,18 @@ def test_verify_marketplace_signature_respects_policy(tmp_path: Path) -> None:
         _verify_marketplace_signature(manifest, policy)
 
 
+def test_verify_marketplace_signature_requires_existing_bundle(tmp_path: Path) -> None:
+    manifest = _make_manifest(
+        tmp_path,
+        signature_bundle=tmp_path / "missing.sigstore",
+    )
+
+    policy = TrustPolicy(require_signature=True, default_identities=(), per_plugin={})
+
+    with pytest.raises(ValueError, match="signature bundle"):
+        _verify_marketplace_signature(manifest, policy)
+
+
 def test_verify_marketplace_signature_identity_enforcement(
     tmp_path: Path, _telemetry_stub: list[tuple[str, dict[str, str]]]
 ) -> None:
@@ -405,4 +475,32 @@ def test_verify_marketplace_signature_rejects_algorithm(tmp_path: Path) -> None:
     policy = TrustPolicy(require_signature=True, default_identities=(), per_plugin={})
 
     with pytest.raises(ValueError, match="unsupported digest algorithm"):
+        _verify_marketplace_signature(manifest, policy)
+
+
+def test_verify_marketplace_signature_rejects_non_file_artifact(tmp_path: Path) -> None:
+    artifact_dir = tmp_path / "plugin-dir"
+    artifact_dir.mkdir()
+
+    bundle = {
+        "messageSignature": {
+            "messageDigest": {
+                "algorithm": "sha256",
+                "digest": base64.b64encode(b"dummy").decode("ascii"),
+            }
+        }
+    }
+
+    signature_path = tmp_path / "bundle.sigstore"
+    signature_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    manifest = _make_manifest(
+        tmp_path,
+        signature_bundle=signature_path,
+        entry_path=artifact_dir,
+    )
+
+    policy = TrustPolicy(require_signature=True, default_identities=(), per_plugin={})
+
+    with pytest.raises(ValueError, match="not a regular file"):
         _verify_marketplace_signature(manifest, policy)

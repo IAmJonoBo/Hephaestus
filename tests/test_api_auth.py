@@ -14,7 +14,9 @@ import pytest
 from hephaestus.api import auth
 
 
-def _write_keystore(path: Path, *, key_id: str, principal: str, roles: set[str], secret: bytes) -> None:
+def _write_keystore(
+    path: Path, *, key_id: str, principal: str, roles: set[str], secret: bytes
+) -> None:
     payload = {
         "keys": [
             {
@@ -196,9 +198,7 @@ def test_require_any_role_checks_subset(tmp_path: Path) -> None:
     )
 
     with pytest.raises(auth.AuthorizationError):
-        auth.ServiceAccountVerifier.require_any_role(
-            principal, [auth.Role.ANALYTICS.value]
-        )
+        auth.ServiceAccountVerifier.require_any_role(principal, [auth.Role.ANALYTICS.value])
 
 
 def test_generate_service_account_token_rejects_unknown_role(tmp_path: Path) -> None:
@@ -266,14 +266,18 @@ def test_verify_token_rejects_unsupported_algorithm(tmp_path: Path) -> None:
         "typ": "JWT",
         "kid": key.key_id,
     }
-    bad_header_raw = base64.urlsafe_b64encode(
-        json.dumps(bad_header, separators=(",", ":")).encode("utf-8")
-    ).rstrip(b"=").decode("ascii")
+    bad_header_raw = (
+        base64.urlsafe_b64encode(json.dumps(bad_header, separators=(",", ":")).encode("utf-8"))
+        .rstrip(b"=")
+        .decode("ascii")
+    )
 
     message = f"{bad_header_raw}.{payload_raw}".encode("ascii")
-    signature = base64.urlsafe_b64encode(hmac.new(secret, message, hashlib.sha256).digest()).rstrip(
-        b"="
-    ).decode("ascii")
+    signature = (
+        base64.urlsafe_b64encode(hmac.new(secret, message, hashlib.sha256).digest())
+        .rstrip(b"=")
+        .decode("ascii")
+    )
 
     with pytest.raises(auth.AuthenticationError):
         verifier.verify_bearer_token(f"{bad_header_raw}.{payload_raw}.{signature}")
@@ -300,14 +304,18 @@ def test_verify_token_missing_timestamp_claims(tmp_path: Path) -> None:
     payload = json.loads(base64.urlsafe_b64decode(payload_raw + "=" * (-len(payload_raw) % 4)))
     payload["iat"] = "invalid"
 
-    tampered_payload_raw = base64.urlsafe_b64encode(
-        json.dumps(payload, separators=(",", ":")).encode("utf-8")
-    ).rstrip(b"=").decode("ascii")
+    tampered_payload_raw = (
+        base64.urlsafe_b64encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
+        .rstrip(b"=")
+        .decode("ascii")
+    )
 
     message = f"{header_raw}.{tampered_payload_raw}".encode("ascii")
-    signature = base64.urlsafe_b64encode(hmac.new(secret, message, hashlib.sha256).digest()).rstrip(
-        b"="
-    ).decode("ascii")
+    signature = (
+        base64.urlsafe_b64encode(hmac.new(secret, message, hashlib.sha256).digest())
+        .rstrip(b"=")
+        .decode("ascii")
+    )
 
     with pytest.raises(auth.AuthenticationError):
         verifier.verify_bearer_token(f"{header_raw}.{tampered_payload_raw}.{signature}")

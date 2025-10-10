@@ -317,7 +317,7 @@ def compute_rankings(*, strategy: RankingStrategy, limit: int) -> list[dict[str,
     return rankings
 
 
-def compute_hotspots(*, limit: int) -> list[dict[str, Any]]:
+def compute_hotspots(*, principal: auth.AuthenticatedPrincipal, limit: int) -> list[dict[str, Any]]:
     """Return hotspot payloads derived from the toolkit configuration."""
 
     try:

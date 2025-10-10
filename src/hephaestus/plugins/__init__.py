@@ -122,6 +122,16 @@ class TrustPolicy:
         return self.per_plugin.get(plugin_name, self.default_identities)
 
 
+def _is_within_directory(path: Path, root: Path) -> bool:
+    """Return ``True`` if *path* resides within *root*."""
+
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
 class QualityGatePlugin(ABC):
     """Base class for quality gate plugins.
 
@@ -571,10 +581,23 @@ def _load_marketplace_manifests(root: Path) -> dict[str, MarketplaceManifest]:
         entry_data = plugin_data.get("entrypoint", {})
         entry_path: Path | None = None
         entry_module: str | None = None
+        registry_root = manifest_path.parent.resolve()
+        skip_manifest = False
         if isinstance(entry_data, dict):
             entry_path_value = entry_data.get("path")
             if isinstance(entry_path_value, str) and entry_path_value.strip():
-                entry_path = (manifest_path.parent / entry_path_value).resolve()
+                candidate = (registry_root / entry_path_value).resolve()
+                if not _is_within_directory(candidate, registry_root):
+                    logger.warning(
+                        "Marketplace manifest entrypoint escaped registry root",
+                        extra={
+                            "path": str(manifest_path),
+                            "entrypoint": entry_path_value,
+                        },
+                    )
+                    skip_manifest = True
+                else:
+                    entry_path = candidate
             module_value = entry_data.get("module")
             if isinstance(module_value, str) and module_value.strip():
                 entry_module = module_value.strip()
@@ -603,7 +626,21 @@ def _load_marketplace_manifests(root: Path) -> dict[str, MarketplaceManifest]:
         if isinstance(signature_data, dict):
             bundle_value = signature_data.get("bundle")
             if isinstance(bundle_value, str) and bundle_value.strip():
-                bundle_path = (manifest_path.parent / bundle_value).resolve()
+                candidate = (registry_root / bundle_value).resolve()
+                if not _is_within_directory(candidate, registry_root):
+                    logger.warning(
+                        "Marketplace manifest signature bundle escaped registry root",
+                        extra={
+                            "path": str(manifest_path),
+                            "bundle": bundle_value,
+                        },
+                    )
+                    skip_manifest = True
+                else:
+                    bundle_path = candidate
+
+        if skip_manifest:
+            continue
 
         manifests[name] = MarketplaceManifest(
             name=name,
@@ -729,7 +766,7 @@ def _ensure_marketplace_compatibility(manifest: MarketplaceManifest) -> None:
         try:
             spec = SpecifierSet(manifest.hephaestus_spec)
             current = Version(hephaestus_version)
-        except InvalidVersion as exc:
+        except (InvalidVersion, ValueError) as exc:
             raise ValueError(
                 f"Marketplace plugin {manifest.name!r} declared invalid Hephaestus compatibility."
             ) from exc
@@ -743,7 +780,7 @@ def _ensure_marketplace_compatibility(manifest: MarketplaceManifest) -> None:
         try:
             spec = SpecifierSet(manifest.python_spec)
             current = Version(python_version)
-        except InvalidVersion as exc:
+        except (InvalidVersion, ValueError) as exc:
             raise ValueError(
                 f"Marketplace plugin {manifest.name!r} declared invalid Python compatibility."
             ) from exc
@@ -766,7 +803,7 @@ def _ensure_python_dependency(dependency: MarketplaceDependency) -> None:
         try:
             spec = SpecifierSet(dependency.version)
             current = Version(installed_version)
-        except InvalidVersion as exc:
+        except (InvalidVersion, ValueError) as exc:
             raise ValueError(
                 f"Marketplace plugin dependency {dependency.name!r} has an invalid version constraint."
             ) from exc
@@ -824,6 +861,15 @@ def _verify_marketplace_signature(
                 f"Marketplace trust policy requires a signature for {manifest.name!r}.",
             )
         return
+
+    if not bundle_path.is_file():
+        _fail(
+            "missing-bundle",
+            (
+                f"Marketplace plugin {manifest.name!r} signature bundle"
+                f" at {bundle_path} is not accessible."
+            ),
+        )
 
     try:
         payload = json.loads(bundle_path.read_text(encoding="utf-8"))
@@ -971,7 +1017,7 @@ def _load_marketplace_plugins(
 
     while pending:
         progressed = False
-        for config in pending:
+        for config in list(pending):
             manifest = manifests.get(config.name)
             if manifest is None:
                 raise ValueError(

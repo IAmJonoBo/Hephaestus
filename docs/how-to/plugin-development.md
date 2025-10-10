@@ -234,6 +234,11 @@ The marketplace packages curated plugins together with manifests, dependency met
 Sigstore bundles. Discovery resolves marketplace entries automatically when they are listed under
 `[[marketplace]]` in `.hephaestus/plugins.toml`.
 
+> **Safety boundary:** Marketplace manifests are sandboxed to the curated registry directory.
+> Entrypoint artefacts and signature bundles must live inside `plugin-templates/registry/`. Any
+> manifest that attempts to reference files outside this directory (using absolute paths or `..`
+> traversal) is rejected during discovery and logged for review.
+
 ### Enabling Marketplace Plugins
 
 1. Add a `[[marketplace]]` entry with the plugin name and requested version.

@@ -198,7 +198,7 @@ name = "pytest"
 version = ">=8.0"
 
 [plugin.entrypoint]
-path = "../example-plugin/example_plugin.py"
+path = "artifacts/example_plugin.py"
 
 [plugin.signature]
 bundle = "example-plugin.sigstore"

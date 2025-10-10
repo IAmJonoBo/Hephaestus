@@ -131,6 +131,7 @@ async def test_task_manager_executes_real_task(
     assert status.status == TaskStatus.COMPLETED
     assert status.result == {"success": True}
 
+
 @pytest.mark.asyncio
 async def test_guard_rails_endpoint_forbidden_without_role(
     rest_app_client: tuple[Any, Any],
@@ -148,8 +149,7 @@ async def test_guard_rails_endpoint_forbidden_without_role(
 
     entries = _load_audit_entries(service_account_environment.audit_dir)
     assert any(
-        entry.get("operation") == "rest.guard-rails.run"
-        and entry.get("status") == "denied"
+        entry.get("operation") == "rest.guard-rails.run" and entry.get("status") == "denied"
         for entry in entries
     )
 

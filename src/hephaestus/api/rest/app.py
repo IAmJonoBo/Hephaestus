@@ -525,9 +525,7 @@ async def stream_task_progress(
         try:
             deadline = time.monotonic() + DEFAULT_TASK_TIMEOUT
             while True:
-                status = await task_manager.get_task_status(
-                    task_id, principal=principal
-                )
+                status = await task_manager.get_task_status(task_id, principal=principal)
 
                 event_data = {
                     "status": status.status.value,

@@ -1033,9 +1033,7 @@ def download_wheelhouse(
             telemetry.emit_event(
                 logger,
                 telemetry.RELEASE_SIGSTORE_DOWNLOAD,
-                message=(
-                    f"Downloading Sigstore bundle ({sigstore_source}) to {sigstore_path}"
-                ),
+                message=(f"Downloading Sigstore bundle ({sigstore_source}) to {sigstore_path}"),
                 bundle=sigstore_asset.name,
                 destination=str(sigstore_path),
             )
@@ -1056,10 +1054,7 @@ def download_wheelhouse(
             telemetry.emit_event(
                 logger,
                 telemetry.RELEASE_SIGSTORE_VERIFIED,
-                message=(
-                    "Sigstore attestation verified"
-                    f" using {sigstore_source} metadata"
-                ),
+                message=(f"Sigstore attestation verified using {sigstore_source} metadata"),
                 subject=verification.certificate_subject,
                 issuer=verification.certificate_issuer,
                 identities=list(verification.identities),

@@ -318,17 +318,17 @@ def test_marketplace_dependency_resolution_blocks_missing_python(tmp_path: Path)
             hephaestus = ">=0.2.0"
             python = ">=3.12"
 
-            [[plugin.dependencies]]
-            type = "python"
-            name = "totally-uninstalled-package"
-            version = ">=99.0"
+                [[plugin.dependencies]]
+                type = "python"
+                name = "totally-uninstalled-package"
+                version = ">=99.0"
 
-            [plugin.entrypoint]
-            path = "../example-plugin/example_plugin.py"
+                [plugin.entrypoint]
+                path = "artifacts/example_plugin.py"
 
-            [plugin.signature]
-            bundle = "example-plugin.sigstore"
-            """
+                [plugin.signature]
+                bundle = "example-plugin.sigstore"
+                """
         ).strip()
         + "\n",
         encoding="utf-8",
@@ -395,7 +395,9 @@ def test_marketplace_dependency_resolution_requires_registered_plugins(tmp_path:
     )
 
     with pytest.raises(ValueError, match="requires plugin 'upstream'"):
-        plugins_module._ensure_marketplace_dependencies(manifest, resolved_plugins={"dependent-plugin"})
+        plugins_module._ensure_marketplace_dependencies(
+            manifest, resolved_plugins={"dependent-plugin"}
+        )
 
     unsupported = plugins_module.MarketplaceManifest(
         name="unsupported",
@@ -418,7 +420,9 @@ def test_marketplace_dependency_resolution_requires_registered_plugins(tmp_path:
         plugins_module._ensure_marketplace_dependencies(unsupported, resolved_plugins=set())
 
 
-def test_marketplace_signature_enforcement_covers_required_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_marketplace_signature_enforcement_covers_required_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     import base64
     import json
 
@@ -427,7 +431,9 @@ def test_marketplace_signature_enforcement_covers_required_paths(tmp_path: Path,
     manifest_path = tmp_path / "manifest.toml"
     manifest_path.write_text("{}", encoding="utf-8")
 
-    policy = plugins_module.TrustPolicy(require_signature=True, default_identities=(), per_plugin={})
+    policy = plugins_module.TrustPolicy(
+        require_signature=True, default_identities=(), per_plugin={}
+    )
     manifest = plugins_module.MarketplaceManifest(
         name="unsigned",
         version="1.0.0",
@@ -483,11 +489,15 @@ def test_marketplace_signature_enforcement_covers_required_paths(tmp_path: Path,
     with pytest.raises(ValueError, match="digest mismatch"):
         plugins_module._verify_marketplace_signature(
             manifest_with_bundle,
-            plugins_module.TrustPolicy(require_signature=False, default_identities=(), per_plugin={}),
+            plugins_module.TrustPolicy(
+                require_signature=False, default_identities=(), per_plugin={}
+            ),
         )
 
 
-def test_marketplace_signature_identity_policy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_marketplace_signature_identity_policy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     import base64
     import hashlib
     import json
@@ -539,7 +549,9 @@ def test_marketplace_signature_identity_policy(tmp_path: Path, monkeypatch: pyte
     assert "hephaestus.plugins.marketplace.errors" in counter_names
 
 
-def test_marketplace_signature_allows_per_plugin_policy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_marketplace_signature_allows_per_plugin_policy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     import base64
     import hashlib
     import json

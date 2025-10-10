@@ -172,7 +172,9 @@ def _reload_telemetry() -> None:
 
 
 @pytest.mark.usefixtures("logging_guard")
-def test_configure_telemetry_respects_parentbased_ratio_sampler(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_configure_telemetry_respects_parentbased_ratio_sampler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     trace_mod = _install_fake_otel(monkeypatch)
     monkeypatch.setenv("HEPHAESTUS_TELEMETRY_ENABLED", "true")
     monkeypatch.setenv("OTEL_TRACES_SAMPLER", "parentbased_traceidratio")
