@@ -12,7 +12,7 @@ Last updated: 2025-10-12 (Restored coverage gate with focused marketplace helper
   - [ ] Resolve repository-wide Ruff formatting drift (21 files outstanding)
   - [⚠️] Unblock SSL trust chain for pip-audit in constrained environments
 
-## Steps
+## Upcoming Steps
 
 - [x] Design marketplace manifest schema covering compatibility, dependencies, and signature/trust metadata.
 - [x] Author integration tests for marketplace manifest loading and telemetry before implementing loader changes.
