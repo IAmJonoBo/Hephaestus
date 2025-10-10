@@ -40,7 +40,9 @@ class CleanupServiceServicer(hephaestus_pb2_grpc.CleanupServiceServicer):
             dry_run=request.dry_run,
         )
 
-        deleted_paths = summary["removed_paths"] if not request.dry_run else summary["preview_paths"]
+        deleted_paths = (
+            summary["removed_paths"] if not request.dry_run else summary["preview_paths"]
+        )
 
         manifest = {
             key: int(value)

@@ -219,7 +219,7 @@ Legend: ✅ Complete | 🔄 In Progress | ⏳ Planned
 - [x] Replace synthetic analytics with pluggable churn/coverage/embedding adapters
 - [ ] Expose an API surface (REST/gRPC) for AI/automation clients with policy guard rails
 
-8. **Telemetry shim hardening** – keep typed fallbacks aligned with OTEL integrations and tooling gates.
+1. **Telemetry shim hardening** – keep typed fallbacks aligned with OTEL integrations and tooling gates.
 
 - [x] Rebuild telemetry shims with typed no-op paths and cached module resolution.
 - [x] Verify mypy + pytest green against updated shims.

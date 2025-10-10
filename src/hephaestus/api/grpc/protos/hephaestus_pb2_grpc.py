@@ -1,7 +1,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 
-import grpc
 from hephaestus.api.grpc.protos import hephaestus_pb2 as hephaestus__pb2
+import grpc
 
 GRPC_GENERATED_VERSION = "1.75.1"
 GRPC_VERSION = grpc.__version__

@@ -2,7 +2,7 @@
 
 ## 📖 Documentation Site
 
-**Live Site:** https://iamjonobo.github.io/Hephaestus/
+**Live Site:** [https://iamjonobo.github.io/Hephaestus/](https://iamjonobo.github.io/Hephaestus/)
 
 ## 🚀 Quick Commands
 
@@ -44,7 +44,7 @@ The documentation automatically updates itself with:
 
 ## 📁 Directory Structure
 
-```
+```text
 docs-site/
 ├── src/
 │   ├── content/
@@ -152,11 +152,11 @@ Current status:
 
 ## 🔗 Important Links
 
-- **Documentation Site:** https://iamjonobo.github.io/Hephaestus/
-- **Maintenance Guide:** https://iamjonobo.github.io/Hephaestus/explanation/docs-maintenance/
-- **ADR 0007 (Migration Details):** https://iamjonobo.github.io/Hephaestus/adr/0007-astro-starlight-migration/
-- **Astro Starlight Docs:** https://starlight.astro.build/
-- **Diátaxis Framework:** https://diataxis.fr/
+- **Documentation Site:** [https://iamjonobo.github.io/Hephaestus/](https://iamjonobo.github.io/Hephaestus/)
+- **Maintenance Guide:** [https://iamjonobo.github.io/Hephaestus/explanation/docs-maintenance/](https://iamjonobo.github.io/Hephaestus/explanation/docs-maintenance/)
+- **ADR 0007 (Migration Details):** [https://iamjonobo.github.io/Hephaestus/adr/0007-astro-starlight-migration/](https://iamjonobo.github.io/Hephaestus/adr/0007-astro-starlight-migration/)
+- **Astro Starlight Docs:** [https://starlight.astro.build/](https://starlight.astro.build/)
+- **Diátaxis Framework:** [https://diataxis.fr/](https://diataxis.fr/)
 
 ## 🆘 Getting Help
 
@@ -173,6 +173,6 @@ Include:
 
 ---
 
-**Migration Date:** January 2025  
-**Previous System:** MkDocs Material (archived)  
+**Migration Date:** January 2025
+**Previous System:** MkDocs Material (archived)
 **Why:** Frontier-grade automation, self-updating content, better DX

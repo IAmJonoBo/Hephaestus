@@ -40,7 +40,11 @@ from hephaestus.api.rest.models import (
     TaskStatusResponse,
 )
 from hephaestus.api.rest.tasks import DEFAULT_TASK_TIMEOUT, TaskManager, TaskStatus
-from hephaestus.api.service import compute_rankings, evaluate_guard_rails_async, run_cleanup_summary
+from hephaestus.api.service import (
+    compute_rankings,
+    evaluate_guard_rails_async,
+    run_cleanup_summary,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -333,7 +337,14 @@ async def get_rankings(
     _ = api_key
 
     try:
-        request = RankingsRequest(strategy=strategy, limit=limit)
+        from hephaestus.api.rest.models import RankingStrategy
+
+        try:
+            strategy_enum = RankingStrategy(strategy)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid strategy: {strategy}") from None
+
+        request = RankingsRequest(strategy=strategy_enum, limit=limit)
         result = _execute_rankings(request)
 
         return RankingsResponse(
@@ -474,38 +485,6 @@ async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
         "duration": execution.duration,
     }
 
-    async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
-        """Execute guard-rails quality pipeline asynchronously.
-
-        Args:
-            request: Guard-rails configuration
-
-        Returns:
-            Execution results
-        """
-        # Simulate async guard-rails execution
-        gates = []
-
-        # Cleanup step
-        if not request.no_format:
-            try:
-                # Simulate async cleanup
-                await asyncio.sleep(0.5)
-                gates.append({"name": "cleanup", "passed": True, "duration": 0.5})
-            except Exception as e:
-                gates.append({"name": "cleanup", "passed": False, "error": str(e)})
-
-        # Simulate other gates asynchronously
-        other_gates = [
-            ("ruff-check", 1.2),
-            ("ruff-format", 0.8),
-            ("mypy", 3.5),
-            ("pytest", 10.2),
-            ("pip-audit", 2.1),
-        ]
-        for name, duration in other_gates:
-            await asyncio.sleep(0)  # Yield control, simulate async
-            gates.append({"name": name, "passed": True, "duration": duration})
 
 async def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
     """Execute cleanup operation via the toolkit cleanup module."""
@@ -522,27 +501,6 @@ async def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
         "size_freed": summary["bytes"],
         "manifest": summary["manifest"],
     }
-
-    async def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
-        """Execute cleanup operation asynchronously.
-
-        Args:
-            request: Cleanup configuration
-
-        Returns:
-            Cleanup results
-        """
-        # Simulate async cleanup execution
-        await asyncio.sleep(0.2)  # Simulate delay
-        return {
-            "files_deleted": 42,
-            "size_freed": 15728640,  # ~15MB
-            "manifest": {
-                "python_cache": 15,
-                "build_artifacts": 20,
-                "resource_forks": 7,
-            },
-        }
 
 
 def _execute_rankings(request: RankingsRequest) -> dict[str, Any]:
