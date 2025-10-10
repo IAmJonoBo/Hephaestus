@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import grpc
 from grpc_reflection.v1alpha import reflection
 
+from hephaestus.api import auth
 from hephaestus.api.grpc.protos import hephaestus_pb2, hephaestus_pb2_grpc
 from hephaestus.api.grpc.services import (
     AnalyticsServiceServicer,
@@ -39,7 +41,7 @@ async def serve(
         TLS/SSL support is planned for Sprint 4 (ADR-0004).
         Currently only insecure channels are supported for development.
     """
-    server = grpc.aio.server()
+    server = grpc.aio.server(interceptors=[ServiceAccountAuthInterceptor()])
 
     # Add services
     hephaestus_pb2_grpc.add_QualityServiceServicer_to_server(QualityServiceServicer(), server)
@@ -92,3 +94,105 @@ if __name__ == "__main__":
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
     run_server()
+
+
+class ServiceAccountAuthInterceptor(grpc.aio.ServerInterceptor):
+    """Authenticate incoming requests using service-account bearer tokens."""
+
+    def __init__(self, verifier: auth.ServiceAccountVerifier | None = None) -> None:
+        self._verifier = verifier or auth.get_default_verifier()
+
+    async def intercept_service(
+        self,
+        continuation: Callable[
+            [grpc.HandlerCallDetails], Awaitable[grpc.RpcMethodHandler | None]
+        ],
+        handler_call_details: grpc.HandlerCallDetails,
+    ) -> grpc.RpcMethodHandler | None:
+        handler = await continuation(handler_call_details)
+        if handler is None:
+            return None
+
+        if handler.unary_unary:
+            async def unary_unary(
+                request: Any, context: grpc.aio.ServicerContext
+            ) -> Any:
+                principal = await self._authenticate(context)
+                context.principal = principal
+                return await handler.unary_unary(request, context)
+
+            return grpc.aio.unary_unary_rpc_method_handler(
+                unary_unary,
+                request_deserializer=handler.request_deserializer,
+                response_serializer=handler.response_serializer,
+            )
+
+        if handler.unary_stream:
+            async def unary_stream(
+                request: Any, context: grpc.aio.ServicerContext
+            ) -> Any:
+                principal = await self._authenticate(context)
+                context.principal = principal
+                async for response in handler.unary_stream(request, context):
+                    yield response
+
+            return grpc.aio.unary_stream_rpc_method_handler(
+                unary_stream,
+                request_deserializer=handler.request_deserializer,
+                response_serializer=handler.response_serializer,
+            )
+
+        if handler.stream_unary:
+            async def stream_unary(
+                request_iter: Any, context: grpc.aio.ServicerContext
+            ) -> Any:
+                principal = await self._authenticate(context)
+                context.principal = principal
+                return await handler.stream_unary(request_iter, context)
+
+            return grpc.aio.stream_unary_rpc_method_handler(
+                stream_unary,
+                request_deserializer=handler.request_deserializer,
+                response_serializer=handler.response_serializer,
+            )
+
+        if handler.stream_stream:
+            async def stream_stream(
+                request_iter: Any, context: grpc.aio.ServicerContext
+            ) -> Any:
+                principal = await self._authenticate(context)
+                context.principal = principal
+                async for response in handler.stream_stream(request_iter, context):
+                    yield response
+
+            return grpc.aio.stream_stream_rpc_method_handler(
+                stream_stream,
+                request_deserializer=handler.request_deserializer,
+                response_serializer=handler.response_serializer,
+            )
+
+        return handler
+
+    async def _authenticate(self, context: grpc.aio.ServicerContext) -> auth.AuthenticatedPrincipal:
+        metadata = {md.key: md.value for md in context.invocation_metadata()}
+        header = metadata.get("authorization")
+        if header is None:
+            await context.abort(
+                grpc.StatusCode.UNAUTHENTICATED, "Missing authorization metadata"
+            )
+            raise RuntimeError("unreachable")
+
+        token = header.split(" ", 1)
+        if len(token) != 2 or token[0].lower() != "bearer":
+            await context.abort(
+                grpc.StatusCode.UNAUTHENTICATED,
+                "Authorization header must use Bearer scheme",
+            )
+            raise RuntimeError("unreachable")
+
+        try:
+            return self._verifier.verify_bearer_token(token[1])
+        except auth.AuthenticationError as exc:  # pragma: no cover - defensive guard
+            await context.abort(grpc.StatusCode.UNAUTHENTICATED, str(exc))
+            raise RuntimeError("unreachable") from exc
+

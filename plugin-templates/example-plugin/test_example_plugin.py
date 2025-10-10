@@ -1,11 +1,9 @@
-"""Tests for example plugin."""
-
 from __future__ import annotations
 
 import pytest
-from example_plugin import ExamplePlugin
-
 from hephaestus.plugins import PluginMetadata, PluginResult
+
+from example_plugin import ExamplePlugin
 
 
 def test_plugin_metadata() -> None:

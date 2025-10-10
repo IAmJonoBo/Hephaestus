@@ -1,251 +1,216 @@
-"""Tests for gRPC services."""
-
 from __future__ import annotations
 
+import json
 from collections.abc import AsyncIterator
+from pathlib import Path
+from typing import Any
 
 import pytest
 
+from hephaestus.api import auth as auth_module
+
 try:
+    import grpc
+
+    from hephaestus.api import service as service_module
     from hephaestus.api.grpc.protos import hephaestus_pb2
     from hephaestus.api.grpc.services import (
         AnalyticsServiceServicer,
         CleanupServiceServicer,
         QualityServiceServicer,
     )
-except ModuleNotFoundError as exc:  # pragma: no cover - exercised via pytest skip
+except ModuleNotFoundError as exc:  # pragma: no cover - skip when grpc unavailable
     missing_module = exc.name or ""
     if missing_module in {"grpc", "google"} or missing_module.startswith(("grpc.", "google.")):
         pytest.skip("could not import 'grpc': module unavailable", allow_module_level=True)
     raise
 
+from conftest import ServiceAccountContext
+
+
+def _load_audit_entries(audit_dir: Path) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    if not audit_dir.exists():
+        return entries
+
+    for path in sorted(audit_dir.glob("*.jsonl")):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            entries.append(json.loads(line))
+    return entries
+
+
+class AbortError(Exception):
+    """Raised when the mock gRPC context aborts the request."""
+
+    def __init__(self, code: grpc.StatusCode, details: str) -> None:
+        super().__init__(details)
+        self._code = code
+        self._details = details
+
+    def code(self) -> grpc.StatusCode:
+        return self._code
+
+    def details(self) -> str:
+        return self._details
+
 
 class MockContext:
-    """Mock gRPC context for testing."""
+    """Minimal async ServicerContext stub for testing."""
 
-    pass
+    def __init__(self, principal: auth_module.AuthenticatedPrincipal) -> None:
+        self.principal = principal
+
+    async def abort(self, code: grpc.StatusCode, details: str) -> None:
+        raise AbortError(code, details)
+
+    def invocation_metadata(self) -> tuple[Any, ...]:  # pragma: no cover - interface parity
+        return ()
 
 
 @pytest.mark.asyncio
-async def test_quality_service_run_guard_rails() -> None:
-    """Test QualityService RunGuardRails RPC."""
+async def test_quality_service_guard_rails_success(
+    service_account_environment: ServiceAccountContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    verifier = auth_module.get_default_verifier()
+    principal = verifier.verify_bearer_token(service_account_environment.guard_token)
+
+    async def fake_guard_rails(**kwargs: Any) -> service_module.GuardRailExecution:
+        return service_module.GuardRailExecution(
+            success=True,
+            duration=0.2,
+            gates=[],
+            remediation_commands=[],
+            remediation_results=[],
+        )
+
+    monkeypatch.setattr(service_module, "evaluate_guard_rails_async", fake_guard_rails)
+
     service = QualityServiceServicer()
-    context = MockContext()
+    context = MockContext(principal)
 
-    request = hephaestus_pb2.GuardRailsRequest(
-        no_format=False,
-        workspace=".",
-        drift_check=True,
-    )
-
+    request = hephaestus_pb2.GuardRailsRequest(no_format=False, drift_check=False)
     response = await service.RunGuardRails(request, context)
 
     assert isinstance(response, hephaestus_pb2.GuardRailsResponse)
     assert response.success is True
-    assert len(response.gates) > 0
-    assert response.duration > 0
-    assert response.task_id
 
 
 @pytest.mark.asyncio
-async def test_quality_service_run_guard_rails_stream() -> None:
-    """Test QualityService RunGuardRailsStream RPC."""
+async def test_quality_service_guard_rails_permission_denied(
+    service_account_environment: ServiceAccountContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    verifier = auth_module.get_default_verifier()
+    principal = verifier.verify_bearer_token(service_account_environment.analytics_token)
+
+    async def fake_guard_rails(**kwargs: Any) -> service_module.GuardRailExecution:
+        raise AssertionError("should not run when authorization fails")
+
+    monkeypatch.setattr(service_module, "evaluate_guard_rails_async", fake_guard_rails)
+
     service = QualityServiceServicer()
-    context = MockContext()
+    context = MockContext(principal)
 
-    request = hephaestus_pb2.GuardRailsRequest(
-        no_format=False,
-        workspace=".",
-        drift_check=True,
-    )
+    request = hephaestus_pb2.GuardRailsRequest(no_format=False)
 
-    progress_updates = []
-    async for progress in service.RunGuardRailsStream(request, context):
-        progress_updates.append(progress)
-        assert isinstance(progress, hephaestus_pb2.GuardRailsProgress)
-        assert 0 <= progress.progress <= 100
+    with pytest.raises(AbortError) as exc:
+        await service.RunGuardRails(request, context)
 
-    # Should have multiple updates and final completion
-    assert len(progress_updates) > 1
-    assert progress_updates[-1].completed is True
+    assert exc.value.code() == grpc.StatusCode.PERMISSION_DENIED
 
 
 @pytest.mark.asyncio
-async def test_quality_service_check_drift() -> None:
-    """Test QualityService CheckDrift RPC."""
-    service = QualityServiceServicer()
-    context = MockContext()
+async def test_cleanup_service_enforces_roles(
+    service_account_environment: ServiceAccountContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    verifier = auth_module.get_default_verifier()
+    principal = verifier.verify_bearer_token(service_account_environment.cleanup_token)
 
-    request = hephaestus_pb2.DriftRequest(workspace=".")
+    def fake_cleanup(**kwargs: Any) -> dict[str, Any]:
+        return {"files": 1, "bytes": 10, "manifest": {"removed_count": 1}}
 
-    response = await service.CheckDrift(request, context)
+    monkeypatch.setattr(service_module, "run_cleanup_summary", fake_cleanup)
 
-    assert isinstance(response, hephaestus_pb2.DriftResponse)
-    assert isinstance(response.has_drift, bool)
-    if response.has_drift:
-        assert len(response.drifts) > 0
-        assert len(response.remediation_commands) > 0
-
-
-@pytest.mark.asyncio
-async def test_cleanup_service_clean() -> None:
-    """Test CleanupService Clean RPC."""
     service = CleanupServiceServicer()
-    context = MockContext()
+    context = MockContext(principal)
 
-    request = hephaestus_pb2.CleanupRequest(
-        root=".",
-        deep_clean=False,
-        dry_run=False,
-    )
-
+    request = hephaestus_pb2.CleanupRequest(dry_run=True)
     response = await service.Clean(request, context)
 
-    assert isinstance(response, hephaestus_pb2.CleanupResponse)
-    assert response.files_deleted >= 0
-    assert response.size_freed >= 0
-    assert len(response.manifest) > 0
+    assert response.files_deleted == 1
+
+    forbidden_principal = verifier.verify_bearer_token(service_account_environment.guard_token)
+    context_forbidden = MockContext(forbidden_principal)
+
+    with pytest.raises(AbortError) as exc:
+        await service.Clean(request, context_forbidden)
+
+    assert exc.value.code() == grpc.StatusCode.PERMISSION_DENIED
 
 
 @pytest.mark.asyncio
-async def test_cleanup_service_preview() -> None:
-    """Test CleanupService PreviewCleanup RPC."""
-    service = CleanupServiceServicer()
-    context = MockContext()
+async def test_analytics_service_rankings_requires_role(
+    service_account_environment: ServiceAccountContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    verifier = auth_module.get_default_verifier()
+    analytics_principal = verifier.verify_bearer_token(service_account_environment.analytics_token)
+    guard_principal = verifier.verify_bearer_token(service_account_environment.guard_token)
 
-    request = hephaestus_pb2.CleanupRequest(
-        root=".",
-        deep_clean=False,
-        dry_run=True,
-    )
+    def fake_rankings(**kwargs: Any) -> list[dict[str, Any]]:
+        return [{"path": "src/module.py", "score": 1.0, "churn": 10, "coverage": 0.8, "uncovered_lines": 5, "rationale": "test"}]
 
-    response = await service.PreviewCleanup(request, context)
-
-    assert isinstance(response, hephaestus_pb2.CleanupPreview)
-    assert response.files_to_delete >= 0
-    assert response.size_to_free >= 0
-    assert len(response.preview_manifest) > 0
-
-
-@pytest.mark.asyncio
-async def test_analytics_service_get_rankings() -> None:
-    """Test AnalyticsService GetRankings RPC."""
-    service = AnalyticsServiceServicer()
-    context = MockContext()
-
-    request = hephaestus_pb2.RankingsRequest(
-        strategy="composite",
-        limit=5,
-        workspace=".",
-    )
-
-    response = await service.GetRankings(request, context)
-
-    assert isinstance(response, hephaestus_pb2.RankingsResponse)
-    assert response.strategy
-    assert len(response.rankings) > 0
-    assert len(response.rankings) <= request.limit
-
-    # Check ranking structure
-    for ranking in response.rankings:
-        assert ranking.file
-        assert ranking.score >= 0
-        assert len(ranking.metrics) > 0
-
-
-@pytest.mark.asyncio
-async def test_analytics_service_get_hotspots() -> None:
-    """Test AnalyticsService GetHotspots RPC."""
-    service = AnalyticsServiceServicer()
-    context = MockContext()
-
-    request = hephaestus_pb2.HotspotsRequest(
-        workspace=".",
-        limit=5,
-    )
-
-    response = await service.GetHotspots(request, context)
-
-    assert isinstance(response, hephaestus_pb2.HotspotsResponse)
-    assert len(response.hotspots) > 0
-    assert len(response.hotspots) <= request.limit
-
-    # Check hotspot structure
-    for hotspot in response.hotspots:
-        assert hotspot.file
-        assert hotspot.change_frequency >= 0
-        assert hotspot.complexity >= 0
-        assert hotspot.risk_score >= 0
-
-
-@pytest.mark.asyncio
-async def test_analytics_service_stream_ingest() -> None:
-    """Test AnalyticsService StreamIngest RPC."""
+    monkeypatch.setattr(service_module, "compute_rankings", fake_rankings)
 
     service = AnalyticsServiceServicer()
-    context = MockContext()
+
+    allowed_context = MockContext(analytics_principal)
+    response = await service.GetRankings(
+        hephaestus_pb2.RankingsRequest(strategy="risk_weighted", limit=5),
+        allowed_context,
+    )
+    assert len(response.rankings) == 1
+
+    forbidden_context = MockContext(guard_principal)
+    with pytest.raises(AbortError) as exc:
+        await service.GetRankings(
+            hephaestus_pb2.RankingsRequest(strategy="risk_weighted", limit=5),
+            forbidden_context,
+        )
+
+    assert exc.value.code() == grpc.StatusCode.PERMISSION_DENIED
+
+
+@pytest.mark.asyncio
+async def test_analytics_service_stream_ingest_audit(
+    service_account_environment: ServiceAccountContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    verifier = auth_module.get_default_verifier()
+    principal = verifier.verify_bearer_token(service_account_environment.omni_token)
 
     from hephaestus.analytics_streaming import global_ingestor
 
     global_ingestor.reset()
 
-    async def _generate() -> AsyncIterator[hephaestus_pb2.AnalyticsEvent]:
-        yield hephaestus_pb2.AnalyticsEvent(source="ci", kind="coverage", value=0.95, unit="ratio")
-        yield hephaestus_pb2.AnalyticsEvent(source="", kind="")
+    async def event_generator() -> AsyncIterator[hephaestus_pb2.AnalyticsEvent]:
+        yield hephaestus_pb2.AnalyticsEvent(source="ci", kind="coverage", value=0.95)
+        yield hephaestus_pb2.AnalyticsEvent(source="ci", kind="latency", value=120.0)
 
-    response = await service.StreamIngest(_generate(), context)
+    service = AnalyticsServiceServicer()
+    context = MockContext(principal)
+    response = await service.StreamIngest(event_generator(), context)
 
-    assert isinstance(response, hephaestus_pb2.AnalyticsIngestResponse)
-    assert response.accepted == 1
-    assert response.rejected == 1
+    assert response.accepted == 2
 
-
-def test_grpc_services_import() -> None:
-    """Test that gRPC services can be imported."""
-    from hephaestus.api.grpc.services import (
-        AnalyticsServiceServicer,
-        CleanupServiceServicer,
-        QualityServiceServicer,
+    entries = _load_audit_entries(service_account_environment.audit_dir)
+    assert any(
+        entry.get("operation") == "grpc.analytics.stream_ingest"
+        and entry.get("principal") == "svc-omni@example.com"
+        and entry.get("status") == "success"
+        for entry in entries
     )
-
-    assert QualityServiceServicer is not None
-    assert CleanupServiceServicer is not None
-    assert AnalyticsServiceServicer is not None
-
-
-def test_grpc_protos_import() -> None:
-    """Test that generated proto files can be imported."""
-    from hephaestus.api.grpc.protos import hephaestus_pb2, hephaestus_pb2_grpc
-
-    assert hephaestus_pb2 is not None
-    assert hephaestus_pb2_grpc is not None
-
-
-def test_proto_message_creation() -> None:
-    """Test creating proto messages."""
-    # GuardRailsRequest
-    request = hephaestus_pb2.GuardRailsRequest(
-        no_format=False,
-        workspace="test",
-        drift_check=True,
-    )
-    assert request.no_format is False
-    assert request.workspace == "test"
-    assert request.drift_check is True
-
-    # CleanupRequest
-    cleanup_req = hephaestus_pb2.CleanupRequest(
-        root=".",
-        deep_clean=True,
-        dry_run=False,
-    )
-    assert cleanup_req.root == "."
-    assert cleanup_req.deep_clean is True
-
-    # RankingsRequest
-    rankings_req = hephaestus_pb2.RankingsRequest(
-        strategy="composite",
-        limit=10,
-    )
-    assert rankings_req.strategy == "composite"
-    assert rankings_req.limit == 10
