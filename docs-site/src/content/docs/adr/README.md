@@ -2,6 +2,7 @@
 title: "Architecture Decision Records (ADRs)"
 description: "This directory contains Architecture Decision Records documenting significant technical decisions made in the Hephaestus project. - ADR-0001: STRIDE Threat..."
 ---
+
 This directory contains Architecture Decision Records documenting significant technical decisions made in the Hephaestus project.
 
 ## ADR Index

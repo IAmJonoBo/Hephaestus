@@ -16,7 +16,7 @@ Clone the repository and install the toolchain:
 ./scripts/setup-dev-env.sh
 
 # Or manual setup
-uv sync --extra dev --extra qa
+uv sync --extra dev --extra qa --extra grpc
 uv run pre-commit install
 ```
 
@@ -76,17 +76,21 @@ For releases, consult `docs/pre-release-checklist.md` for additional automation 
 - Source markdown files follow a Diátaxis-inspired layout: tutorials, how-to guides, reference, and explanations.
 - Documentation is automatically updated with CLI references, API docs, changelog, and version information.
 - **Local development:**
+
   ```bash
   cd docs-site
   npm install          # First time only
   npm run dev          # Live preview at http://localhost:4321
   npm run build        # Production build
   ```
+
 - **Automation scripts** (run automatically in CI, but can be run manually):
+
   ```bash
   npm run update-all   # Update CLI reference, API docs, changelog, versions
   npm run validate-all # Validate links, examples, detect stale content
   ```
+
 - When adding new documentation, place files in `docs-site/src/content/docs/` following the Diátaxis structure.
 - The legacy `docs/` folder content has been migrated; new docs should go in `docs-site/`.
 - See [ADR 0007](docs-site/src/content/docs/adr/0007-astro-starlight-migration.md) for migration details.

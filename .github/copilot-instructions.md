@@ -16,7 +16,7 @@
 
 ## Workflow shortcuts
 
-- Bootstrap with UV: `uv sync --extra dev --extra qa`, then always run commands through `uv run hephaestus …` to pick up the managed env.
+- Bootstrap with UV: `uv sync --extra dev --extra qa --extra grpc`, then always run commands through `uv run hephaestus …` to pick up the managed env.
 - `uv run hephaestus guard-rails` performs the entire quality pipeline (cleanup → ruff check → ruff isort → ruff format → mypy on `src` + `tests` → pytest with ≥85% coverage → `pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph`).
 - For focused checks, use the same tooling individually: `uv run ruff check .`, `uv run ruff check --select I --fix .`, `uv run ruff format .`, `uv run mypy src tests`, `uv run pytest`, `uv run pip-audit --strict`.
 - Build docs via `uv run mkdocs serve` and keep navigation wired in `mkdocs.yml`.

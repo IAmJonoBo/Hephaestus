@@ -211,6 +211,13 @@ async def test_guard_rails_endpoint_with_auth(
     assert data["gates"][0]["name"] == "pytest"
     assert any(call[0] == "guard-rails" for call in stub.created)
 
+    headers = {"Authorization": "Bearer test-api-key"}
+    response = await client.post(
+        "/api/v1/quality/guard-rails",
+        json={"no_format": False, "drift_check": False},
+        headers=headers,
+    )
+    assert response.status_code == 504
 
 @pytest.mark.asyncio
 async def test_guard_rails_endpoint_timeout(
@@ -236,6 +243,19 @@ async def test_guard_rails_endpoint_timeout(
 
     monkeypatch.setattr(rest_module, "task_manager", StubTaskManager())
 
+        ) -> Task:
+            return Task(
+                id=task_id,
+                name="guard-rails",
+                status=TaskStatus.FAILED,
+                error="boom",
+            )
+
+        async def get_task_status(self, task_id: str) -> Task:
+            return await self.wait_for_completion(task_id)
+
+    monkeypatch.setattr(rest_module, "task_manager", StubTaskManager())
+
     headers = {"Authorization": "Bearer test-api-key"}
     response = await client.post(
         "/api/v1/quality/guard-rails",
@@ -250,6 +270,15 @@ async def test_guard_rails_endpoint_failure(
     rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Guard-rails endpoint should propagate task failures."""
+    assert response.status_code == 500
+    assert response.json()["detail"] == "boom"
+
+
+@pytest.mark.asyncio
+async def test_cleanup_endpoint_with_auth(
+    rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Cleanup endpoint should return results from the task manager."""
     client, rest_module = rest_app_client
 
     from hephaestus.api.rest.tasks import Task, TaskStatus
@@ -257,6 +286,7 @@ async def test_guard_rails_endpoint_failure(
     class StubTaskManager:
         async def create_task(self, *args: Any, **kwargs: Any) -> str:
             return "task-failure"
+            return "cleanup-task"
 
         async def wait_for_completion(
             self,
@@ -269,6 +299,14 @@ async def test_guard_rails_endpoint_failure(
                 name="guard-rails",
                 status=TaskStatus.FAILED,
                 error="boom",
+                name="cleanup",
+                status=TaskStatus.COMPLETED,
+                progress=1.0,
+                result={
+                    "files_deleted": 5,
+                    "size_freed": 1024,
+                    "manifest": {"cache": 5},
+                },
             )
 
         async def get_task_status(self, task_id: str) -> Task:
@@ -291,6 +329,24 @@ async def test_cleanup_endpoint_with_auth(
     rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Cleanup endpoint should return results from the task manager."""
+
+    headers = {"Authorization": "Bearer test-api-key"}
+    response = await client.post(
+        "/api/v1/cleanup",
+        json={"deep_clean": False, "dry_run": True},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["files_deleted"] == 5
+    assert data["manifest"] == {"cache": 5}
+
+
+@pytest.mark.asyncio
+async def test_cleanup_endpoint_failure(
+    rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Cleanup endpoint should convert task failures into HTTP errors."""
     client, rest_module = rest_app_client
 
     from hephaestus.api.rest.tasks import Task, TaskStatus
@@ -298,6 +354,7 @@ async def test_cleanup_endpoint_with_auth(
     class StubTaskManager:
         async def create_task(self, *args: Any, **kwargs: Any) -> str:
             return "cleanup-task"
+            return "cleanup-failure"
 
         async def wait_for_completion(
             self,
@@ -315,6 +372,8 @@ async def test_cleanup_endpoint_with_auth(
                     "size_freed": 1024,
                     "manifest": {"cache": 5},
                 },
+                status=TaskStatus.FAILED,
+                error="cleanup boom",
             )
 
         async def get_task_status(self, task_id: str) -> Task:
@@ -480,6 +539,115 @@ async def test_stream_task_progress_success(
                 if block.startswith("data: "):
                     payloads.append(json.loads(block.split("data: ", 1)[1]))
 
+    assert response.status_code == 500
+    assert response.json()["detail"] == "cleanup boom"
+
+
+@pytest.mark.asyncio
+async def test_rankings_endpoint_with_auth(rest_app_client: tuple[Any, Any]) -> None:
+    """Rankings endpoint should return strategy metadata."""
+    client, _ = rest_app_client
+
+    headers = {"Authorization": "Bearer test-api-key"}
+    response = await client.get(
+        "/api/v1/analytics/rankings",
+        params={"strategy": "coverage_first", "limit": 5},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["strategy"] == "coverage_first"
+    assert isinstance(data["rankings"], list)
+
+
+@pytest.mark.asyncio
+async def test_get_task_status_success(
+    rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Task status endpoint should expose task metadata."""
+    client, rest_module = rest_app_client
+
+    from hephaestus.api.rest.tasks import Task, TaskStatus
+
+    class StubTaskManager:
+        async def get_task_status(self, task_id: str) -> Task:
+            return Task(
+                id=task_id,
+                name="guard-rails",
+                status=TaskStatus.RUNNING,
+                progress=0.5,
+                result=None,
+                error=None,
+            )
+
+    monkeypatch.setattr(rest_module, "task_manager", StubTaskManager())
+
+    headers = {"Authorization": "Bearer test-api-key"}
+    response = await client.get("/api/v1/tasks/sample", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "running"
+    assert data["progress"] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_get_task_status_not_found(
+    rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Task status endpoint should return 404 when task is missing."""
+    client, rest_module = rest_app_client
+
+    class StubTaskManager:
+        async def get_task_status(self, task_id: str) -> Any:
+            raise KeyError(task_id)
+
+    monkeypatch.setattr(rest_module, "task_manager", StubTaskManager())
+
+    headers = {"Authorization": "Bearer test-api-key"}
+    response = await client.get("/api/v1/tasks/missing", headers=headers)
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_stream_task_progress_success(
+    rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Streaming endpoint should emit progress updates until completion."""
+    client, rest_module = rest_app_client
+
+    from hephaestus.api.rest.tasks import Task, TaskStatus
+
+    class SequenceTaskManager:
+        def __init__(self) -> None:
+            self._calls = 0
+
+        async def get_task_status(self, task_id: str) -> Task:
+            self._calls += 1
+            if self._calls == 1:
+                return Task(
+                    id=task_id,
+                    name="guard-rails",
+                    status=TaskStatus.RUNNING,
+                    progress=0.25,
+                )
+            return Task(
+                id=task_id,
+                name="guard-rails",
+                status=TaskStatus.COMPLETED,
+                progress=1.0,
+                result={"ok": True},
+            )
+
+    monkeypatch.setattr(rest_module, "task_manager", SequenceTaskManager())
+
+    headers = {"Authorization": "Bearer test-api-key"}
+    payloads: list[dict[str, Any]] = []
+    async with client.stream("GET", "/api/v1/tasks/sample/stream", headers=headers) as response:
+        async for chunk in response.aiter_bytes():
+            for block in filter(None, chunk.decode().strip().split("\n\n")):
+                if block.startswith("data: "):
+                    payloads.append(json.loads(block.split("data: ", 1)[1]))
+
     assert response.status_code == 200
     assert payloads[-1]["status"] == "completed"
     assert payloads[-1]["result"] == {"ok": True}
@@ -517,6 +685,16 @@ def test_verify_api_key_validation() -> None:
     from fastapi.security import HTTPAuthorizationCredentials
 
     from hephaestus.api.rest.app import verify_api_key
+
+    with pytest.raises(HTTPException) as excinfo:
+        verify_api_key(None)
+    assert excinfo.value.status_code == 401
+
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="")
+    with pytest.raises(HTTPException) as excinfo:
+        verify_api_key(credentials)
+    assert excinfo.value.status_code == 403
+
 
     with pytest.raises(HTTPException) as excinfo:
         verify_api_key(None)
@@ -582,7 +760,6 @@ async def test_execute_guard_rails_synthesises_gates() -> None:
 
     result = await _execute_guard_rails(GuardRailsRequest())
     assert result["success"] is True
-    assert any(gate["name"] == "cleanup" for gate in result["gates"])
     assert any(gate["name"] == "pytest" for gate in result["gates"])
 
 
@@ -594,8 +771,8 @@ async def test_execute_cleanup_returns_manifest() -> None:
     from hephaestus.api.rest.app import _execute_cleanup
     from hephaestus.api.rest.models import CleanupRequest
 
-    result = await _execute_cleanup(CleanupRequest(dry_run=True))
-    assert result["files_deleted"] >= 0
+    result = await _execute_cleanup(CleanupRequest())
+    assert result["files_deleted"] == 42
     assert "manifest" in result
 
 

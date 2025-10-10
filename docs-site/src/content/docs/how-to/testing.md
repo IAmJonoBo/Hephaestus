@@ -2,6 +2,7 @@
 title: "Testing Guide"
 description: "This guide explains the testing philosophy, structure, and best practices for Hephaestus. Hephaestus maintains high test coverage (≥85%) with comprehensive..."
 ---
+
 This guide explains the testing philosophy, structure, and best practices for Hephaestus.
 
 ## Overview

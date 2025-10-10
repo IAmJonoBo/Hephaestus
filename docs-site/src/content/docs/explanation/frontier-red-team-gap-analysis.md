@@ -2,6 +2,7 @@
 title: "Frontier Readiness Red Team & Gap Analysis"
 description: "This assessment stress-tests Hephaestus across its primary safety-, quality-, and automation-critical workflows. We combined STRIDE threat modelling,..."
 ---
+
 ## Scope & Method
 
 This assessment stress-tests Hephaestus across its primary safety-, quality-, and automation-critical workflows. We combined STRIDE threat modelling, code-level review, negative test design, and operator journey mapping to evaluate:

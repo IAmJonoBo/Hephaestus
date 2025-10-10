@@ -68,6 +68,7 @@ jobs:
           set -euo pipefail
           VERSION='${{ steps.metadata.outputs.version }}'
           ARCHIVE='${{ steps.metadata.outputs.archive }}'
+          echo "Assembling wheelhouse for version ${VERSION}"
           mkdir -p wheelhouse
           cp dist/* wheelhouse/
           uv run -- python -m hephaestus.cli wheelhouse sanitize wheelhouse

@@ -2,6 +2,7 @@
 title: "Telemetry Events Reference"
 description: "This document describes all structured telemetry events emitted by Hephaestus. Events are used for observability, debugging, and operational metrics..."
 ---
+
 This document describes all structured telemetry events emitted by Hephaestus. Events are used for observability, debugging, and operational metrics collection.
 
 ## Event Architecture
