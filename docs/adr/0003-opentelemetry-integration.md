@@ -2,7 +2,7 @@
 
 - Status: Sprint 3 Complete (2025-01-16)
 - Date: 2025-01-11
-- Last Updated: 2025-01-16
+- Last Updated: 2025-02-20
 - Supersedes: N/A
 - Superseded by: N/A
 
@@ -85,9 +85,13 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 # Set service name
 export OTEL_SERVICE_NAME=hephaestus
 
-# Configure sampling (1.0 = 100%)
+# Configure sampling (0.2 default ratio)
 export OTEL_TRACES_SAMPLER=parentbased_traceidratio
-export OTEL_TRACES_SAMPLER_ARG=0.1  # 10% sampling
+export OTEL_TRACES_SAMPLER_ARG=0.2
+
+# Prometheus exporter
+export HEPHAESTUS_PROMETHEUS_HOST=0.0.0.0
+export HEPHAESTUS_PROMETHEUS_PORT=9464
 
 # Privacy mode (anonymize paths, usernames)
 export HEPHAESTUS_TELEMETRY_PRIVACY=strict
@@ -146,21 +150,22 @@ Trace: guard-rails-execution
 
 **Counters:**
 
-- `hephaestus.commands.executed` - Total commands run
-- `hephaestus.commands.failed` - Failed commands
-- `hephaestus.quality_gates.passed` - Quality gates passed
-- `hephaestus.quality_gates.failed` - Quality gates failed
-
-**Gauges:**
-
-- `hephaestus.test_coverage` - Current test coverage percentage
-- `hephaestus.files_cleaned` - Files removed by cleanup
+- `hephaestus.plugins.invocations` - Total plugin executions
+- `hephaestus.plugins.success` - Successful plugin runs
+- `hephaestus.plugins.failures` - Plugin runs that returned `success=False`
+- `hephaestus.plugins.errors` - Plugin crashes or unexpected exceptions
 
 **Histograms:**
 
-- `hephaestus.command.duration` - Command execution time
-- `hephaestus.quality_gate.duration` - Individual gate duration
-- `hephaestus.cleanup.size_freed` - Disk space freed
+- `hephaestus.plugins.duration` - Execution duration per plugin
+- `hephaestus.guard_rails.plugin.duration` - Guard-rails plugin step timings
+- `hephaestus.cleanup.size_freed` - Disk space freed during cleanup
+
+### 2025-02 Update
+
+- Default sampler now uses `parentbased_traceidratio` with a 20% ratio.
+- Embedded Prometheus exporter exposes metrics on `/metrics` (port `9464`).
+- Plugin execution emits counters, histograms, and spans for success/failure analysis.
 
 ### Privacy Protection
 

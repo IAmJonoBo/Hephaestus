@@ -1165,7 +1165,7 @@ def _run_drift_detection(*, auto_remediate: bool = False) -> None:
 def _run_guard_rails_plugin_mode(no_format: bool) -> bool:  # NOSONAR(S3776)
     """Run experimental plugin-based pipeline. Returns True if completed, False to fall back."""
     console.print("[cyan]Running guard rails using plugin system (experimental)...[/cyan]")
-    from hephaestus.plugins import discover_plugins
+    from hephaestus.plugins import discover_plugins, execute_plugin
 
     try:
         import time
@@ -1201,7 +1201,7 @@ def _run_guard_rails_plugin_mode(no_format: bool) -> bool:  # NOSONAR(S3776)
             start_time = time.perf_counter()
 
             try:
-                result = plugin.run({})
+                result = execute_plugin(plugin, {})
                 record_histogram(
                     "hephaestus.guard_rails.plugin.duration",
                     time.perf_counter() - start_time,

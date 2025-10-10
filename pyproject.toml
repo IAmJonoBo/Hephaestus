@@ -57,6 +57,7 @@ qa = [
   "pytest-asyncio>=1.2.0",
   "httpx>=0.28.1",
   "bandit>=1.8.6",
+  "prometheus-client>=0.20.0",
 ]
 dev = [
   "pre-commit>=4.3.0",
@@ -74,6 +75,7 @@ telemetry = [
   "opentelemetry-api>=1.37.0",
   "opentelemetry-sdk>=1.37.0",
   "opentelemetry-exporter-otlp>=1.37.0",
+  "prometheus-client>=0.20.0",
 ]
 api = ["fastapi>=0.118.2", "starlette>=0.48.0", "uvicorn[standard]>=0.37.0"]
 grpc = ["grpcio>=1.68.0", "grpcio-tools>=1.68.0", "grpcio-reflection>=1.68.0"]
