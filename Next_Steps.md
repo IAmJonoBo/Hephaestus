@@ -10,7 +10,7 @@ Last updated: 2025-10-11 (Stabilised plugin tests, expanded release coverage, te
 - [ ] Restore guard-rail baselines (tests, lint, typecheck, security scan) after marketplace changes _(Owner: Agent, Due: 2025-10-12)_
   - Subtasks: tighten coverage on `plugins/__init__.py`, triage remaining Prometheus exporter branches, unblock SSL for pip-audit
 
-## Steps
+## Upcoming Steps
 
 - [x] Design marketplace manifest schema covering compatibility, dependencies, and signature/trust metadata.
 - [x] Author integration tests for marketplace manifest loading and telemetry before implementing loader changes.
