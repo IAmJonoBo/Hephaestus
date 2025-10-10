@@ -415,7 +415,9 @@ def test_download_wheelhouse_rejects_inventory_checksum_failure(
     monkeypatch.setattr(release, "_fetch_release", fake_fetch_release)
     monkeypatch.setattr(release, "_download_asset", fake_download_asset)
 
-    with pytest.raises(release.ReleaseError, match="inventory reports checksum verification failure"):
+    with pytest.raises(
+        release.ReleaseError, match="inventory reports checksum verification failure"
+    ):
         release.download_wheelhouse(
             release.WheelhouseDownloadOptions(
                 repository="IAmJonoBo/Hephaestus",
@@ -1489,3 +1491,59 @@ def test_fetch_release_handles_401_with_clear_message(monkeypatch: pytest.Monkey
             timeout=10.0,
             max_retries=3,
         )
+
+
+def test_decode_sigstore_digest_variants() -> None:
+    value = base64.b64encode(b"artifact").decode()
+    assert release._decode_sigstore_digest(value) == b"artifact"
+    assert release._decode_sigstore_digest("61 72 74 69 66 61 63 74") == b"artifact"
+
+    with pytest.raises(release.ReleaseError):
+        release._decode_sigstore_digest("not-base64!")
+
+
+def test_parse_checksum_manifest_conflicts() -> None:
+    manifest = """
+0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  example.whl
+# comment lines should be ignored
+abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd  example2.whl
+""".strip()
+
+    checksums = release._parse_checksum_manifest(manifest)
+    assert (
+        checksums["example.whl"]
+        == "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    )
+    assert "example2.whl" in checksums
+
+    with pytest.raises(release.ReleaseError):
+        release._parse_checksum_manifest(
+            """
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff  example.whl
+1111111111111111111111111111111111111111111111111111111111111111  example.whl
+""".strip()
+        )
+
+
+def test_extract_archive_sanitizes_members(tmp_path: Path) -> None:
+    safe_archive = tmp_path / "safe.tar.gz"
+    safe_dir = tmp_path / "content"
+    safe_dir.mkdir()
+    (safe_dir / "file.txt").write_text("hello", encoding="utf-8")
+
+    with tarfile.open(safe_archive, "w:gz") as tar:
+        tar.add(safe_dir / "file.txt", arcname="pkg/file.txt")
+
+    extracted = release.extract_archive(safe_archive)
+    assert (extracted / "pkg" / "file.txt").read_text(encoding="utf-8") == "hello"
+
+    traversal_archive = tmp_path / "unsafe.tar.gz"
+    data = io.BytesIO(b"malicious")
+    info = tarfile.TarInfo(name="../evil.txt")
+    info.size = len(data.getvalue())
+
+    with tarfile.open(traversal_archive, "w:gz") as tar:
+        tar.addfile(info, io.BytesIO(data.getvalue()))
+
+    with pytest.raises(release.ReleaseError):
+        release.extract_archive(traversal_archive, destination=tmp_path / "out")

@@ -24,7 +24,9 @@ def principal() -> auth.AuthenticatedPrincipal:
     )
 
 
-def test_record_audit_event_writes_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, principal: auth.AuthenticatedPrincipal) -> None:
+def test_record_audit_event_writes_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, principal: auth.AuthenticatedPrincipal
+) -> None:
     audit_dir = tmp_path / "audit"
     monkeypatch.setenv("HEPHAESTUS_AUDIT_LOG_DIR", str(audit_dir))
 

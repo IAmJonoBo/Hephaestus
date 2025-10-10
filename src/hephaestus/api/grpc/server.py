@@ -104,9 +104,7 @@ class ServiceAccountAuthInterceptor(grpc.aio.ServerInterceptor):
 
     async def intercept_service(
         self,
-        continuation: Callable[
-            [grpc.HandlerCallDetails], Awaitable[grpc.RpcMethodHandler | None]
-        ],
+        continuation: Callable[[grpc.HandlerCallDetails], Awaitable[grpc.RpcMethodHandler | None]],
         handler_call_details: grpc.HandlerCallDetails,
     ) -> grpc.RpcMethodHandler | None:
         handler = await continuation(handler_call_details)
@@ -114,9 +112,8 @@ class ServiceAccountAuthInterceptor(grpc.aio.ServerInterceptor):
             return None
 
         if handler.unary_unary:
-            async def unary_unary(
-                request: Any, context: grpc.aio.ServicerContext
-            ) -> Any:
+
+            async def unary_unary(request: Any, context: grpc.aio.ServicerContext) -> Any:
                 principal = await self._authenticate(context)
                 context.principal = principal
                 return await handler.unary_unary(request, context)
@@ -128,9 +125,8 @@ class ServiceAccountAuthInterceptor(grpc.aio.ServerInterceptor):
             )
 
         if handler.unary_stream:
-            async def unary_stream(
-                request: Any, context: grpc.aio.ServicerContext
-            ) -> Any:
+
+            async def unary_stream(request: Any, context: grpc.aio.ServicerContext) -> Any:
                 principal = await self._authenticate(context)
                 context.principal = principal
                 async for response in handler.unary_stream(request, context):
@@ -143,9 +139,8 @@ class ServiceAccountAuthInterceptor(grpc.aio.ServerInterceptor):
             )
 
         if handler.stream_unary:
-            async def stream_unary(
-                request_iter: Any, context: grpc.aio.ServicerContext
-            ) -> Any:
+
+            async def stream_unary(request_iter: Any, context: grpc.aio.ServicerContext) -> Any:
                 principal = await self._authenticate(context)
                 context.principal = principal
                 return await handler.stream_unary(request_iter, context)
@@ -157,9 +152,8 @@ class ServiceAccountAuthInterceptor(grpc.aio.ServerInterceptor):
             )
 
         if handler.stream_stream:
-            async def stream_stream(
-                request_iter: Any, context: grpc.aio.ServicerContext
-            ) -> Any:
+
+            async def stream_stream(request_iter: Any, context: grpc.aio.ServicerContext) -> Any:
                 principal = await self._authenticate(context)
                 context.principal = principal
                 async for response in handler.stream_stream(request_iter, context):
@@ -177,9 +171,7 @@ class ServiceAccountAuthInterceptor(grpc.aio.ServerInterceptor):
         metadata = {md.key: md.value for md in context.invocation_metadata()}
         header = metadata.get("authorization")
         if header is None:
-            await context.abort(
-                grpc.StatusCode.UNAUTHENTICATED, "Missing authorization metadata"
-            )
+            await context.abort(grpc.StatusCode.UNAUTHENTICATED, "Missing authorization metadata")
             raise RuntimeError("unreachable")
 
         token = header.split(" ", 1)
@@ -195,4 +187,3 @@ class ServiceAccountAuthInterceptor(grpc.aio.ServerInterceptor):
         except auth.AuthenticationError as exc:  # pragma: no cover - defensive guard
             await context.abort(grpc.StatusCode.UNAUTHENTICATED, str(exc))
             raise RuntimeError("unreachable") from exc
-

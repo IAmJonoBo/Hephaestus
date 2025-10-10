@@ -435,9 +435,7 @@ def add_backfill_notice(
     logger.info("Added backfill notice to release notes")
 
 
-def backfill_release(
-    version: str, token: str, dry_run: bool = False
-) -> dict[str, Any]:
+def backfill_release(version: str, token: str, dry_run: bool = False) -> dict[str, Any]:
     """Backfill Sigstore bundle for a historical release.
 
     Args:

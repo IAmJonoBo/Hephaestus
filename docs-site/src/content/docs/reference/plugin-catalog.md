@@ -135,7 +135,7 @@ Template for creating custom quality gate plugins. Demonstrates best practices a
 [[external]]
 name = "example-plugin"
 enabled = true
-path = "plugin-templates/example-plugin/example_plugin.py"
+   path = "plugin-templates/registry/artifacts/example_plugin.py"
 config.severity = "high"
 ```
 

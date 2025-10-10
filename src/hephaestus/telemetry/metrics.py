@@ -200,6 +200,7 @@ _PROM_THREAD: threading.Thread | None = None
 _PROM_ENDPOINT: tuple[str, int] | None = None
 _PROM_RESOURCE_ATTRIBUTES: dict[str, str] = {}
 
+
 def _ensure_prometheus_exporter() -> None:
     global _PROM_REGISTRY, _PROM_SERVER, _PROM_THREAD, _PROM_ENDPOINT
 
@@ -233,7 +234,9 @@ def _ensure_prometheus_exporter() -> None:
     _PROM_SERVER = server
     _PROM_ENDPOINT = (host, server.server_address[1])
 
-    thread = threading.Thread(target=server.serve_forever, name="hephaestus-prometheus", daemon=True)
+    thread = threading.Thread(
+        target=server.serve_forever, name="hephaestus-prometheus", daemon=True
+    )
     thread.start()
     _PROM_THREAD = thread
 

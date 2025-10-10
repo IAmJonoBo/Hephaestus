@@ -69,12 +69,19 @@ class MockContext:
     def invocation_metadata(self) -> tuple[Any, ...]:  # pragma: no cover - interface parity
         return ()
 
-    for path in sorted(audit_dir.glob("*.jsonl")):
-        for line in path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            entries.append(json.loads(line))
-    return entries
+
+def _fake_rankings(**_: Any) -> list[dict[str, Any]]:
+    return [
+        {
+            "path": "src/module.py",
+            "score": 1.0,
+            "churn": 10,
+            "coverage": 0.8,
+            "uncovered_lines": 5,
+            "rationale": "test",
+        }
+    ]
+
 
 @pytest.mark.asyncio
 async def test_quality_service_guard_rails_success(
@@ -104,8 +111,6 @@ async def test_quality_service_guard_rails_success(
     assert isinstance(response, hephaestus_pb2.GuardRailsResponse)
     assert response.success is True
 
-    def details(self) -> str:
-        return self._details
 
 @pytest.mark.asyncio
 async def test_quality_service_guard_rails_permission_denied(
@@ -170,10 +175,7 @@ async def test_analytics_service_rankings_requires_role(
     analytics_principal = verifier.verify_bearer_token(service_account_environment.analytics_token)
     guard_principal = verifier.verify_bearer_token(service_account_environment.guard_token)
 
-    def fake_rankings(**kwargs: Any) -> list[dict[str, Any]]:
-        return [{"path": "src/module.py", "score": 1.0, "churn": 10, "coverage": 0.8, "uncovered_lines": 5, "rationale": "test"}]
-
-    monkeypatch.setattr(service_module, "compute_rankings", fake_rankings)
+    monkeypatch.setattr(service_module, "compute_rankings", _fake_rankings)
 
     service = AnalyticsServiceServicer()
 
@@ -201,8 +203,6 @@ async def test_analytics_service_stream_ingest_audit(
 ) -> None:
     verifier = auth_module.get_default_verifier()
     principal = verifier.verify_bearer_token(service_account_environment.omni_token)
-
-    monkeypatch.setattr(service_module, "compute_rankings", fake_rankings)
 
     async def event_generator() -> AsyncIterator[hephaestus_pb2.AnalyticsEvent]:
         yield hephaestus_pb2.AnalyticsEvent(source="ci", kind="coverage", value=0.95)

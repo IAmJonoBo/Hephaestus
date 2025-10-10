@@ -218,9 +218,7 @@ class ServiceAccountVerifier:
             raise AuthorizationError(principal.principal, role)
 
     @staticmethod
-    def require_any_role(
-        principal: AuthenticatedPrincipal, roles: Iterable[str]
-    ) -> None:
+    def require_any_role(principal: AuthenticatedPrincipal, roles: Iterable[str]) -> None:
         if not any(principal.has_role(role) for role in roles):
             raise AuthorizationError(principal.principal, ",".join(sorted(roles)))
 
@@ -236,9 +234,7 @@ def get_default_keystore() -> ServiceAccountKeyStore:
         if _default_keystore is None:
             path_value = os.environ.get(SERVICE_ACCOUNT_KEYS_ENV)
             keystore = (
-                ServiceAccountKeyStore(Path(path_value))
-                if path_value
-                else ServiceAccountKeyStore()
+                ServiceAccountKeyStore(Path(path_value)) if path_value else ServiceAccountKeyStore()
             )
             _default_keystore = keystore
         return _default_keystore

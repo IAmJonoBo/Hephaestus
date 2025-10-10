@@ -17,13 +17,9 @@ logger = logging.getLogger(__name__)
 async def _require_principal(
     context: grpc.aio.ServicerContext,
 ) -> auth.AuthenticatedPrincipal:
-    principal = cast(
-        auth.AuthenticatedPrincipal | None, getattr(context, "principal", None)
-    )
+    principal = cast(auth.AuthenticatedPrincipal | None, getattr(context, "principal", None))
     if principal is None:
-        await context.abort(
-            grpc.StatusCode.UNAUTHENTICATED, "Missing authentication principal"
-        )
+        await context.abort(grpc.StatusCode.UNAUTHENTICATED, "Missing authentication principal")
         raise RuntimeError("unreachable")
     return principal
 
@@ -182,9 +178,7 @@ class QualityServiceServicer(hephaestus_pb2_grpc.QualityServiceServicer):
         parameters = {"workspace": request.workspace or ""}
 
         try:
-            summary = detect_drift_summary(
-                principal=principal, workspace=request.workspace or None
-            )
+            summary = detect_drift_summary(principal=principal, workspace=request.workspace or None)
         except auth.AuthorizationError as exc:
             record_audit_event(
                 principal,

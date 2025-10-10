@@ -154,7 +154,78 @@ plugins:
       config:
         spell_check: true
         broken_links: true
+
+  marketplace:
+    - name: example-plugin
+      version: "1.0.0"
+      registry: "default"
+      enabled: true
+      config:
+        severity: high
 ```
+
+#### Marketplace Schema and Trust Policies
+
+Phase 4 introduces a curated marketplace that ships signed manifests, dependency metadata, and a
+trust policy so operators can consume community plugins safely.
+
+- **Manifests** live under `plugin-templates/registry/*.toml`
+- **Sigstore bundles** capture artefact digests in `plugin-templates/registry/*.sigstore`
+- **Trust policies** are encoded in `plugin-templates/registry/trust-policy.toml`
+
+Example manifest:
+
+```toml
+[plugin]
+name = "example-plugin"
+version = "1.0.0"
+description = "Example quality gate plugin shipped via the marketplace registry."
+category = "custom"
+author = "Hephaestus Maintainers"
+
+[plugin.compatibility]
+hephaestus = ">=0.2.0"
+python = ">=3.12"
+
+[[plugin.dependencies]]
+type = "plugin"
+name = "ruff-check"
+version = ">=0.1.0"
+
+[[plugin.dependencies]]
+type = "python"
+name = "pytest"
+version = ">=8.0"
+
+[plugin.entrypoint]
+path = "artifacts/example_plugin.py"
+
+[plugin.signature]
+bundle = "example-plugin.sigstore"
+```
+
+Trust policy excerpt:
+
+```toml
+[trust]
+require_signature = true
+allowed_identities = ["mailto:plugins@hephaestus.dev"]
+
+[trust.plugins.example-plugin]
+allowed_identities = ["mailto:plugins@hephaestus.dev"]
+```
+
+**Guarantees**:
+
+1. **Version pinning** – requested versions must match the curated manifest and plugin metadata.
+2. **Compatibility gates** – manifests express supported Hephaestus and Python ranges enforced at
+   load time.
+3. **Dependency resolution** – plugin and Python dependencies are resolved with
+   `packaging.SpecifierSet` validation before registration.
+4. **Signature verification** – Sigstore bundles must match the plugin artefact digest and trusted
+   identities from the policy.
+5. **Telemetry** – discovery emits `hephaestus.plugins.marketplace.{fetch,verified,dependencies_resolved,registered,errors}`
+   counters for operational insight.
 
 ### Plugin Discovery
 

@@ -344,9 +344,7 @@ def compute_rankings(
     return rankings
 
 
-def compute_hotspots(
-    *, principal: auth.AuthenticatedPrincipal, limit: int
-) -> list[dict[str, Any]]:
+def compute_hotspots(*, principal: auth.AuthenticatedPrincipal, limit: int) -> list[dict[str, Any]]:
     """Return hotspot payloads derived from the toolkit configuration."""
 
     auth.ServiceAccountVerifier.require_role(principal, auth.Role.ANALYTICS.value)

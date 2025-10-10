@@ -313,6 +313,10 @@ def _open_with_retries(
             )
             return cast(IO[bytes], response)
         except urllib.error.HTTPError as exc:
+            try:
+                exc.close()
+            except Exception:  # pragma: no cover - defensive guard
+                pass
             last_error = exc
             if exc.code >= 500 and attempt < max_retries:
                 telemetry.emit_event(
@@ -443,6 +447,10 @@ def _fetch_release(
         ) as response:
             payload = response.read()
     except urllib.error.HTTPError as exc:  # pragma: no cover - network failures vary
+        try:
+            exc.close()
+        except Exception:  # pragma: no cover - defensive guard
+            pass
         if exc.code == 401:
             raise ReleaseError(
                 "GitHub authentication failed (HTTP 401). "
@@ -523,6 +531,10 @@ def _download_asset(
         ):
             shutil.copyfileobj(response, fh)
     except urllib.error.HTTPError as exc:  # pragma: no cover - network dependent
+        try:
+            exc.close()
+        except Exception:  # pragma: no cover - defensive guard
+            pass
         raise ReleaseError(f"Failed to download asset: HTTP {exc.code} {exc.reason}") from exc
     except urllib.error.URLError as exc:  # pragma: no cover
         raise ReleaseError(f"Failed to download asset: {exc.reason}") from exc
@@ -1021,9 +1033,7 @@ def download_wheelhouse(
             telemetry.emit_event(
                 logger,
                 telemetry.RELEASE_SIGSTORE_DOWNLOAD,
-                message=(
-                    f"Downloading Sigstore bundle ({sigstore_source}) to {sigstore_path}"
-                ),
+                message=(f"Downloading Sigstore bundle ({sigstore_source}) to {sigstore_path}"),
                 bundle=sigstore_asset.name,
                 destination=str(sigstore_path),
             )
@@ -1044,10 +1054,7 @@ def download_wheelhouse(
             telemetry.emit_event(
                 logger,
                 telemetry.RELEASE_SIGSTORE_VERIFIED,
-                message=(
-                    "Sigstore attestation verified"
-                    f" using {sigstore_source} metadata"
-                ),
+                message=(f"Sigstore attestation verified using {sigstore_source} metadata"),
                 subject=verification.certificate_subject,
                 issuer=verification.certificate_issuer,
                 identities=list(verification.identities),
