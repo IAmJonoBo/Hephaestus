@@ -7,6 +7,7 @@ from collections.abc import AsyncIterator
 
 import grpc
 
+from hephaestus.analytics import RankingStrategy
 from hephaestus.analytics_streaming import global_ingestor
 from hephaestus.api.grpc.protos import hephaestus_pb2, hephaestus_pb2_grpc
 from hephaestus.api.service import compute_hotspots, compute_rankings
@@ -70,35 +71,21 @@ class AnalyticsServiceServicer(hephaestus_pb2_grpc.AnalyticsServiceServicer):
         Returns:
             Code hotspots
         """
-        logger.info(f"GetHotspots called: limit={request.limit}")
+        logger.info("GetHotspots called", extra={"limit": request.limit})
 
-        # Simulate hotspot detection
-        hotspots = [
-            hephaestus_pb2.Hotspot(
-                file="src/main.py",
-                change_frequency=120,
-                complexity=45,
-                risk_score=8.5,
-            ),
-            hephaestus_pb2.Hotspot(
-                file="src/utils.py",
-                change_frequency=95,
-                complexity=38,
-                risk_score=7.2,
-            ),
-            hephaestus_pb2.Hotspot(
-                file="src/models.py",
-                change_frequency=88,
-                complexity=52,
-                risk_score=6.8,
-            ),
-        ]
+        hotspots = compute_hotspots(limit=request.limit or 20)
 
-        # Apply limit
-        if request.limit > 0:
-            hotspots = hotspots[: request.limit]
-
-        return hephaestus_pb2.HotspotsResponse(hotspots=hotspots)
+        return hephaestus_pb2.HotspotsResponse(
+            hotspots=[
+                hephaestus_pb2.Hotspot(
+                    file=item["path"],
+                    change_frequency=int(item["change_frequency"]),
+                    complexity=int(item["complexity"]),
+                    risk_score=float(item["risk_score"]),
+                )
+                for item in hotspots
+            ]
+        )
 
     async def StreamIngest(
         self,

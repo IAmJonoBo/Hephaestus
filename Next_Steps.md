@@ -32,6 +32,7 @@ Remaining work is focused on advanced features with clear ADRs and sprint-based 
 - ✅ Unified analytics rankings and hotspot outputs across REST and gRPC by routing through the toolkit analytics pipeline with synthetic fallbacks when no datasets are configured.
 - ✅ Regenerated protobuf definitions to add `auto_remediate` support and aligned CI-safe cleanup previews between HTTP and gRPC flows.
 - 🔄 Follow-up: persist streaming analytics snapshots for ranking inputs and emit remediation telemetry for API consumers.
+- ✅ Guard-rails helpers now fail closed when required plugin tooling is missing and surface the missing inventory in both REST helpers and unit coverage.
 
 **API Streaming & Remediation Automation (2025-02-XX):**
 
@@ -117,11 +118,11 @@ Remaining work is focused on advanced features with clear ADRs and sprint-based 
 
 ## Baseline Validation (current session)
 
-- ✅ `uv run pytest --cov=src` (353 passed, 3 skipped, 86.83% coverage)【0721dc†L1-L33】
-- ✅ `uv run ruff check .`【6253c8†L1-L2】
-- ✅ `uv run mypy src tests`【fbca24†L1-L2】
-- ⚠️ `uv run pip-audit` (fails: SSL certificate verification error against pypi.org; trust store remediation still required)【80a602†L1-L41】
-- ✅ `uv build`【ced701†L1-L4】
+- ✅ `uv run --extra qa --extra dev pytest --cov=src` (345 passed, 4 skipped, 86.43% coverage)【e8df50†L1-L34】
+- ✅ `uv run --extra qa --extra dev ruff check .`【8fce87†L1-L2】
+- ✅ `uv run --extra qa --extra dev mypy src tests`【eac22d†L1-L2】
+- ⚠️ `uv run --extra qa --extra dev pip-audit` (fails: SSL certificate verification error against pypi.org; trust store remediation still required)【fc475e†L1-L41】
+- ✅ `uv build`【b30d96†L1-L4】
 
 ## Implementation Status Summary
 

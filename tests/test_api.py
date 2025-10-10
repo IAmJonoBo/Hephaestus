@@ -270,6 +270,38 @@ async def test_guard_rails_endpoint_failure(
     rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Guard-rails endpoint should propagate task failures."""
+    client, rest_module = rest_app_client
+
+    from hephaestus.api.rest.tasks import Task, TaskStatus
+
+    class StubTaskManager:
+        async def create_task(self, *args: Any, **kwargs: Any) -> str:
+            return "task-failure"
+
+        async def wait_for_completion(
+            self,
+            task_id: str,
+            poll_interval: float = 0.1,
+            timeout: float | None = None,
+        ) -> Task:
+            return Task(
+                id=task_id,
+                name="guard-rails",
+                status=TaskStatus.FAILED,
+                error="boom",
+            )
+
+        async def get_task_status(self, task_id: str) -> Task:
+            return await self.wait_for_completion(task_id)
+
+    monkeypatch.setattr(rest_module, "task_manager", StubTaskManager())
+
+    headers = {"Authorization": "Bearer test-api-key"}
+    response = await client.post(
+        "/api/v1/quality/guard-rails",
+        json={"no_format": False, "drift_check": False},
+        headers=headers,
+    )
     assert response.status_code == 500
     assert response.json()["detail"] == "boom"
 
@@ -316,19 +348,46 @@ async def test_cleanup_endpoint_with_auth(
 
     headers = {"Authorization": "Bearer test-api-key"}
     response = await client.post(
-        "/api/v1/quality/guard-rails",
-        json={"no_format": False, "drift_check": False},
+        "/api/v1/cleanup",
+        json={"deep_clean": False, "dry_run": True},
         headers=headers,
     )
-    assert response.status_code == 500
-    assert response.json()["detail"] == "boom"
+    assert response.status_code == 200
+    data = response.json()
+    assert data["files_deleted"] == 5
+    assert data["manifest"] == {"cache": 5}
 
 
 @pytest.mark.asyncio
-async def test_cleanup_endpoint_with_auth(
+async def test_cleanup_endpoint_failure(
     rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Cleanup endpoint should return results from the task manager."""
+    """Cleanup endpoint should convert task failures into HTTP errors."""
+    client, rest_module = rest_app_client
+
+    from hephaestus.api.rest.tasks import Task, TaskStatus
+
+    class StubTaskManager:
+        async def create_task(self, *args: Any, **kwargs: Any) -> str:
+            return "cleanup-failure"
+
+        async def wait_for_completion(
+            self,
+            task_id: str,
+            poll_interval: float = 0.1,
+            timeout: float | None = None,
+        ) -> Task:
+            return Task(
+                id=task_id,
+                name="cleanup",
+                status=TaskStatus.FAILED,
+                error="cleanup boom",
+            )
+
+        async def get_task_status(self, task_id: str) -> Task:
+            return await self.wait_for_completion(task_id)
+
+    monkeypatch.setattr(rest_module, "task_manager", StubTaskManager())
 
     headers = {"Authorization": "Bearer test-api-key"}
     response = await client.post(
@@ -389,6 +448,15 @@ async def test_cleanup_endpoint_failure(
     )
     assert response.status_code == 200
     data = response.json()
+    assert data["strategy"] == "coverage_first"
+    assert isinstance(data["rankings"], list)
+
+
+@pytest.mark.asyncio
+async def test_get_task_status_success(
+    rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Task status endpoint should expose task metadata."""
     assert data["files_deleted"] == 5
     assert data["manifest"] == {"cache": 5}
 
@@ -403,6 +471,49 @@ async def test_cleanup_endpoint_failure(
     from hephaestus.api.rest.tasks import Task, TaskStatus
 
     class StubTaskManager:
+        async def get_task_status(self, task_id: str) -> Task:
+            return Task(
+                id=task_id,
+                name="guard-rails",
+                status=TaskStatus.RUNNING,
+                progress=0.5,
+                result=None,
+                error=None,
+            )
+
+    monkeypatch.setattr(rest_module, "task_manager", StubTaskManager())
+
+    headers = {"Authorization": "Bearer test-api-key"}
+    response = await client.get("/api/v1/tasks/sample", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "running"
+    assert data["progress"] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_get_task_status_not_found(
+    rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Task status endpoint should return 404 when task is missing."""
+    client, rest_module = rest_app_client
+
+    class StubTaskManager:
+        async def get_task_status(self, task_id: str) -> Any:
+            raise KeyError(task_id)
+
+    monkeypatch.setattr(rest_module, "task_manager", StubTaskManager())
+
+    headers = {"Authorization": "Bearer test-api-key"}
+    response = await client.get("/api/v1/tasks/missing", headers=headers)
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_stream_task_progress_success(
+    rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Streaming endpoint should emit progress updates until completion."""
         async def create_task(self, *args: Any, **kwargs: Any) -> str:
             return "cleanup-failure"
 
@@ -460,54 +571,6 @@ async def test_get_task_status_success(
 
     from hephaestus.api.rest.tasks import Task, TaskStatus
 
-    class StubTaskManager:
-        async def get_task_status(self, task_id: str) -> Task:
-            return Task(
-                id=task_id,
-                name="guard-rails",
-                status=TaskStatus.RUNNING,
-                progress=0.5,
-                result=None,
-                error=None,
-            )
-
-    monkeypatch.setattr(rest_module, "task_manager", StubTaskManager())
-
-    headers = {"Authorization": "Bearer test-api-key"}
-    response = await client.get("/api/v1/tasks/sample", headers=headers)
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "running"
-    assert data["progress"] == 0.5
-
-
-@pytest.mark.asyncio
-async def test_get_task_status_not_found(
-    rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Task status endpoint should return 404 when task is missing."""
-    client, rest_module = rest_app_client
-
-    class StubTaskManager:
-        async def get_task_status(self, task_id: str) -> Any:
-            raise KeyError(task_id)
-
-    monkeypatch.setattr(rest_module, "task_manager", StubTaskManager())
-
-    headers = {"Authorization": "Bearer test-api-key"}
-    response = await client.get("/api/v1/tasks/missing", headers=headers)
-    assert response.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_stream_task_progress_success(
-    rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Streaming endpoint should emit progress updates until completion."""
-    client, rest_module = rest_app_client
-
-    from hephaestus.api.rest.tasks import Task, TaskStatus
-
     class SequenceTaskManager:
         def __init__(self) -> None:
             self._calls = 0
@@ -534,6 +597,93 @@ async def test_stream_task_progress_success(
     headers = {"Authorization": "Bearer test-api-key"}
     payloads: list[dict[str, Any]] = []
     async with client.stream("GET", "/api/v1/tasks/sample/stream", headers=headers) as response:
+        async for chunk in response.aiter_bytes():
+            for block in filter(None, chunk.decode().strip().split("\n\n")):
+                if block.startswith("data: "):
+                    payloads.append(json.loads(block.split("data: ", 1)[1]))
+
+    assert response.status_code == 200
+    assert payloads[-1]["status"] == "completed"
+    assert payloads[-1]["result"] == {"ok": True}
+
+
+@pytest.mark.asyncio
+async def test_stream_task_progress_missing_task(
+    rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Streaming endpoint should emit an error message when task is missing."""
+    client, rest_module = rest_app_client
+
+    class MissingTaskManager:
+        async def get_task_status(self, task_id: str) -> Any:
+            raise KeyError(task_id)
+
+    monkeypatch.setattr(rest_module, "task_manager", MissingTaskManager())
+
+    headers = {"Authorization": "Bearer test-api-key"}
+    payloads: list[dict[str, Any]] = []
+    async with client.stream("GET", "/api/v1/tasks/missing/stream", headers=headers) as response:
+        async for chunk in response.aiter_bytes():
+            for block in filter(None, chunk.decode().strip().split("\n\n")):
+                if block.startswith("data: "):
+                    payloads.append(json.loads(block.split("data: ", 1)[1]))
+
+    assert response.status_code == 200
+    assert payloads[0]["error"] == "Task not found"
+
+
+def test_verify_api_key_validation() -> None:
+    """verify_api_key should enforce presence of credentials."""
+    pytest.importorskip("fastapi")
+    from fastapi import HTTPException
+    from fastapi.security import HTTPAuthorizationCredentials
+
+    from hephaestus.api.rest.app import verify_api_key
+
+    with pytest.raises(HTTPException) as excinfo:
+        verify_api_key(None)
+    assert excinfo.value.status_code == 401
+
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="")
+    with pytest.raises(HTTPException) as excinfo:
+        verify_api_key(credentials)
+    assert excinfo.value.status_code == 403
+
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="valid")
+    assert verify_api_key(credentials) == "valid"
+
+
+@pytest.mark.asyncio
+async def test_stream_task_progress_timeout(
+    rest_app_client: tuple[Any, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Streaming endpoint should surface timeout events when tasks never finish."""
+    client, rest_module = rest_app_client
+
+    from hephaestus.api.rest.tasks import Task, TaskStatus
+
+    class HangingTaskManager:
+        async def get_task_status(self, task_id: str) -> Task:
+            return Task(
+                id=task_id,
+                name="guard-rails",
+                status=TaskStatus.RUNNING,
+                progress=0.0,
+            )
+
+    monkeypatch.setattr(rest_module, "task_manager", HangingTaskManager())
+    monkeypatch.setattr(rest_module, "DEFAULT_TASK_TIMEOUT", 0.05)
+
+    original_sleep = rest_module.asyncio.sleep
+
+    async def tiny_sleep(_: float) -> None:
+        await original_sleep(0)
+
+    monkeypatch.setattr(rest_module.asyncio, "sleep", tiny_sleep)
+
+    headers = {"Authorization": "Bearer test-api-key"}
+    payloads: list[dict[str, Any]] = []
+    async with client.stream("GET", "/api/v1/tasks/slow/stream", headers=headers) as response:
         async for chunk in response.aiter_bytes():
             for block in filter(None, chunk.decode().strip().split("\n\n")):
                 if block.startswith("data: "):

@@ -341,6 +341,33 @@ mypy = false
     assert not registry_instance.is_registered("mypy")
 
 
+def test_discover_plugins_clears_disabled_builtins(tmp_path: Path) -> None:
+    """Disabled built-ins should be removed on subsequent discovery runs."""
+
+    enabled_config = tmp_path / "plugins_enabled.toml"
+    enabled_config.write_text(
+        """
+[builtin]
+ruff-check = true
+"""
+    )
+
+    disabled_config = tmp_path / "plugins_disabled.toml"
+    disabled_config.write_text(
+        """
+[builtin]
+ruff-check = false
+"""
+    )
+
+    registry_instance = PluginRegistry()
+    discover_plugins(enabled_config, registry_instance)
+    assert registry_instance.is_registered("ruff-check")
+
+    discover_plugins(disabled_config, registry_instance)
+    assert not registry_instance.is_registered("ruff-check")
+
+
 def test_load_plugin_config_edge_case_empty_file(tmp_path: Path) -> None:
     """load_plugin_config should handle empty TOML files."""
     config_file = tmp_path / "plugins.toml"
