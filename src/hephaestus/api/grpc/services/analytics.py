@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 
 import grpc
 
+from hephaestus.analytics import RankingStrategy
+from hephaestus.analytics_streaming import global_ingestor
 from hephaestus.api.grpc.protos import hephaestus_pb2, hephaestus_pb2_grpc
+from hephaestus.api.service import compute_hotspots, compute_rankings
 
 logger = logging.getLogger(__name__)
 
@@ -29,35 +33,28 @@ class AnalyticsServiceServicer(hephaestus_pb2_grpc.AnalyticsServiceServicer):
             File rankings
         """
         logger.info(
-            f"GetRankings called: strategy={request.strategy}, limit={request.limit}"
+            "GetRankings called", extra={"strategy": request.strategy, "limit": request.limit}
         )
 
-        # Simulate rankings
-        rankings = [
-            hephaestus_pb2.FileRanking(
-                file="src/main.py",
-                score=8.5,
-                metrics={"complexity": 45.0, "coverage": 65.0, "churn": 120.0},
-            ),
-            hephaestus_pb2.FileRanking(
-                file="src/utils.py",
-                score=7.2,
-                metrics={"complexity": 38.0, "coverage": 72.0, "churn": 95.0},
-            ),
-            hephaestus_pb2.FileRanking(
-                file="src/models.py",
-                score=6.8,
-                metrics={"complexity": 52.0, "coverage": 58.0, "churn": 88.0},
-            ),
-        ]
+        strategy_value = request.strategy or RankingStrategy.RISK_WEIGHTED.value
+        strategy = RankingStrategy(strategy_value)
 
-        # Apply limit
-        if request.limit > 0:
-            rankings = rankings[: request.limit]
+        rankings = compute_rankings(strategy=strategy, limit=request.limit or 20)
 
         return hephaestus_pb2.RankingsResponse(
-            rankings=rankings,
-            strategy=request.strategy or "composite",
+            rankings=[
+                hephaestus_pb2.FileRanking(
+                    file=item["path"],
+                    score=item["score"],
+                    metrics={
+                        "churn": float(item["churn"]),
+                        "coverage": float(item["coverage"] or 0.0),
+                        "uncovered_lines": float(item["uncovered_lines"] or 0.0),
+                    },
+                )
+                for item in rankings
+            ],
+            strategy=strategy.value,
         )
 
     async def GetHotspots(
@@ -74,32 +71,46 @@ class AnalyticsServiceServicer(hephaestus_pb2_grpc.AnalyticsServiceServicer):
         Returns:
             Code hotspots
         """
-        logger.info(f"GetHotspots called: limit={request.limit}")
+        logger.info("GetHotspots called", extra={"limit": request.limit})
 
-        # Simulate hotspot detection
-        hotspots = [
-            hephaestus_pb2.Hotspot(
-                file="src/main.py",
-                change_frequency=120,
-                complexity=45,
-                risk_score=8.5,
-            ),
-            hephaestus_pb2.Hotspot(
-                file="src/utils.py",
-                change_frequency=95,
-                complexity=38,
-                risk_score=7.2,
-            ),
-            hephaestus_pb2.Hotspot(
-                file="src/models.py",
-                change_frequency=88,
-                complexity=52,
-                risk_score=6.8,
-            ),
-        ]
+        hotspots = compute_hotspots(limit=request.limit or 20)
 
-        # Apply limit
-        if request.limit > 0:
-            hotspots = hotspots[: request.limit]
+        return hephaestus_pb2.HotspotsResponse(
+            hotspots=[
+                hephaestus_pb2.Hotspot(
+                    file=item["path"],
+                    change_frequency=int(item["change_frequency"]),
+                    complexity=int(item["complexity"]),
+                    risk_score=float(item["risk_score"]),
+                )
+                for item in hotspots
+            ]
+        )
 
-        return hephaestus_pb2.HotspotsResponse(hotspots=hotspots)
+    async def StreamIngest(
+        self,
+        request_iterator: AsyncIterator[hephaestus_pb2.AnalyticsEvent],
+        context: grpc.aio.ServicerContext,
+    ) -> hephaestus_pb2.AnalyticsIngestResponse:
+        """Stream analytics events into the shared ingestor."""
+
+        accepted = 0
+        rejected = 0
+
+        async for event in request_iterator:
+            payload = {
+                "source": event.source,
+                "kind": event.kind,
+                "value": event.value,
+                "unit": event.unit or None,
+                "metrics": dict(event.metrics),
+                "metadata": dict(event.metadata),
+                "timestamp": event.timestamp or None,
+            }
+
+            if global_ingestor.ingest_mapping(payload):
+                accepted += 1
+            else:
+                rejected += 1
+
+        return hephaestus_pb2.AnalyticsIngestResponse(accepted=accepted, rejected=rejected)

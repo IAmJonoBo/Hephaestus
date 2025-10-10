@@ -7,7 +7,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class GuardRailsRequest(_message.Message):
-    __slots__ = ("no_format", "workspace", "drift_check", "env")
+    __slots__ = ("no_format", "workspace", "drift_check", "env", "auto_remediate")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -19,11 +19,13 @@ class GuardRailsRequest(_message.Message):
     WORKSPACE_FIELD_NUMBER: _ClassVar[int]
     DRIFT_CHECK_FIELD_NUMBER: _ClassVar[int]
     ENV_FIELD_NUMBER: _ClassVar[int]
+    AUTO_REMEDIATE_FIELD_NUMBER: _ClassVar[int]
     no_format: bool
     workspace: str
     drift_check: bool
     env: _containers.ScalarMap[str, str]
-    def __init__(self, no_format: bool = ..., workspace: _Optional[str] = ..., drift_check: bool = ..., env: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    auto_remediate: bool
+    def __init__(self, no_format: bool = ..., workspace: _Optional[str] = ..., drift_check: bool = ..., env: _Optional[_Mapping[str, str]] = ..., auto_remediate: bool = ...) -> None: ...
 
 class GuardRailsResponse(_message.Message):
     __slots__ = ("success", "gates", "duration", "task_id")
@@ -208,3 +210,43 @@ class Hotspot(_message.Message):
     complexity: int
     risk_score: float
     def __init__(self, file: _Optional[str] = ..., change_frequency: _Optional[int] = ..., complexity: _Optional[int] = ..., risk_score: _Optional[float] = ...) -> None: ...
+
+class AnalyticsEvent(_message.Message):
+    __slots__ = ("source", "kind", "value", "unit", "metrics", "metadata", "timestamp")
+    class MetricsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: float
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[float] = ...) -> None: ...
+    class MetadataEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    SOURCE_FIELD_NUMBER: _ClassVar[int]
+    KIND_FIELD_NUMBER: _ClassVar[int]
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    UNIT_FIELD_NUMBER: _ClassVar[int]
+    METRICS_FIELD_NUMBER: _ClassVar[int]
+    METADATA_FIELD_NUMBER: _ClassVar[int]
+    TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
+    source: str
+    kind: str
+    value: float
+    unit: str
+    metrics: _containers.ScalarMap[str, float]
+    metadata: _containers.ScalarMap[str, str]
+    timestamp: str
+    def __init__(self, source: _Optional[str] = ..., kind: _Optional[str] = ..., value: _Optional[float] = ..., unit: _Optional[str] = ..., metrics: _Optional[_Mapping[str, float]] = ..., metadata: _Optional[_Mapping[str, str]] = ..., timestamp: _Optional[str] = ...) -> None: ...
+
+class AnalyticsIngestResponse(_message.Message):
+    __slots__ = ("accepted", "rejected")
+    ACCEPTED_FIELD_NUMBER: _ClassVar[int]
+    REJECTED_FIELD_NUMBER: _ClassVar[int]
+    accepted: int
+    rejected: int
+    def __init__(self, accepted: _Optional[int] = ..., rejected: _Optional[int] = ...) -> None: ...
