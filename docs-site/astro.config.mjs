@@ -26,15 +26,27 @@ export default defineConfig({
                 baseUrl:
                     "https://github.com/IAmJonoBo/Hephaestus/edit/main/docs-site/",
             },
-            customCss: ["./src/styles/custom.css"],
+            customCss: ["./src/styles/theme.css", "./src/styles/custom.css"],
             sidebar: [
                 {
-                    label: "Documentation",
-                    autogenerate: { directory: "/" },
+                    label: "Tutorials",
+                    link: "/docs/tutorials/",
+                },
+                {
+                    label: "How-to",
+                    link: "/docs/how-to/",
+                },
+                {
+                    label: "Reference",
+                    link: "/docs/reference/",
+                },
+                {
+                    label: "Explanation",
+                    link: "/docs/explanation/",
                 },
             ],
             components: {
-                // Add custom components here if needed
+                "Header:Right": "./src/components/HeaderCta.astro",
             },
             head: [
                 {
@@ -52,6 +64,7 @@ export default defineConfig({
                 minHeadingLevel: 2,
                 maxHeadingLevel: 4,
             },
+            useStarlightUiThemeColors: true,
         }),
     ],
     markdown: {

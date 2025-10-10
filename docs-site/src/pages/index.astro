@@ -1,0 +1,65 @@
+---
+const cards = [
+    {
+        title: "Strategy Playbooks",
+        description: "Launch guard-rail pipelines and cleanup tooling with confidence.",
+        href: "/docs/how-to/quality-gates/",
+    },
+    {
+        title: "Automation Recipes",
+        description: "Wire Typer-based CLIs into CI with repeatable guard rails.",
+        href: "/docs/tutorials/getting-started/",
+    },
+    {
+        title: "Reference Library",
+        description: "Explore schema, telemetry events, and API contracts in depth.",
+        href: "/docs/reference/",
+    },
+];
+
+const valueDrivers = [
+    {
+        title: "Predictable releases",
+        body: "Signature checks, cacheable wheelhouses, and Sigstore verification ensure publish flows stay auditable.",
+    },
+    {
+        title: "Guard-rail automation",
+        body: "One command codifies cleanup, linting, typing, testing, and security so quality stays measurable.",
+    },
+    {
+        title: "Deterministic analytics",
+        body: "Synthetic datasets power staging and regression analysis without leaking customer data.",
+    },
+    {
+        title: "Safe refactoring",
+        body: "Toolkit defaults align teams on migration paths, helping large Python estates evolve quickly.",
+    },
+];
+---
+
+<section class="hero">
+    <h1>Deploy quality automation with fintech-grade polish</h1>
+    <p class="lede">
+        Hephaestus gives platform teams a confident cockpit for cleanup, governance, and release pipelines—designed for
+        frontier engineering orgs that move fast without sacrificing rigour.
+    </p>
+    <a class="cta" href="/docs/tutorials/getting-started/">See how it works</a>
+</section>
+
+<section class="solutions-grid">
+    {cards.map((card) => (
+        <a class="card" href={card.href}>
+            <h3>{card.title}</h3>
+            <p>{card.description}</p>
+        </a>
+    ))}
+</section>
+
+<section class="value-drivers" aria-label="Value drivers">
+    {valueDrivers.map((driver) => (
+        <details>
+            <summary>{driver.title}</summary>
+            <p>{driver.body}</p>
+        </details>
+    ))}
+</section>
