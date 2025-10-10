@@ -14,6 +14,7 @@ import importlib
 import importlib.util
 import logging
 import sys
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,11 +25,14 @@ try:
 except ImportError:
     import tomllib
 
+from hephaestus import telemetry
+
 __all__ = [
     "PluginMetadata",
     "PluginResult",
     "QualityGatePlugin",
     "PluginRegistry",
+    "execute_plugin",
     "PluginConfig",
     "discover_plugins",
     "load_plugin_config",
@@ -209,6 +213,56 @@ class PluginRegistry:
         Useful for testing and reloading plugins.
         """
         self._plugins.clear()
+
+
+def execute_plugin(
+    plugin: QualityGatePlugin,
+    config: dict[str, Any] | None = None,
+) -> PluginResult:
+    """Execute a plugin with telemetry instrumentation."""
+
+    plugin_config = config or {}
+    metadata = plugin.metadata
+    base_attributes = {
+        "plugin": metadata.name,
+        "version": metadata.version,
+        "category": metadata.category,
+    }
+
+    telemetry.record_counter("hephaestus.plugins.invocations", attributes=base_attributes)
+    start_time = time.perf_counter()
+
+    try:
+        with telemetry.trace_operation(
+            "plugins.execute",
+            plugin=metadata.name,
+            version=metadata.version,
+            category=metadata.category,
+        ):
+            result = plugin.run(plugin_config)
+    except Exception as exc:  # noqa: BLE001 - propagate plugin failures with telemetry
+        telemetry.record_counter(
+            "hephaestus.plugins.errors",
+            attributes={**base_attributes, "error": exc.__class__.__name__},
+        )
+        telemetry.record_histogram(
+            "hephaestus.plugins.duration",
+            time.perf_counter() - start_time,
+            attributes={**base_attributes, "status": "error"},
+        )
+        raise
+
+    telemetry.record_counter(
+        "hephaestus.plugins.success" if result.success else "hephaestus.plugins.failures",
+        attributes=base_attributes,
+    )
+    telemetry.record_histogram(
+        "hephaestus.plugins.duration",
+        time.perf_counter() - start_time,
+        attributes={**base_attributes, "status": "success" if result.success else "failure"},
+    )
+
+    return result
 
 
 def load_plugin_config(config_path: Path | None = None) -> list[PluginConfig]:

@@ -4,6 +4,9 @@ Last updated: 2025-10-10 (Sigstore inventory integration; workflow trigger pendi
 
 ## Tasks
 
+- [x] Implement configurable trace sampling defaults (parent-based ratio 0.2) and Prometheus exporter wiring
+- [x] Instrument plugin execution paths with OpenTelemetry spans and metrics counters
+- [x] Publish observability dashboard guidance and ADR updates for new telemetry defaults
 - [ ] Trigger `.github/workflows/sigstore-backfill.yml` and capture the GitHub run ID
 - [x] Extend Sigstore backfill tooling with structured inventory output
 - [x] Document Sigstore inventory usage and rollback procedures
@@ -11,6 +14,9 @@ Last updated: 2025-10-10 (Sigstore inventory integration; workflow trigger pendi
 
 ## Steps
 
+- [x] Add `_build_sampler` helper and tests to enforce environment-driven samplers (`telemetry/__init__.py`)
+- [x] Stand up embedded Prometheus HTTP exporter with integration tests (`metrics.py` / `tests/test_metrics_prometheus.py`)
+- [x] Route plugin execution through `execute_plugin` helper to emit spans + metrics
 - [x] Update `scripts/backfill_sigstore_bundles.py` to emit `ops/attestations/sigstore-inventory.json`
 - [x] Commit inventory scaffold for v0.1.0–v0.2.3 historical releases
 - [x] Wire `src/hephaestus/release.py` to consult the inventory when `--require-sigstore` is set
@@ -19,6 +25,8 @@ Last updated: 2025-10-10 (Sigstore inventory integration; workflow trigger pendi
 
 ## Deliverables
 
+- Updated observability guide (`docs/how-to/observability.md`) with sampling + Prometheus recipes
+- ADR refresh capturing new defaults (`docs/adr/0003-opentelemetry-integration.md`)
 - `ops/attestations/sigstore-inventory.json`
 - Updated operating guide (`docs/how-to/operating-safely.md`)
 - ADR addendum for inventory lifecycle (`docs/adr/0006-sigstore-backfill.md`)
@@ -26,6 +34,8 @@ Last updated: 2025-10-10 (Sigstore inventory integration; workflow trigger pendi
 ## Quality Gates
 
 - [ ] `uv run --extra qa --extra dev pytest --cov=src` *(blocked by existing `tests/test_api.py` indentation error)*
+- [x] `uv run --extra qa --extra dev pytest tests/test_metrics_prometheus.py` (Prometheus exporter regression)
+- [x] `uv run --extra qa --extra dev pytest tests/test_telemetry.py` (sampler coverage)
 - [x] `uv run --extra qa --extra dev pytest tests/test_release.py -k sigstore --maxfail=1 --no-cov`
 - [x] `uv run --extra qa --extra dev ruff check scripts/backfill_sigstore_bundles.py src/hephaestus/release.py tests/test_release.py`
 - [x] `uv run --extra qa --extra dev mypy src/hephaestus/release.py tests/test_release.py`
@@ -33,6 +43,8 @@ Last updated: 2025-10-10 (Sigstore inventory integration; workflow trigger pendi
 
 ## Links
 
+- [docs/how-to/observability.md](docs/how-to/observability.md)
+- [docs/adr/0003-opentelemetry-integration.md](docs/adr/0003-opentelemetry-integration.md)
 - [ops/attestations/sigstore-inventory.json](ops/attestations/sigstore-inventory.json)
 - [scripts/backfill_sigstore_bundles.py](scripts/backfill_sigstore_bundles.py)
 - [src/hephaestus/release.py](src/hephaestus/release.py)
@@ -42,6 +54,7 @@ Last updated: 2025-10-10 (Sigstore inventory integration; workflow trigger pendi
 
 ## Risks/Notes
 
+- Prometheus exporter binds to configurable host/port; ensure CI pipelines reserve `9464` or override via env to avoid port clashes.
 - Sigstore backfill workflow requires GitHub repo write access; run not triggered in this environment, so inventory entries remain `pending`.
 - Full guard-rail suite currently blocked by pre-existing indentation errors in `tests/test_api.py`.
 - `pip-audit` continues to flag CVE GHSA-4xh5-x5gv-qwph for `pip`; mitigation tracked upstream.
