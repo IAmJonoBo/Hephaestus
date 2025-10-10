@@ -310,7 +310,7 @@ def resolve_root(root: Path | None) -> Path:
         output = completed.stdout.strip()
         if output:
             return Path(output)
-    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired):
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
 
     return Path.cwd().resolve()
@@ -417,7 +417,7 @@ def _discover_poetry_environment() -> Path | None:
             path = Path(candidate)
             if path.exists():
                 return path.resolve()
-    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired):
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
     return None
 
