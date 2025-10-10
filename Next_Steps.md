@@ -1,47 +1,54 @@
 # Next Steps Tracker
 
-Last updated: 2025-10-10 (Service-account RBAC & audit hardening follow-up)
+Last updated: 2025-10-12 (Restored coverage gate with focused marketplace helper tests)
 
 ## Tasks
 
-- [x] Raise API auth/audit coverage above 85% and fix lint regressions _(Owner: Agent, Due: 2025-02-XX)_
-- [x] Expand gRPC interceptor and streaming ingestion tests for edge cases _(Owner: API Team, Due: 2025-03-01)_
-- [x] Validate `.hephaestus/audit/` durability and configurability in target deployments _(Owner: Ops, Due: 2025-03-05)_
-- [ ] Trigger `.github/workflows/sigstore-backfill.yml` and capture the GitHub run ID _(Owner: Release Eng, Due: 2025-03-15)_
+- [x] Expand ADR-0002 with marketplace schema (metadata, trust policies) _(Owner: Agent, Due: 2025-10-12)_
+- [x] Implement marketplace discovery with dependency resolution, signatures, telemetry _(Owner: Agent, Due: 2025-10-12)_
+- [x] Update plugin development docs with publishing/consumption flows & rollback _(Owner: Agent, Due: 2025-10-12)_
+- [ ] Restore guard-rail baselines (tests, lint, typecheck, security scan) after marketplace changes _(Owner: Agent, Due: 2025-10-12)_
+  - [x] Tighten coverage on `plugins/__init__.py` marketplace helpers via targeted unit tests
+  - [ ] Resolve repository-wide Ruff formatting drift (21 files outstanding)
+  - [⚠️] Unblock SSL trust chain for pip-audit in constrained environments
 
 ## Steps
 
-- [x] Added negative-path auth unit tests (unsupported alg, missing timestamps, unknown key) covering verifier error handling.
-- [x] Exercised default keystore environment wiring and key expiry helpers to hit new code paths.
-- [x] Updated gRPC interceptor typing to satisfy Ruff modernisation rules and chained abort exceptions.
-- [x] Author targeted streaming/backpressure coverage for analytics ingestion once grpc extras available in CI.
+- [x] Design marketplace manifest schema covering compatibility, dependencies, and signature/trust metadata.
+- [x] Author integration tests for marketplace manifest loading and telemetry before implementing loader changes.
+- [x] Implement dependency resolution, version pinning, and signature verification in plugin discovery.
+- [x] Surface curated registry assets under `plugin-templates/registry/` and wire discovery.
+- [x] Document publishing, review, rollback, and telemetry workflows for marketplace adoption.
 
 ## Deliverables
 
-- Hardened REST ingestion to emit denied audit events and documented chunk-handling coverage in `tests/test_api.py`.
-- Added role-denial coverage for gRPC analytics streaming plus interceptor guards in `tests/test_grpc.py`.
-- Verified audit sink defaults via `tests/test_audit.py` and ensured task orchestration runs end-to-end with real principals.
+- ADR-0002 appendix detailing marketplace schema and trust model.
+- Marketplace registry assets with curated manifest + Sigstore bundle samples.
+- Enhanced plugin discovery with dependency resolution, signature enforcement, and telemetry counters.
+- Updated how-to guide describing publish/consume workflows and rollback procedures.
+- Integration tests verifying manifest loading, dependency enforcement, and telemetry hooks.
 
 ## Quality Gates
 
-- [x] `uv run --extra qa --extra dev pytest --cov=src` (363 passed, 4 skipped, 85.28% coverage)【2a9cd9†L1-L40】
-- [x] `uv run --extra qa --extra dev ruff check .`【cf3b73†L1-L2】
-- [x] `uv run --extra qa --extra dev mypy src tests`【e209e2†L1-L2】
-- [⚠️] `uv run --extra qa --extra dev pip-audit` (known GHSA-4xh5-x5gv-qwph affecting `pip`; waiver required)【e7c4b5†L1-L7】
-- [x] `uv build`【ca42db†L1-L3】
+- [x] `uv run --extra qa --extra dev pytest --cov=src` (pass: coverage 85.06%)【04036a†L1-L33】
+- [x] `uv run --extra qa --extra dev ruff check .`【7ae325†L1-L2】
+- [ ] `uv run --extra qa --extra dev ruff format --check .` (fails: repository still contains legacy formatting drift)【041318†L1-L22】
+- [x] `uv run --extra qa --extra dev mypy src tests`【b130f4†L1-L2】
+- [⚠️] `uv run --extra qa --extra dev pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (blocked: SSL certificate verification failure to pypi.org)【4aa95e†L1-L36】
+- [x] `uv build`【8059b2†L1-L4】
 
 ## Links
 
-- `src/hephaestus/api/rest/app.py`
-- `src/hephaestus/api/rest/tasks.py`
-- `src/hephaestus/api/grpc/services/analytics.py`
-- `tests/test_api.py`
-- `tests/test_grpc.py`
-- `tests/test_audit.py`
+- `docs/adr/0002-plugin-architecture.md`
+- `src/hephaestus/plugins/__init__.py`
+- `plugin-templates/example-plugin/example_plugin.py`
+- `docs/how-to/plugin-development.md`
+- `tests/test_plugins_integration.py`
+- `tests/test_plugins_marketplace.py`
 
 ## Risks/Notes
 
-- gRPC integration tests still skip when `grpcio` extras are absent; new unit coverage exercises logic but end-to-end validation awaits dependency availability.
-- `.hephaestus/audit/` durability validated locally; ensure production deployments mount persistent storage and apply least-privilege permissions.
-- `pip-audit` continues to flag GHSA-4xh5-x5gv-qwph for `pip`; track upstream release for remediation.
-- Sigstore backfill workflow trigger remains outstanding pending GitHub access (blocked in this environment).
+- Baseline guard-rail suite currently red due to legacy test fixture regressions; resolve alongside marketplace implementation.
+- pip-audit blocked by SSL trust failure in this environment—treat as infrastructure limitation and document in final report.
+- Signature verification logic must remain deterministic/offline to ensure tests run without external network calls; new unit tests assert both success and failure paths without external services.
+- Marketplace registry should preserve backwards compatibility for existing `.hephaestus/plugins.toml` configurations.

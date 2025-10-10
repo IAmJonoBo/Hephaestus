@@ -1,0 +1,14 @@
+{
+  "mediaType": "application/vnd.dev.sigstore.bundle+json;version=0.1",
+  "messageSignature": {
+    "messageDigest": {
+      "algorithm": "sha256",
+      "digest": "SJcpdij57zVq1qesOdDFI3qes8gyLMnR+659dt7QTyU="
+    }
+  },
+  "verificationMaterial": {
+    "identities": [
+      "mailto:plugins@hephaestus.dev"
+    ]
+  }
+}

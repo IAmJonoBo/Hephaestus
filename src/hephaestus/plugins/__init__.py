@@ -10,13 +10,18 @@ Phase 3 (This update): Plugin discovery and configuration loading
 
 from __future__ import annotations
 
+import base64
+import fnmatch
+import hashlib
 import importlib
 import importlib.util
+import json
 import logging
 import sys
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from importlib import metadata
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +29,9 @@ try:
     import tomli as tomllib  # type: ignore  # Python < 3.11
 except ImportError:
     import tomllib
+
+from packaging.specifiers import SpecifierSet
+from packaging.version import InvalidVersion, Version
 
 from hephaestus import telemetry
 
@@ -62,6 +70,56 @@ class PluginResult:
     message: str
     details: dict[str, Any] | None = None
     exit_code: int = 0
+
+
+@dataclass(frozen=True)
+class MarketplaceDependency:
+    """Dependency declared inside a marketplace manifest."""
+
+    kind: str
+    name: str
+    version: str | None = None
+
+
+@dataclass(frozen=True)
+class MarketplaceManifest:
+    """Parsed marketplace manifest information."""
+
+    name: str
+    version: str
+    description: str
+    author: str
+    category: str
+    entry_path: Path | None
+    entry_module: str | None
+    dependencies: tuple[MarketplaceDependency, ...]
+    hephaestus_spec: str | None
+    python_spec: str | None
+    signature_bundle: Path | None
+    manifest_path: Path
+
+    def artifact_path(self) -> Path:
+        """Return the filesystem path of the plugin artefact."""
+
+        if self.entry_path is not None:
+            return self.entry_path
+        raise ValueError(
+            f"Marketplace plugin {self.name!r} does not declare a filesystem entrypoint."
+        )
+
+
+@dataclass(frozen=True)
+class TrustPolicy:
+    """Trust policy controlling signature enforcement for marketplace plugins."""
+
+    require_signature: bool
+    default_identities: tuple[str, ...]
+    per_plugin: dict[str, tuple[str, ...]]
+
+    def identities_for(self, plugin_name: str) -> tuple[str, ...]:
+        """Return the allowed identities for *plugin_name*."""
+
+        return self.per_plugin.get(plugin_name, self.default_identities)
 
 
 class QualityGatePlugin(ABC):
@@ -149,6 +207,9 @@ class PluginConfig:
     config: dict[str, Any] | None = None
     module: str | None = None  # For importable plugins
     path: str | None = None  # For file-based plugins
+    version: str | None = None
+    registry: str | None = None
+    source: str = "external"
 
 
 class PluginRegistry:
@@ -306,6 +367,7 @@ def load_plugin_config(config_path: Path | None = None) -> list[PluginConfig]:
                 name=name,
                 enabled=config.get("enabled", True),
                 config=config.get("config", {}),
+                source="builtin",
             )
         )
 
@@ -322,6 +384,28 @@ def load_plugin_config(config_path: Path | None = None) -> list[PluginConfig]:
                 config=plugin_data.get("config", {}),
                 module=plugin_data.get("module"),
                 path=plugin_data.get("path"),
+                version=plugin_data.get("version"),
+                registry=plugin_data.get("registry"),
+                source="external",
+            )
+        )
+
+    marketplace = data.get("marketplace", [])
+    if isinstance(marketplace, dict):
+        marketplace = [marketplace]
+
+    for entry in marketplace:
+        if not isinstance(entry, dict):
+            raise ValueError(f"Invalid marketplace plugin config: {entry!r}")
+
+        plugins.append(
+            PluginConfig(
+                name=str(entry.get("name", "")),
+                enabled=entry.get("enabled", True),
+                config=entry.get("config", {}),
+                version=entry.get("version"),
+                registry=entry.get("registry"),
+                source="marketplace",
             )
         )
 
@@ -329,7 +413,9 @@ def load_plugin_config(config_path: Path | None = None) -> list[PluginConfig]:
 
 
 def discover_plugins(
-    config_path: Path | None = None, registry_instance: PluginRegistry | None = None
+    config_path: Path | None = None,
+    registry_instance: PluginRegistry | None = None,
+    marketplace_root: Path | None = None,
 ) -> PluginRegistry:
     """Discover and load plugins from configuration.
 
@@ -342,6 +428,7 @@ def discover_plugins(
     Args:
         config_path: Path to plugin configuration file
         registry_instance: Registry to use. If None, uses global registry.
+        marketplace_root: Root directory containing curated marketplace manifests.
 
     Returns:
         Registry with discovered plugins
@@ -359,6 +446,7 @@ def discover_plugins(
 
     # Load plugin configurations
     configs = load_plugin_config(config_path)
+    resolved_marketplace_root = marketplace_root or _default_marketplace_root()
 
     # Load built-in plugins
     try:
@@ -403,6 +491,9 @@ def discover_plugins(
 
     # Load external plugins
     for plugin_config in configs:
+        if plugin_config.source != "external":
+            continue
+
         if plugin_config.module or plugin_config.path:
             try:
                 _load_external_plugin(plugin_config, registry_instance)
@@ -412,7 +503,509 @@ def discover_plugins(
                     extra={"plugin": plugin_config.name, "error": str(e)},
                 )
 
+    marketplace_configs = [cfg for cfg in configs if cfg.source == "marketplace" and cfg.enabled]
+    if marketplace_configs:
+        manifests = _load_marketplace_manifests(resolved_marketplace_root)
+        trust_policy = _load_trust_policy(resolved_marketplace_root)
+        _load_marketplace_plugins(
+            configs=marketplace_configs,
+            manifests=manifests,
+            trust_policy=trust_policy,
+            registry_instance=registry_instance,
+            marketplace_root=resolved_marketplace_root,
+        )
+
     return registry_instance
+
+
+def _default_marketplace_root() -> Path:
+    """Return the default on-disk marketplace registry location."""
+
+    return Path(__file__).resolve().parents[3] / "plugin-templates" / "registry"
+
+
+def _load_marketplace_manifests(root: Path) -> dict[str, MarketplaceManifest]:
+    """Load marketplace manifests from *root*."""
+
+    manifests: dict[str, MarketplaceManifest] = {}
+
+    if not root.exists():
+        logger.debug("Marketplace registry root missing", extra={"root": str(root)})
+        return manifests
+
+    for manifest_path in root.glob("*.toml"):
+        if manifest_path.name == "trust-policy.toml":
+            continue
+
+        try:
+            with manifest_path.open("rb") as handle:
+                data = tomllib.load(handle)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.warning(
+                "Failed to parse marketplace manifest",
+                extra={"path": str(manifest_path), "error": str(exc)},
+            )
+            continue
+
+        plugin_data = data.get("plugin")
+        if not isinstance(plugin_data, dict):
+            logger.warning(
+                "Marketplace manifest missing [plugin] table",
+                extra={"path": str(manifest_path)},
+            )
+            continue
+
+        name = str(plugin_data.get("name", "")).strip()
+        version = str(plugin_data.get("version", "")).strip()
+        if not name or not version:
+            logger.warning(
+                "Marketplace manifest missing name or version",
+                extra={"path": str(manifest_path)},
+            )
+            continue
+
+        description = str(plugin_data.get("description", "")).strip()
+        author = str(plugin_data.get("author", "")).strip()
+        category = str(plugin_data.get("category", "custom")).strip() or "custom"
+
+        entry_data = plugin_data.get("entrypoint", {})
+        entry_path: Path | None = None
+        entry_module: str | None = None
+        if isinstance(entry_data, dict):
+            entry_path_value = entry_data.get("path")
+            if isinstance(entry_path_value, str) and entry_path_value.strip():
+                entry_path = (manifest_path.parent / entry_path_value).resolve()
+            module_value = entry_data.get("module")
+            if isinstance(module_value, str) and module_value.strip():
+                entry_module = module_value.strip()
+
+        compatibility = plugin_data.get("compatibility", {})
+        hephaestus_spec: str | None = None
+        python_spec: str | None = None
+        if isinstance(compatibility, dict):
+            hephaestus_value = compatibility.get("hephaestus")
+            python_value = compatibility.get("python")
+            if isinstance(hephaestus_value, str):
+                hephaestus_spec = hephaestus_value.strip() or None
+            if isinstance(python_value, str):
+                python_spec = python_value.strip() or None
+
+        raw_dependencies = plugin_data.get("dependencies", [])
+        dependencies: list[MarketplaceDependency] = []
+        if isinstance(raw_dependencies, list):
+            for raw_dependency in raw_dependencies:
+                dependency = _parse_marketplace_dependency(raw_dependency)
+                if dependency is not None:
+                    dependencies.append(dependency)
+
+        signature_data = plugin_data.get("signature", {})
+        bundle_path: Path | None = None
+        if isinstance(signature_data, dict):
+            bundle_value = signature_data.get("bundle")
+            if isinstance(bundle_value, str) and bundle_value.strip():
+                bundle_path = (manifest_path.parent / bundle_value).resolve()
+
+        manifests[name] = MarketplaceManifest(
+            name=name,
+            version=version,
+            description=description,
+            author=author,
+            category=category,
+            entry_path=entry_path,
+            entry_module=entry_module,
+            dependencies=tuple(dependencies),
+            hephaestus_spec=hephaestus_spec,
+            python_spec=python_spec,
+            signature_bundle=bundle_path,
+            manifest_path=manifest_path.resolve(),
+        )
+
+    return manifests
+
+
+def _parse_marketplace_dependency(raw_dependency: Any) -> MarketplaceDependency | None:
+    if not isinstance(raw_dependency, dict):
+        return None
+
+    kind_value = raw_dependency.get("type") or raw_dependency.get("kind")
+    name_value = raw_dependency.get("name")
+
+    if not isinstance(kind_value, str) or not isinstance(name_value, str):
+        return None
+
+    kind = kind_value.strip().lower()
+    name = name_value.strip()
+    if not kind or not name:
+        return None
+
+    version_value = raw_dependency.get("version")
+    version = str(version_value).strip() if isinstance(version_value, str) else None
+    return MarketplaceDependency(kind=kind, name=name, version=version)
+
+
+def _load_trust_policy(root: Path) -> TrustPolicy:
+    policy_path = root / "trust-policy.toml"
+    if not policy_path.exists():
+        return TrustPolicy(require_signature=False, default_identities=(), per_plugin={})
+
+    try:
+        with policy_path.open("rb") as handle:
+            payload = tomllib.load(handle)
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.warning(
+            "Failed to parse marketplace trust policy",
+            extra={"path": str(policy_path), "error": str(exc)},
+        )
+        return TrustPolicy(require_signature=False, default_identities=(), per_plugin={})
+
+    trust_section = payload.get("trust", {})
+    if not isinstance(trust_section, dict):
+        trust_section = {}
+
+    require_signature = bool(trust_section.get("require_signature", False))
+    raw_identities = trust_section.get("allowed_identities", [])
+    if isinstance(raw_identities, str):
+        raw_identities = [raw_identities]
+    default_identities = tuple(
+        identity.strip()
+        for identity in raw_identities
+        if isinstance(identity, str) and identity.strip()
+    )
+
+    per_plugin: dict[str, tuple[str, ...]] = {}
+    plugins_section = trust_section.get("plugins", {})
+    if isinstance(plugins_section, dict):
+        for plugin_name, plugin_policy in plugins_section.items():
+            if not isinstance(plugin_policy, dict) or not isinstance(plugin_name, str):
+                continue
+            plugin_identities = plugin_policy.get("allowed_identities", [])
+            if isinstance(plugin_identities, str):
+                plugin_identities = [plugin_identities]
+            per_plugin[plugin_name] = tuple(
+                identity.strip()
+                for identity in plugin_identities
+                if isinstance(identity, str) and identity.strip()
+            )
+
+    return TrustPolicy(
+        require_signature=require_signature,
+        default_identities=default_identities,
+        per_plugin=per_plugin,
+    )
+
+
+def _current_hephaestus_version() -> str:
+    for candidate in ("hephaestus-toolkit", "hephaestus"):
+        try:
+            return metadata.version(candidate)
+        except metadata.PackageNotFoundError:
+            continue
+
+    pyproject = Path(__file__).resolve().parents[3] / "pyproject.toml"
+    if pyproject.exists():
+        try:
+            with pyproject.open("rb") as handle:
+                payload = tomllib.load(handle)
+            project = payload.get("project", {})
+            if isinstance(project, dict):
+                version_value = project.get("version")
+                if isinstance(version_value, str):
+                    return version_value
+        except Exception:  # pragma: no cover - fallback path
+            logger.debug("Failed to derive version from pyproject", exc_info=True)
+
+    return "0.0.0"
+
+
+def _python_version_string() -> str:
+    return ".".join(str(part) for part in sys.version_info[:3])
+
+
+def _ensure_marketplace_compatibility(manifest: MarketplaceManifest) -> None:
+    hephaestus_version = _current_hephaestus_version()
+    python_version = _python_version_string()
+
+    if manifest.hephaestus_spec:
+        try:
+            spec = SpecifierSet(manifest.hephaestus_spec)
+            current = Version(hephaestus_version)
+        except (InvalidVersion, ValueError) as exc:
+            raise ValueError(
+                f"Marketplace plugin {manifest.name!r} declared invalid Hephaestus compatibility."
+            ) from exc
+        if current not in spec:
+            raise ValueError(
+                f"Marketplace plugin {manifest.name!r} requires Hephaestus {manifest.hephaestus_spec},"
+                f" current version is {hephaestus_version}."
+            )
+
+    if manifest.python_spec:
+        try:
+            spec = SpecifierSet(manifest.python_spec)
+            current = Version(python_version)
+        except (InvalidVersion, ValueError) as exc:
+            raise ValueError(
+                f"Marketplace plugin {manifest.name!r} declared invalid Python compatibility."
+            ) from exc
+        if current not in spec:
+            raise ValueError(
+                f"Marketplace plugin {manifest.name!r} requires Python {manifest.python_spec},"
+                f" current version is {python_version}."
+            )
+
+
+def _ensure_python_dependency(dependency: MarketplaceDependency) -> None:
+    try:
+        installed_version = metadata.version(dependency.name)
+    except metadata.PackageNotFoundError as exc:
+        raise ValueError(
+            f"Marketplace plugin dependency {dependency.name!r} is not installed."
+        ) from exc
+
+    if dependency.version:
+        try:
+            spec = SpecifierSet(dependency.version)
+            current = Version(installed_version)
+        except (InvalidVersion, ValueError) as exc:
+            raise ValueError(
+                f"Marketplace plugin dependency {dependency.name!r} has an invalid version constraint."
+            ) from exc
+        if current not in spec:
+            raise ValueError(
+                f"Marketplace plugin dependency {dependency.name!r}=={installed_version} does not satisfy {dependency.version}."
+            )
+
+
+def _ensure_marketplace_dependencies(
+    manifest: MarketplaceManifest,
+    resolved_plugins: set[str],
+) -> None:
+    for dependency in manifest.dependencies:
+        if dependency.kind == "plugin":
+            if dependency.name not in resolved_plugins:
+                raise ValueError(
+                    f"Marketplace plugin {manifest.name!r} requires plugin {dependency.name!r}"
+                    " which is not available."
+                )
+        elif dependency.kind == "python":
+            _ensure_python_dependency(dependency)
+        else:
+            raise ValueError(
+                f"Marketplace plugin {manifest.name!r} declared unsupported dependency type {dependency.kind!r}."
+            )
+
+
+def _verify_marketplace_signature(
+    manifest: MarketplaceManifest,
+    trust_policy: TrustPolicy,
+) -> None:
+    attributes = {"plugin": manifest.name, "version": manifest.version}
+    telemetry.record_counter(
+        "hephaestus.plugins.marketplace.fetch",
+        attributes=attributes,
+    )
+
+    def _fail(reason: str, message: str, *, exc: Exception | None = None) -> None:
+        telemetry.record_counter(
+            "hephaestus.plugins.marketplace.errors",
+            attributes={**attributes, "reason": reason},
+        )
+        if exc is not None:
+            raise ValueError(message) from exc
+        raise ValueError(message)
+
+    bundle_path = manifest.signature_bundle
+    if bundle_path is None:
+        if trust_policy.require_signature:
+            _fail(
+                "missing-signature",
+                f"Marketplace trust policy requires a signature for {manifest.name!r}.",
+            )
+        return
+
+    try:
+        payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        _fail(
+            "invalid-bundle",
+            f"Marketplace plugin {manifest.name!r} signature bundle could not be parsed.",
+            exc=exc,
+        )
+
+    if not isinstance(payload, dict):
+        _fail(
+            "invalid-structure",
+            f"Marketplace plugin {manifest.name!r} signature bundle structure was invalid.",
+        )
+
+    message_signature = payload.get("messageSignature", {})
+    if not isinstance(message_signature, dict):
+        _fail(
+            "missing-messageSignature",
+            f"Marketplace plugin {manifest.name!r} signature bundle missing messageSignature section.",
+        )
+
+    digest_info = message_signature.get("messageDigest", {})
+    if not isinstance(digest_info, dict):
+        _fail(
+            "missing-digest",
+            f"Marketplace plugin {manifest.name!r} signature bundle missing digest information.",
+        )
+
+    algorithm = str(digest_info.get("algorithm", "")).lower()
+    if algorithm not in {"sha256", "sha2_256"}:
+        _fail(
+            "unsupported-algorithm",
+            f"Marketplace plugin {manifest.name!r} signature bundle used unsupported digest algorithm {algorithm!r}.",
+        )
+
+    digest_value = digest_info.get("digest")
+    if not isinstance(digest_value, str) or not digest_value:
+        _fail(
+            "missing-digest-value",
+            f"Marketplace plugin {manifest.name!r} signature bundle missing digest value.",
+        )
+
+    try:
+        expected_digest = base64.b64decode(digest_value).hex()
+    except Exception as exc:
+        _fail(
+            "invalid-digest-encoding",
+            f"Marketplace plugin {manifest.name!r} signature bundle digest was not valid base64.",
+            exc=exc,
+        )
+
+    artifact_path = manifest.artifact_path()
+    if not artifact_path.exists():
+        _fail(
+            "missing-artifact",
+            f"Marketplace plugin {manifest.name!r} entrypoint {artifact_path} does not exist.",
+        )
+
+    actual_digest = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+    if actual_digest != expected_digest:
+        _fail(
+            "digest-mismatch",
+            f"Marketplace plugin {manifest.name!r} signature digest mismatch.",
+        )
+
+    identities: list[str] = []
+    verification_material = payload.get("verificationMaterial", {})
+    if isinstance(verification_material, dict):
+        raw_identities = verification_material.get("identities", [])
+        if isinstance(raw_identities, list):
+            identities = [
+                identity.strip()
+                for identity in raw_identities
+                if isinstance(identity, str) and identity.strip()
+            ]
+
+    allowed_patterns = trust_policy.identities_for(manifest.name)
+    if allowed_patterns and not any(
+        fnmatch.fnmatchcase(identity, pattern)
+        for identity in identities
+        for pattern in allowed_patterns
+    ):
+        _fail(
+            "identity-mismatch",
+            f"Marketplace plugin {manifest.name!r} failed trust policy identity checks.",
+        )
+
+    telemetry.record_counter(
+        "hephaestus.plugins.marketplace.verified",
+        attributes={
+            **attributes,
+            "identity": identities[0] if identities else "unknown",
+        },
+    )
+
+
+def _instantiate_marketplace_plugin(manifest: MarketplaceManifest) -> QualityGatePlugin:
+    if manifest.entry_module:
+        plugin_class = _load_from_module(manifest.entry_module)
+    else:
+        artifact_path = manifest.artifact_path()
+        plugin_class = _load_from_path(manifest.name, str(artifact_path))
+
+    plugin_instance = plugin_class()
+    metadata_obj = plugin_instance.metadata
+    if metadata_obj.name != manifest.name:
+        raise ValueError(
+            f"Marketplace manifest name {manifest.name!r} does not match plugin metadata {metadata_obj.name!r}."
+        )
+    if metadata_obj.version != manifest.version:
+        raise ValueError(
+            f"Marketplace manifest version {manifest.version!r} does not match plugin metadata {metadata_obj.version!r}."
+        )
+    return plugin_instance
+
+
+def _load_marketplace_plugins(
+    *,
+    configs: list[PluginConfig],
+    manifests: dict[str, MarketplaceManifest],
+    trust_policy: TrustPolicy,
+    registry_instance: PluginRegistry,
+    marketplace_root: Path,
+) -> None:
+    resolved_plugins = {plugin.metadata.name for plugin in registry_instance.all_plugins()}
+    pending = list(configs)
+
+    while pending:
+        progressed = False
+        for config in list(pending):
+            manifest = manifests.get(config.name)
+            if manifest is None:
+                raise ValueError(
+                    f"Marketplace plugin {config.name!r} not found in registry {marketplace_root}."
+                )
+
+            if config.version and config.version != manifest.version:
+                raise ValueError(
+                    f"Marketplace plugin {config.name!r} version {config.version} is not available"
+                    f" (registry provides {manifest.version})."
+                )
+
+            try:
+                _ensure_marketplace_compatibility(manifest)
+                _verify_marketplace_signature(manifest, trust_policy)
+                _ensure_marketplace_dependencies(manifest, resolved_plugins)
+            except ValueError as exc:
+                telemetry.record_counter(
+                    "hephaestus.plugins.marketplace.errors",
+                    attributes={
+                        "plugin": manifest.name,
+                        "reason": exc.__class__.__name__,
+                    },
+                )
+                raise
+
+            telemetry.record_counter(
+                "hephaestus.plugins.marketplace.dependencies_resolved",
+                attributes={
+                    "plugin": manifest.name,
+                    "version": manifest.version,
+                },
+            )
+
+            plugin_instance = _instantiate_marketplace_plugin(manifest)
+            if not registry_instance.is_registered(manifest.name):
+                registry_instance.register(plugin_instance)
+                telemetry.record_counter(
+                    "hephaestus.plugins.marketplace.registered",
+                    attributes={
+                        "plugin": manifest.name,
+                        "version": manifest.version,
+                    },
+                )
+
+            resolved_plugins.add(manifest.name)
+            pending.remove(config)
+            progressed = True
+
+        if not progressed:
+            unresolved = ", ".join(sorted(cfg.name for cfg in pending))
+            raise ValueError(f"Unable to resolve marketplace plugin dependencies: {unresolved}.")
 
 
 def _find_plugin_class(module: Any) -> type[QualityGatePlugin] | None:
@@ -479,7 +1072,12 @@ def _load_external_plugin(config: PluginConfig, registry_instance: PluginRegistr
     if not config.module and not config.path:
         raise ValueError(f"Plugin {config.name} has neither 'module' nor 'path' specified")
 
-    plugin_class = _load_from_module(config.module) if config.module else _load_from_path(config.name, config.path)  # type: ignore
+    if config.module:
+        plugin_class = _load_from_module(config.module)
+    else:
+        if config.path is None:
+            raise ValueError(f"Plugin {config.name} has neither 'module' nor 'path' specified")
+        plugin_class = _load_from_path(config.name, config.path)
 
     try:
         plugin_instance = plugin_class()
