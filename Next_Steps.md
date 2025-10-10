@@ -1,6 +1,6 @@
 # Next Steps Tracker
 
-Last updated: 2025-10-11 (Stabilised plugin tests, expanded release coverage, telemetry metrics exercised)
+Last updated: 2025-10-12 (Restored coverage gate with focused marketplace helper tests)
 
 ## Tasks
 
@@ -8,7 +8,9 @@ Last updated: 2025-10-11 (Stabilised plugin tests, expanded release coverage, te
 - [x] Implement marketplace discovery with dependency resolution, signatures, telemetry _(Owner: Agent, Due: 2025-10-12)_
 - [x] Update plugin development docs with publishing/consumption flows & rollback _(Owner: Agent, Due: 2025-10-12)_
 - [ ] Restore guard-rail baselines (tests, lint, typecheck, security scan) after marketplace changes _(Owner: Agent, Due: 2025-10-12)_
-  - Subtasks: tighten coverage on `plugins/__init__.py`, triage remaining Prometheus exporter branches, unblock SSL for pip-audit
+  - [x] Tighten coverage on `plugins/__init__.py` marketplace helpers via targeted unit tests
+  - [ ] Resolve repository-wide Ruff formatting drift (21 files outstanding)
+  - [⚠️] Unblock SSL trust chain for pip-audit in constrained environments
 
 ## Upcoming Steps
 
@@ -28,12 +30,12 @@ Last updated: 2025-10-11 (Stabilised plugin tests, expanded release coverage, te
 
 ## Quality Gates
 
-- [ ] `uv run --extra qa --extra dev pytest --cov=src` (fails: coverage gate at 85% not yet met; current 84.6%)【b80e09†L1-L38】
-- [x] `uv run --extra qa --extra dev ruff check .`【1d4a24†L1-L2】
-- [ ] `uv run --extra qa --extra dev ruff format --check .` (fails: repository still contains legacy formatting drift)【9d9315†L1-L21】
-- [x] `uv run --extra qa --extra dev mypy src tests`【86a147†L1-L2】
-- [⚠️] `uv run --extra qa --extra dev pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (blocked: SSL certificate verification failure to pypi.org)【695ff1†L1-L39】
-- [x] `uv build`【f3c827†L1-L4】
+- [x] `uv run --extra qa --extra dev pytest --cov=src` (pass: coverage 85.06%)【04036a†L1-L33】
+- [x] `uv run --extra qa --extra dev ruff check .`【7ae325†L1-L2】
+- [ ] `uv run --extra qa --extra dev ruff format --check .` (fails: repository still contains legacy formatting drift)【041318†L1-L22】
+- [x] `uv run --extra qa --extra dev mypy src tests`【b130f4†L1-L2】
+- [⚠️] `uv run --extra qa --extra dev pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (blocked: SSL certificate verification failure to pypi.org)【4aa95e†L1-L36】
+- [x] `uv build`【8059b2†L1-L4】
 
 ## Links
 
@@ -42,10 +44,11 @@ Last updated: 2025-10-11 (Stabilised plugin tests, expanded release coverage, te
 - `plugin-templates/example-plugin/example_plugin.py`
 - `docs/how-to/plugin-development.md`
 - `tests/test_plugins_integration.py`
+- `tests/test_plugins_marketplace.py`
 
 ## Risks/Notes
 
 - Baseline guard-rail suite currently red due to legacy test fixture regressions; resolve alongside marketplace implementation.
 - pip-audit blocked by SSL trust failure in this environment—treat as infrastructure limitation and document in final report.
-- Signature verification logic must remain deterministic/offline to ensure tests run without external network calls.
+- Signature verification logic must remain deterministic/offline to ensure tests run without external network calls; new unit tests assert both success and failure paths without external services.
 - Marketplace registry should preserve backwards compatibility for existing `.hephaestus/plugins.toml` configurations.
