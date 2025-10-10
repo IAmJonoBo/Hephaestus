@@ -32,6 +32,10 @@ from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modu
 from hephaestus.logging import LogFormat
 from hephaestus.telemetry import record_histogram, trace_command, trace_operation
 
+app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)
+tools_app = typer.Typer(name="tools", help="Toolkit command groups.", no_args_is_help=True)
+refactor_app = typer.Typer(
+    name="refactor", help="Refactor analysis commands.", no_args_is_help=True
 )
 qa_app = typer.Typer(name="qa", help="Quality assurance commands.", no_args_is_help=True)
 release_app = typer.Typer(name="release", help="Release management commands.", no_args_is_help=True)
