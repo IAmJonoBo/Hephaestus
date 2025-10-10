@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - gRPC client-streaming ingestion RPC with integration tests for acceptance/rejection flows
     - CLI `guard-rails --drift --auto-remediate` to execute remediation commands with telemetry coverage
     - CI workflow drift gate (`uv run hephaestus guard-rails --drift`) ensuring toolchain parity
+    - FastAPI guard-rails, cleanup, and rankings endpoints backed by shared toolkit helpers with drift remediation toggles and synthetic analytics fallbacks
+    - gRPC guard-rails, drift, cleanup, and analytics services reimplemented on the shared execution engine for parity with REST responses
     - OpenAPI 3.0 spec in `docs/api/openapi.yaml`
     - Module structure for future FastAPI implementation
     - Endpoints for quality gates, cleanup, analytics, and tasks

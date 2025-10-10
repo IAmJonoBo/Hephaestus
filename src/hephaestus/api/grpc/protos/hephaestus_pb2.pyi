@@ -7,8 +7,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class GuardRailsRequest(_message.Message):
-    __slots__ = ("no_format", "workspace", "drift_check", "env")
-
+    __slots__ = ("no_format", "workspace", "drift_check", "env", "auto_remediate")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -21,17 +20,13 @@ class GuardRailsRequest(_message.Message):
     WORKSPACE_FIELD_NUMBER: _ClassVar[int]
     DRIFT_CHECK_FIELD_NUMBER: _ClassVar[int]
     ENV_FIELD_NUMBER: _ClassVar[int]
+    AUTO_REMEDIATE_FIELD_NUMBER: _ClassVar[int]
     no_format: bool
     workspace: str
     drift_check: bool
     env: _containers.ScalarMap[str, str]
-    def __init__(
-        self,
-        no_format: bool = ...,
-        workspace: _Optional[str] = ...,
-        drift_check: bool = ...,
-        env: _Optional[_Mapping[str, str]] = ...,
-    ) -> None: ...
+    auto_remediate: bool
+    def __init__(self, no_format: bool = ..., workspace: _Optional[str] = ..., drift_check: bool = ..., env: _Optional[_Mapping[str, str]] = ..., auto_remediate: bool = ...) -> None: ...
 
 class GuardRailsResponse(_message.Message):
     __slots__ = ("success", "gates", "duration", "task_id")

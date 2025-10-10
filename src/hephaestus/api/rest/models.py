@@ -7,6 +7,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
+from hephaestus.analytics import RankingStrategy
+
 
 class GuardRailsRequest(BaseModel):
     """Request schema for guard-rails endpoint."""
@@ -22,6 +24,10 @@ class GuardRailsRequest(BaseModel):
     drift_check: bool = Field(
         default=False,
         description="Check for tool version drift",
+    )
+    auto_remediate: bool = Field(
+        default=False,
+        description="Automatically apply remediation commands when drift is detected",
     )
 
     @field_validator("workspace")
@@ -91,9 +97,9 @@ class CleanupResponse(BaseModel):
 class RankingsRequest(BaseModel):
     """Request schema for rankings endpoint."""
 
-    strategy: str = Field(
-        default="risk_weighted",
-        description="Ranking strategy (risk_weighted, coverage_first, churn_based, composite)",
+    strategy: RankingStrategy = Field(
+        default=RankingStrategy.RISK_WEIGHTED,
+        description="Ranking strategy",
     )
     limit: int = Field(
         default=20,
@@ -101,15 +107,6 @@ class RankingsRequest(BaseModel):
         le=100,
         description="Maximum number of results",
     )
-
-    @field_validator("strategy")
-    @classmethod
-    def validate_strategy(cls, v: str) -> str:
-        """Validate ranking strategy."""
-        allowed = ["risk_weighted", "coverage_first", "churn_based", "composite"]
-        if v not in allowed:
-            raise ValueError(f"Strategy must be one of {allowed}, got {v}")
-        return v
 
 
 class RankingsResponse(BaseModel):

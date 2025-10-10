@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from collections.abc import AsyncIterator
 
 import grpc
 
 from hephaestus.api.grpc.protos import hephaestus_pb2, hephaestus_pb2_grpc
+from hephaestus.api.service import detect_drift_summary, evaluate_guard_rails_async
 
 logger = logging.getLogger(__name__)
 
@@ -32,58 +32,29 @@ class QualityServiceServicer(hephaestus_pb2_grpc.QualityServiceServicer):
         """
         logger.info(f"RunGuardRails called: no_format={request.no_format}")
 
-        # Simulate guard-rails execution
-        gates = []
-
-        # Cleanup step
-        if not request.no_format:
-            gates.append(
-                hephaestus_pb2.QualityGateResult(
-                    name="cleanup", passed=True, message="Cleanup successful", duration=0.5
-                )
-            )
-
-        # Add other gates
-        gates.extend(
-            [
-                hephaestus_pb2.QualityGateResult(
-                    name="ruff-check",
-                    passed=True,
-                    message="No issues found",
-                    duration=1.2,
-                ),
-                hephaestus_pb2.QualityGateResult(
-                    name="ruff-format",
-                    passed=True,
-                    message="Formatting complete",
-                    duration=0.8,
-                ),
-                hephaestus_pb2.QualityGateResult(
-                    name="mypy", passed=True, message="Type checking passed", duration=3.5
-                ),
-                hephaestus_pb2.QualityGateResult(
-                    name="pytest",
-                    passed=True,
-                    message="All tests passed",
-                    duration=10.2,
-                ),
-                hephaestus_pb2.QualityGateResult(
-                    name="pip-audit",
-                    passed=True,
-                    message="No vulnerabilities found",
-                    duration=2.1,
-                ),
-            ]
+        execution = await evaluate_guard_rails_async(
+            no_format=request.no_format,
+            workspace=request.workspace or None,
+            drift_check=request.drift_check,
+            auto_remediate=request.auto_remediate,
         )
 
-        success = all(gate.passed for gate in gates)
-        total_duration = sum(gate.duration for gate in gates)
+        gates = [
+            hephaestus_pb2.QualityGateResult(
+                name=gate.name,
+                passed=gate.passed,
+                message=gate.message or "",
+                duration=gate.duration,
+                metadata={key: str(value) for key, value in gate.metadata.items()},
+            )
+            for gate in execution.gates
+        ]
 
         return hephaestus_pb2.GuardRailsResponse(
-            success=success,
+            success=execution.success,
             gates=gates,
-            duration=total_duration,
-            task_id="guard-rails-001",
+            duration=execution.duration,
+            task_id=f"guard-rails-{int(execution.duration * 1000)}",
         )
 
     async def RunGuardRailsStream(
@@ -102,32 +73,28 @@ class QualityServiceServicer(hephaestus_pb2_grpc.QualityServiceServicer):
         """
         logger.info(f"RunGuardRailsStream called: no_format={request.no_format}")
 
-        stages = [
-            ("cleanup", 16),
-            ("ruff-check", 33),
-            ("ruff-format", 50),
-            ("mypy", 66),
-            ("pytest", 83),
-            ("pip-audit", 100),
-        ]
+        execution = await evaluate_guard_rails_async(
+            no_format=request.no_format,
+            workspace=request.workspace or None,
+            drift_check=request.drift_check,
+            auto_remediate=request.auto_remediate,
+        )
 
-        for stage_name, progress in stages:
-            # Simulate work
-            await asyncio.sleep(0.5)
-
+        total = max(len(execution.gates), 1)
+        for index, gate in enumerate(execution.gates, start=1):
+            progress = int((index / total) * 100)
             yield hephaestus_pb2.GuardRailsProgress(
-                stage=stage_name,
+                stage=gate.name,
                 progress=progress,
-                message=f"Executing {stage_name}...",
+                message=gate.message or "",
                 completed=False,
             )
 
-        # Final completion message
         yield hephaestus_pb2.GuardRailsProgress(
             stage="complete",
             progress=100,
-            message="All quality gates passed",
-            completed=True,
+            message="Guard rails completed",
+            completed=execution.success,
         )
 
     async def CheckDrift(
@@ -146,20 +113,18 @@ class QualityServiceServicer(hephaestus_pb2_grpc.QualityServiceServicer):
         """
         logger.info(f"CheckDrift called: workspace={request.workspace}")
 
-        # Simulate drift detection
-        drifts = [
-            hephaestus_pb2.ToolDrift(
-                tool="ruff",
-                expected_version="0.14.0",
-                installed_version="0.13.9",
-                status="minor_drift",
-            )
-        ]
-
-        remediation = ["uv sync --upgrade-package ruff"]
+        summary = detect_drift_summary(request.workspace or None)
 
         return hephaestus_pb2.DriftResponse(
-            has_drift=True,
-            drifts=drifts,
-            remediation_commands=remediation,
+            has_drift=summary["has_drift"],
+            drifts=[
+                hephaestus_pb2.ToolDrift(
+                    tool=entry["tool"],
+                    expected_version=entry["expected"] or "",
+                    installed_version=entry["actual"] or "",
+                    status=entry["status"],
+                )
+                for entry in summary["drifts"]
+            ],
+            remediation_commands=summary["commands"],
         )

@@ -41,6 +41,7 @@ message GuardRailsRequest {
   string workspace = 2;
   bool drift_check = 3;
   map<string, string> env = 4;
+  bool auto_remediate = 5;
 }
 
 message GuardRailsResponse {

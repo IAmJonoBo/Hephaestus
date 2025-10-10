@@ -26,6 +26,13 @@ Remaining work is focused on advanced features with clear ADRs and sprint-based 
 
 ## Recent Improvements (Latest Session)
 
+**API Service Hardening (2025-02-XX):**
+
+- ✅ Replaced REST and gRPC guard-rails and cleanup stubs with shared execution helpers exposing real cleanup manifests, plugin readiness, and drift summaries.
+- ✅ Unified analytics rankings and hotspot outputs across REST and gRPC by routing through the toolkit analytics pipeline with synthetic fallbacks when no datasets are configured.
+- ✅ Regenerated protobuf definitions to add `auto_remediate` support and aligned CI-safe cleanup previews between HTTP and gRPC flows.
+- 🔄 Follow-up: persist streaming analytics snapshots for ranking inputs and emit remediation telemetry for API consumers.
+
 **API Streaming & Remediation Automation (2025-02-XX):**
 
 - ✅ Implemented FastAPI analytics streaming ingestion with NDJSON parsing, bounded buffering, and shared ingestion telemetry for REST and gRPC surfaces.

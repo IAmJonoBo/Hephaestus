@@ -9,6 +9,7 @@ import grpc
 
 from hephaestus.analytics_streaming import global_ingestor
 from hephaestus.api.grpc.protos import hephaestus_pb2, hephaestus_pb2_grpc
+from hephaestus.api.service import compute_hotspots, compute_rankings
 
 logger = logging.getLogger(__name__)
 
@@ -30,34 +31,29 @@ class AnalyticsServiceServicer(hephaestus_pb2_grpc.AnalyticsServiceServicer):
         Returns:
             File rankings
         """
-        logger.info(f"GetRankings called: strategy={request.strategy}, limit={request.limit}")
+        logger.info(
+            "GetRankings called", extra={"strategy": request.strategy, "limit": request.limit}
+        )
 
-        # Simulate rankings
-        rankings = [
-            hephaestus_pb2.FileRanking(
-                file="src/main.py",
-                score=8.5,
-                metrics={"complexity": 45.0, "coverage": 65.0, "churn": 120.0},
-            ),
-            hephaestus_pb2.FileRanking(
-                file="src/utils.py",
-                score=7.2,
-                metrics={"complexity": 38.0, "coverage": 72.0, "churn": 95.0},
-            ),
-            hephaestus_pb2.FileRanking(
-                file="src/models.py",
-                score=6.8,
-                metrics={"complexity": 52.0, "coverage": 58.0, "churn": 88.0},
-            ),
-        ]
+        strategy_value = request.strategy or RankingStrategy.RISK_WEIGHTED.value
+        strategy = RankingStrategy(strategy_value)
 
-        # Apply limit
-        if request.limit > 0:
-            rankings = rankings[: request.limit]
+        rankings = compute_rankings(strategy=strategy, limit=request.limit or 20)
 
         return hephaestus_pb2.RankingsResponse(
-            rankings=rankings,
-            strategy=request.strategy or "composite",
+            rankings=[
+                hephaestus_pb2.FileRanking(
+                    file=item["path"],
+                    score=item["score"],
+                    metrics={
+                        "churn": float(item["churn"]),
+                        "coverage": float(item["coverage"] or 0.0),
+                        "uncovered_lines": float(item["uncovered_lines"] or 0.0),
+                    },
+                )
+                for item in rankings
+            ],
+            strategy=strategy.value,
         )
 
     async def GetHotspots(

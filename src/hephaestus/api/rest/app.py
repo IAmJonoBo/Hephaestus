@@ -40,6 +40,7 @@ from hephaestus.api.rest.models import (
     TaskStatusResponse,
 )
 from hephaestus.api.rest.tasks import DEFAULT_TASK_TIMEOUT, TaskManager, TaskStatus
+from hephaestus.api.service import compute_rankings, evaluate_guard_rails_async, run_cleanup_summary
 
 logger = logging.getLogger(__name__)
 
@@ -433,48 +434,44 @@ async def stream_task_progress(
 
 
 # Task execution functions
-def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
-    """Execute guard-rails quality pipeline.
+async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
+    """Execute guard-rails quality pipeline using shared helpers."""
 
-    Args:
-        request: Guard-rails configuration
-
-    Returns:
-        Execution results
-    """
-    # Import here to avoid circular dependency
-
-    # Simulate guard-rails execution
-    # In production, this would call actual Hephaestus commands
-    gates: list[dict[str, Any]] = []
-
-    # Cleanup step
-    if not request.no_format:
-        try:
-            # Note: This is a simplified execution for API purposes
-            # Full implementation would use proper subprocess calls
-            gates.append({"name": "cleanup", "passed": True, "duration": 0.5})
-        except Exception as e:
-            gates.append({"name": "cleanup", "passed": False, "error": str(e)})
-
-    # Additional gates would be executed here
-    gates.extend(
-        [
-            {"name": "ruff-check", "passed": True, "duration": 1.2},
-            {"name": "ruff-format", "passed": True, "duration": 0.8},
-            {"name": "mypy", "passed": True, "duration": 3.5},
-            {"name": "pytest", "passed": True, "duration": 10.2},
-            {"name": "pip-audit", "passed": True, "duration": 2.1},
-        ]
+    execution = await evaluate_guard_rails_async(
+        no_format=request.no_format,
+        workspace=request.workspace,
+        drift_check=request.drift_check,
+        auto_remediate=request.auto_remediate,
     )
 
-    success = all(bool(gate.get("passed", False)) for gate in gates)
-    total_duration = sum(float(gate.get("duration", 0)) for gate in gates)
+    gates = [
+        {
+            "name": gate.name,
+            "passed": gate.passed,
+            "message": gate.message,
+            "duration": gate.duration,
+            "metadata": gate.metadata,
+        }
+        for gate in execution.gates
+    ]
+
+    if execution.remediation_results:
+        gates.append(
+            {
+                "name": "remediation-results",
+                "passed": all(result.exit_code == 0 for result in execution.remediation_results),
+                "message": "Recorded remediation outcomes",
+                "duration": 0.0,
+                "metadata": {
+                    "commands": execution.remediation_commands,
+                },
+            }
+        )
 
     return {
-        "success": success,
+        "success": execution.success,
         "gates": gates,
-        "duration": total_duration,
+        "duration": execution.duration,
     }
 
     async def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
@@ -510,35 +507,20 @@ def _execute_guard_rails(request: GuardRailsRequest) -> dict[str, Any]:
             await asyncio.sleep(0)  # Yield control, simulate async
             gates.append({"name": name, "passed": True, "duration": duration})
 
-        success = all(gate["passed"] for gate in gates)
-        total_duration = sum(gate.get("duration", 0) for gate in gates)
+async def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
+    """Execute cleanup operation via the toolkit cleanup module."""
 
-        return {
-            "success": success,
-            "gates": gates,
-            "duration": total_duration,
-        }
+    summary = await asyncio.to_thread(
+        run_cleanup_summary,
+        root=request.root,
+        deep_clean=request.deep_clean,
+        dry_run=request.dry_run,
+    )
 
-
-def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
-    """Execute cleanup operation.
-
-    Args:
-        request: Cleanup configuration
-
-    Returns:
-        Cleanup results
-    """
-    # Simulate cleanup execution
-    # In production, this would call actual cleanup logic
     return {
-        "files_deleted": 42,
-        "size_freed": 15728640,  # ~15MB
-        "manifest": {
-            "python_cache": 15,
-            "build_artifacts": 20,
-            "resource_forks": 7,
-        },
+        "files_deleted": summary["files"],
+        "size_freed": summary["bytes"],
+        "manifest": summary["manifest"],
     }
 
     async def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
@@ -564,23 +546,15 @@ def _execute_cleanup(request: CleanupRequest) -> dict[str, Any]:
 
 
 def _execute_rankings(request: RankingsRequest) -> dict[str, Any]:
-    """Execute analytics rankings.
+    """Execute analytics rankings using toolkit analytics."""
 
-    Args:
-        request: Rankings configuration
-
-    Returns:
-        Rankings results
-    """
-    # Simulate rankings execution
-    # In production, this would call actual analytics
-    rankings = [
-        {"rank": 1, "path": "src/module_a.py", "score": 0.85},
-        {"rank": 2, "path": "src/module_b.py", "score": 0.72},
-        {"rank": 3, "path": "src/module_c.py", "score": 0.68},
-    ]
+    strategy = request.strategy
+    rankings = compute_rankings(
+        strategy=strategy,
+        limit=request.limit,
+    )
 
     return {
-        "rankings": rankings[: request.limit],
-        "strategy": request.strategy,
+        "rankings": rankings,
+        "strategy": strategy.value,
     }
