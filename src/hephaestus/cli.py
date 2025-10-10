@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, replace
+from enum import Enum
 from pathlib import Path
-from typing import Annotated, cast
+from typing import Annotated, Any, cast
 
 import typer
 from rich.console import Console
@@ -14,18 +15,14 @@ from rich.table import Table
 
 from hephaestus import (
     __version__,
-)
-from hephaestus import cleanup as cleanup_module
-from hephaestus import drift as drift_module
-from hephaestus import events as telemetry
-from hephaestus import logging as logging_utils
-from hephaestus import planning as planning_module
-from hephaestus import release as release_module
-from hephaestus import (
+    cleanup as cleanup_module,
+    drift as drift_module,
+    events as telemetry,
+    logging as logging_utils,
+    planning as planning_module,
+    release as release_module,
     resource_forks,
-)
-from hephaestus import schema as schema_module
-from hephaestus import (
+    schema as schema_module,
     toolbox,
 )
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
@@ -58,6 +55,17 @@ logger = logging.getLogger(__name__)
 
 LOG_FORMAT_CHOICES = ("text", "json")
 LOG_LEVEL_CHOICES = ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG")
+
+
+class ReleaseInstallSource(str, Enum):
+    GITHUB = "github"
+    PYPI = "pypi"
+    TEST_PYPI = "test-pypi"
+
+
+DEFAULT_PROJECT_NAME = "hephaestus-toolkit"
+TEST_PYPI_SIMPLE_URL = "https://test.pypi.org/simple/"
+PYPI_SIMPLE_URL = "https://pypi.org/simple/"
 
 
 def _is_within_root(path: Path, root: Path) -> bool:
@@ -144,6 +152,10 @@ class ReleaseInstallOptions:
     allow_unsigned: bool = False
     require_sigstore: bool = False
     sigstore_identity: list[str] | None = None
+    source: ReleaseInstallSource = ReleaseInstallSource.GITHUB
+    project: str = DEFAULT_PROJECT_NAME
+    index_url: str | None = None
+    extra_index_url: str | None = None
 
 
 @release_app.command("install")
@@ -238,6 +250,37 @@ def release_install(  # NOSONAR
             show_default=False,
         ),
     ] = None,
+    source: Annotated[
+        ReleaseInstallSource,
+        typer.Option(
+            "--source",
+            help="Release source to install from (github, pypi, or test-pypi).",
+            case_sensitive=False,
+            show_default=True,
+        ),
+    ] = ReleaseInstallSource.GITHUB,
+    project: Annotated[
+        str,
+        typer.Option(
+            "--project",
+            help="PyPI project name to install when using PyPI/Test PyPI sources.",
+            show_default=True,
+        ),
+    ] = DEFAULT_PROJECT_NAME,
+    index_url: Annotated[
+        str | None,
+        typer.Option(
+            "--index-url",
+            help="Custom index URL for PyPI/Test PyPI installs.",
+        ),
+    ] = None,
+    extra_index_url: Annotated[
+        str | None,
+        typer.Option(
+            "--extra-index-url",
+            help="Additional index URL for dependency resolution when using PyPI sources.",
+        ),
+    ] = None,
     no_upgrade: Annotated[
         bool,
         typer.Option("--no-upgrade", help="Do not pass --upgrade to pip.", show_default=False),
@@ -312,6 +355,10 @@ def release_install(  # NOSONAR
         allow_unsigned=allow_unsigned,
         require_sigstore=require_sigstore,
         sigstore_identity=list(sigstore_identity) if sigstore_identity else None,
+        source=source,
+        project=project,
+        index_url=index_url,
+        extra_index_url=extra_index_url,
     )
 
     destination_path = (
@@ -319,6 +366,16 @@ def release_install(  # NOSONAR
         if options.destination
         else release_module.DEFAULT_DOWNLOAD_DIRECTORY
     )
+    resolved_index_url = options.index_url
+    resolved_extra_index_url = options.extra_index_url
+    if options.source is ReleaseInstallSource.TEST_PYPI:
+        resolved_index_url = resolved_index_url or TEST_PYPI_SIMPLE_URL
+        resolved_extra_index_url = resolved_extra_index_url or PYPI_SIMPLE_URL
+
+    normalized_version = None
+    if options.tag:
+        normalized_version = options.tag[1:] if options.tag.startswith("v") else options.tag
+
     operation_id = telemetry.generate_operation_id()
     with telemetry.operation_context(
         "cli.release.install",
@@ -327,24 +384,69 @@ def release_install(  # NOSONAR
         repository=options.repository,
         tag=options.tag or "latest",
     ):
+        start_payload: dict[str, Any] = {
+            "source": options.source.value,
+            "tag": options.tag or "latest",
+            "timeout": options.timeout,
+            "max_retries": options.max_retries,
+        }
+        if options.source is ReleaseInstallSource.GITHUB:
+            start_payload.update(
+                {
+                    "repository": options.repository,
+                    "destination": str(destination_path),
+                    "allow_unsigned": options.allow_unsigned,
+                    "asset_pattern": options.asset_pattern,
+                    "manifest_pattern": options.manifest_pattern,
+                    "sigstore_pattern": options.sigstore_pattern,
+                    "require_sigstore": options.require_sigstore,
+                }
+            )
+            if options.sigstore_identity:
+                start_payload["sigstore_identity"] = list(options.sigstore_identity)
+        else:
+            start_payload.update(
+                {
+                    "project": options.project,
+                    "index_url": resolved_index_url,
+                    "extra_index_url": resolved_extra_index_url,
+                }
+            )
+
         telemetry.emit_event(
             logger,
             telemetry.CLI_RELEASE_INSTALL_START,
             message="Starting release install",
-            repository=options.repository,
-            tag=options.tag or "latest",
-            destination=str(destination_path),
-            allow_unsigned=options.allow_unsigned,
-            asset_pattern=options.asset_pattern,
-            manifest_pattern=options.manifest_pattern,
-            sigstore_pattern=options.sigstore_pattern,
-            require_sigstore=options.require_sigstore,
-            sigstore_identity=(
-                list(options.sigstore_identity) if options.sigstore_identity else None
-            ),
-            timeout=options.timeout,
-            max_retries=options.max_retries,
+            **start_payload,
         )
+
+        if options.source is not ReleaseInstallSource.GITHUB:
+            release_module.install_from_pypi(
+                project=options.project,
+                version=normalized_version,
+                python_executable=options.python_executable,
+                pip_args=list(options.pip_args) if options.pip_args else None,
+                upgrade=not options.no_upgrade,
+                index_url=resolved_index_url,
+                extra_index_url=resolved_extra_index_url,
+            )
+
+            version_label = normalized_version or "latest"
+            console.print(
+                "[green]Installed[/green] "
+                f"{options.project} {version_label} from [cyan]{options.source.value}[/cyan]."
+            )
+            telemetry.emit_event(
+                logger,
+                telemetry.CLI_RELEASE_INSTALL_COMPLETE,
+                message="Release install completed",
+                source=options.source.value,
+                tag=options.tag or "latest",
+                project=options.project,
+                version=version_label,
+            )
+            return
+
         download = release_module.download_wheelhouse(
             repository=options.repository,
             destination_dir=destination_path,
@@ -389,6 +491,7 @@ def release_install(  # NOSONAR
             logger,
             telemetry.CLI_RELEASE_INSTALL_COMPLETE,
             message="Release install completed",
+            source=options.source.value,
             repository=options.repository,
             tag=options.tag or "latest",
             asset=download.asset.name,

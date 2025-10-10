@@ -650,6 +650,50 @@ def test_install_from_archive_cleanup(tmp_path: Path, monkeypatch: pytest.Monkey
     assert not extracted.exists()
 
 
+def test_install_from_pypi_invokes_pip(monkeypatch: pytest.MonkeyPatch) -> None:
+    """install_from_pypi should invoke pip with the expected arguments."""
+
+    commands: list[list[str]] = []
+
+    def _fake_check_call(cmd: list[str], **_: Any) -> None:
+        commands.append(cmd)
+
+    monkeypatch.setattr(release.subprocess, "check_call", _fake_check_call)
+    monkeypatch.setattr(release.telemetry, "emit_event", lambda *args, **kwargs: None)
+
+    release.install_from_pypi(
+        project="hephaestus-toolkit",
+        version="0.3.0rc1",
+        python_executable="/usr/bin/python3",
+        pip_args=["--no-cache-dir"],
+        upgrade=False,
+        index_url="https://test.pypi.org/simple/",
+        extra_index_url="https://pypi.org/simple/",
+    )
+
+    assert commands == [
+        [
+            "/usr/bin/python3",
+            "-m",
+            "pip",
+            "install",
+            "--no-cache-dir",
+            "--index-url",
+            "https://test.pypi.org/simple/",
+            "--extra-index-url",
+            "https://pypi.org/simple/",
+            "hephaestus-toolkit==0.3.0rc1",
+        ]
+    ]
+
+
+def test_install_from_pypi_requires_project() -> None:
+    """A project name is mandatory when installing from PyPI."""
+
+    with pytest.raises(release.ReleaseError, match="project name"):
+        release.install_from_pypi(project="", version=None)
+
+
 def test_default_download_dir_env_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     target = (tmp_path / "override-cache").resolve()
     monkeypatch.setenv("HEPHAESTUS_RELEASE_CACHE", str(target))

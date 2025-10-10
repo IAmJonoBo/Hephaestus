@@ -294,9 +294,9 @@ CLI_RELEASE_INSTALL_START = _register(
     TelemetryEvent(
         "cli.release.install.start",
         "Release installation command invoked.",
-        required_fields=(
+        required_fields=("source", "tag"),
+        optional_fields=(
             "repository",
-            "tag",
             "destination",
             "allow_unsigned",
             "asset_pattern",
@@ -305,8 +305,11 @@ CLI_RELEASE_INSTALL_START = _register(
             "require_sigstore",
             "timeout",
             "max_retries",
+            "sigstore_identity",
+            "project",
+            "index_url",
+            "extra_index_url",
         ),
-        optional_fields=("sigstore_identity",),
     )
 )
 
@@ -314,7 +317,8 @@ CLI_RELEASE_INSTALL_COMPLETE = _register(
     TelemetryEvent(
         "cli.release.install.complete",
         "Release installation command completed.",
-        required_fields=("repository", "tag", "asset", "allow_unsigned"),
+        required_fields=("source", "tag"),
+        optional_fields=("repository", "asset", "allow_unsigned", "project", "version"),
     )
 )
 

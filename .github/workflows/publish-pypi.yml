@@ -5,55 +5,74 @@ on:
     types: [published]
 
 permissions:
-  id-token: write # Required for PyPI Trusted Publishers
+  id-token: write # Required for PyPI Trusted Publishers (pypi:project/hephaestus-toolkit)
   contents: write
 
 jobs:
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    # environment block removed due to invalid value
+    environment:
+      name: pypi
+      url: https://pypi.org/project/hephaestus-toolkit/
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: "3.12"
 
-      - name: Install build dependencies
+      - name: Install build tooling
         run: |
           python -m pip install --upgrade pip
           pip install build twine sigstore
 
-      - name: Build distribution
+      - name: Build distribution artifacts
         run: python -m build
 
-      - name: Sign with Sigstore
-        run: |
-          python -m sigstore sign dist/*
+      - name: Sign distributions with Sigstore
+        run: python -m sigstore sign dist/*
 
-      - name: Verify distribution
-        run: |
-          twine check dist/*
+      - name: Verify distribution metadata
+        run: twine check dist/*
 
-      - name: Publish to Test PyPI (pre-releases)
+      - name: Package Sigstore bundles
+        run: tar -czf dist/sigstore-bundles.tar.gz dist/*.sigstore
+
+      - name: Publish to Test PyPI (prereleases)
         if: github.event.release.prerelease
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          packages-dir: dist
+          skip-existing: true
 
-      - name: Publish to PyPI (stable)
-        if: ${{ github.event.release.prerelease == false }}
+      - name: Install project extras for smoke test
+        if: github.event.release.prerelease
+        run: pip install ".[dev,qa]"
+
+      - name: Smoke test Test PyPI installation
+        if: github.event.release.prerelease
+        env:
+          HEPHAESTUS_TESTPYPI_SMOKE: "1"
+          HEPHAESTUS_TESTPYPI_VERSION: ${{ github.event.release.tag_name }}
+        run: python -m pytest tests/smoke/test_testpypi_install.py
+
+      - name: Publish to PyPI (stable releases)
+        if: ${{ !github.event.release.prerelease }}
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
 
       - name: Attach Sigstore bundles to release
+        if: always()
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: dist/*.sigstore
-          asset_name: sigstore-bundles.tar.gz
+          asset_path: dist/sigstore-bundles.tar.gz
+          asset_name: sigstore-bundles-${{ github.event.release.tag_name }}.tar.gz
           asset_content_type: application/gzip

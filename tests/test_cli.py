@@ -225,6 +225,44 @@ def test_release_install_can_remove_archive(
     assert not archive_path.exists()
 
 
+def test_release_install_supports_test_pypi_source(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Selecting the test-pypi source should call the PyPI installer helper."""
+
+    _, cli = _load_modules()
+
+    def _fail_download(**_kwargs: Any) -> None:
+        raise AssertionError("download_wheelhouse should not run for PyPI sources")
+
+    monkeypatch.setattr(cli.release_module, "download_wheelhouse", _fail_download)
+
+    captured: dict[str, Any] = {}
+
+    def _fake_install_from_pypi(**kwargs: Any) -> None:
+        captured.update(kwargs)
+
+    monkeypatch.setattr(cli.release_module, "install_from_pypi", _fake_install_from_pypi)
+
+    result = runner.invoke(
+        cli.app,
+        [
+            "release",
+            "install",
+            "--source",
+            "test-pypi",
+            "--tag",
+            "v0.3.0rc1",
+            "--no-upgrade",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["project"] == "hephaestus-toolkit"
+    assert captured["version"] == "0.3.0rc1"
+    assert captured["index_url"] == "https://test.pypi.org/simple/"
+    assert captured["extra_index_url"] == "https://pypi.org/simple/"
+    assert captured["upgrade"] is False
+
+
 def test_release_install_help_succeeds() -> None:
     """Ensure release install help renders despite complex option wiring."""
 
