@@ -34,9 +34,7 @@ GaugeRecorder = Callable[..., None]
 HistogramRecorder = Callable[..., None]
 
 
-def _noop_trace_command(
-    command_name: str,
-) -> TraceDecorator:  # pragma: no cover - exercised only when OTEL unavailable
+def _noop_trace_command(command_name: str) -> TraceDecorator:  # pragma: no cover - exercised only when OTEL unavailable
     """Return a decorator that leaves the wrapped function unchanged."""
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -46,9 +44,7 @@ def _noop_trace_command(
     return decorator
 
 
-def _noop_trace_operation(
-    operation_name: str, **kwargs: Any
-) -> AbstractContextManager[Any]:  # pragma: no cover - OTEL disabled path
+def _noop_trace_operation(operation_name: str, **kwargs: Any) -> AbstractContextManager[Any]:  # pragma: no cover - OTEL disabled path
     """Provide a no-op context manager when telemetry is unavailable."""
 
     _ = (operation_name, kwargs)

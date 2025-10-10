@@ -100,7 +100,9 @@ target-version = ["py312"]
 line-length = 100
 src = ["src", "tests", "hephaestus-toolkit"]
 target-version = "py312"
-extend-exclude = ["src/hephaestus/api/grpc/protos/*"]
+extend-exclude = [
+  "src/hephaestus/api/grpc/protos/*",
+]
 
 [tool.ruff.lint]
 select = [

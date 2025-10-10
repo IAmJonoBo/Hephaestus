@@ -270,6 +270,14 @@ CLI_GUARD_RAILS_DRIFT_OK = _register(
     )
 )
 
+CLI_GUARD_RAILS_REMEDIATED = _register(
+    TelemetryEvent(
+        "cli.guard-rails.drift.remediated",
+        "Tool version drift remediated automatically.",
+        required_fields=("commands",),
+    )
+)
+
 CLI_RELEASE_INSTALL_START = _register(
     TelemetryEvent(
         "cli.release.install.start",

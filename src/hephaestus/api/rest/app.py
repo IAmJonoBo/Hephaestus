@@ -11,6 +11,7 @@ Example:
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import time
 from collections.abc import AsyncIterator
@@ -18,7 +19,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 try:
-    from fastapi import FastAPI, HTTPException, Security
+    from fastapi import FastAPI, HTTPException, Request, Security
     from fastapi.responses import StreamingResponse
     from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 except ImportError as exc:
@@ -26,7 +27,10 @@ except ImportError as exc:
         "FastAPI is not installed. Install with: pip install 'hephaestus-toolkit[api]'"
     ) from exc
 
+from hephaestus.analytics_streaming import global_ingestor
 from hephaestus.api.rest.models import (
+    AnalyticsEventPayload,
+    AnalyticsIngestResponse,
     CleanupRequest,
     CleanupResponse,
     GuardRailsRequest,
@@ -235,6 +239,75 @@ async def cleanup(
     except Exception as e:
         logger.exception("Error executing cleanup")
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.post("/api/v1/analytics/ingest", response_model=AnalyticsIngestResponse)
+async def ingest_analytics_stream(
+    request: Request,
+    api_key: str = Security(verify_api_key),
+) -> AnalyticsIngestResponse:
+    """Ingest analytics events via NDJSON streaming."""
+
+    _ = api_key
+    accepted = 0
+    rejected = 0
+    buffer = ""
+
+    async for chunk in request.stream():
+        buffer += chunk.decode("utf-8")
+        *lines, buffer = buffer.split("\n")
+        for line in lines:
+            if not line.strip():
+                continue
+            try:
+                payload_raw = json.loads(line)
+            except json.JSONDecodeError:
+                global_ingestor.mark_rejected()
+                rejected += 1
+                continue
+
+            try:
+                payload = AnalyticsEventPayload.model_validate(payload_raw)
+            except Exception as exc:  # noqa: BLE001 - convert validation errors to rejection
+                logger.debug("Rejected analytics event", extra={"error": str(exc)})
+                global_ingestor.mark_rejected()
+                rejected += 1
+                continue
+
+            if global_ingestor.ingest_mapping(payload.model_dump()):
+                accepted += 1
+            else:
+                rejected += 1
+
+    if buffer.strip():
+        try:
+            payload_raw = json.loads(buffer)
+        except json.JSONDecodeError:
+            global_ingestor.mark_rejected()
+            rejected += 1
+        else:
+            try:
+                payload = AnalyticsEventPayload.model_validate(payload_raw)
+            except Exception as exc:  # noqa: BLE001 - convert validation errors to rejection
+                logger.debug("Rejected trailing analytics event", extra={"error": str(exc)})
+                global_ingestor.mark_rejected()
+                rejected += 1
+            else:
+                if global_ingestor.ingest_mapping(payload.model_dump()):
+                    accepted += 1
+                else:
+                    rejected += 1
+
+    snapshot = global_ingestor.snapshot()
+    summary = {
+        "total_events": snapshot.total_events,
+        "accepted": snapshot.accepted,
+        "rejected": snapshot.rejected,
+        "kinds": snapshot.kinds,
+        "sources": snapshot.sources,
+    }
+
+    return AnalyticsIngestResponse(accepted=accepted, rejected=rejected, summary=summary)
 
 
 @app.get("/api/v1/analytics/rankings")

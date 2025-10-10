@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 
 import grpc
 
+from hephaestus.analytics_streaming import global_ingestor
 from hephaestus.api.grpc.protos import hephaestus_pb2, hephaestus_pb2_grpc
 
 logger = logging.getLogger(__name__)
@@ -101,3 +103,31 @@ class AnalyticsServiceServicer(hephaestus_pb2_grpc.AnalyticsServiceServicer):
             hotspots = hotspots[: request.limit]
 
         return hephaestus_pb2.HotspotsResponse(hotspots=hotspots)
+
+    async def StreamIngest(
+        self,
+        request_iterator: AsyncIterator[hephaestus_pb2.AnalyticsEvent],
+        context: grpc.aio.ServicerContext,
+    ) -> hephaestus_pb2.AnalyticsIngestResponse:
+        """Stream analytics events into the shared ingestor."""
+
+        accepted = 0
+        rejected = 0
+
+        async for event in request_iterator:
+            payload = {
+                "source": event.source,
+                "kind": event.kind,
+                "value": event.value,
+                "unit": event.unit or None,
+                "metrics": dict(event.metrics),
+                "metadata": dict(event.metadata),
+                "timestamp": event.timestamp or None,
+            }
+
+            if global_ingestor.ingest_mapping(payload):
+                accepted += 1
+            else:
+                rejected += 1
+
+        return hephaestus_pb2.AnalyticsIngestResponse(accepted=accepted, rejected=rejected)

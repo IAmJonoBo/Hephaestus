@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+
 import pytest
 
 try:
@@ -174,6 +176,30 @@ async def test_analytics_service_get_hotspots() -> None:
         assert hotspot.change_frequency >= 0
         assert hotspot.complexity >= 0
         assert hotspot.risk_score >= 0
+
+
+@pytest.mark.asyncio
+async def test_analytics_service_stream_ingest() -> None:
+    """Test AnalyticsService StreamIngest RPC."""
+
+    service = AnalyticsServiceServicer()
+    context = MockContext()
+
+    from hephaestus.analytics_streaming import global_ingestor
+
+    global_ingestor.reset()
+
+    async def _generate() -> AsyncIterator[hephaestus_pb2.AnalyticsEvent]:
+        yield hephaestus_pb2.AnalyticsEvent(
+            source="ci", kind="coverage", value=0.95, unit="ratio"
+        )
+        yield hephaestus_pb2.AnalyticsEvent(source="", kind="")
+
+    response = await service.StreamIngest(_generate(), context)
+
+    assert isinstance(response, hephaestus_pb2.AnalyticsIngestResponse)
+    assert response.accepted == 1
+    assert response.rejected == 1
 
 
 def test_grpc_services_import() -> None:

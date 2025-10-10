@@ -1,6 +1,6 @@
 # Next Steps Tracker
 
-Last updated: 2025-02-XX (Telemetry typing hardening + REST QA follow-up)
+Last updated: 2025-02-XX (API streaming + remediation automation)
 
 ## Current Status Summary
 
@@ -25,6 +25,14 @@ Remaining work is focused on advanced features with clear ADRs and sprint-based 
 - ⏳ ADR-0002: Plugin architecture Sprint 4 (marketplace, dependency resolution, versioning)
 
 ## Recent Improvements (Latest Session)
+
+**API Streaming & Remediation Automation (2025-02-XX):**
+
+- ✅ Implemented FastAPI analytics streaming ingestion with NDJSON parsing, bounded buffering, and shared ingestion telemetry for REST and gRPC surfaces.
+- ✅ Extended gRPC analytics service with client-streaming ingestion RPC and regression coverage for acceptance/rejection flows.
+- ✅ Added automated drift remediation path (`--auto-remediate`) with command execution telemetry, plus CI drift gate (`uv run hephaestus guard-rails --drift`).
+- ✅ Introduced shared streaming analytics ingestor with snapshot API and reset hooks for deterministic testing.
+- 🔄 Follow-up: expand analytics streaming persistence/retention policies and surface ingestion metrics over OpenTelemetry exporters.
 
 **Release & Plugin Hardening (2025-02-XX):**
 
@@ -102,11 +110,11 @@ Remaining work is focused on advanced features with clear ADRs and sprint-based 
 
 ## Baseline Validation (current session)
 
-- ✅ `uv run pytest --cov=src` (338 passed, 4 skipped, 86.95% coverage)
-- ✅ `uv run ruff check .`
-- ✅ `uv run mypy src tests`
-- ⚠️ `uv run pip-audit` (fails: SSL certificate verification error against pypi.org; trust store remediation still required)
-- ✅ `uv build`
+- ✅ `uv run pytest --cov=src` (353 passed, 3 skipped, 86.83% coverage)【0721dc†L1-L33】
+- ✅ `uv run ruff check .`【6253c8†L1-L2】
+- ✅ `uv run mypy src tests`【fbca24†L1-L2】
+- ⚠️ `uv run pip-audit` (fails: SSL certificate verification error against pypi.org; trust store remediation still required)【80a602†L1-L41】
+- ✅ `uv build`【ced701†L1-L4】
 
 ## Implementation Status Summary
 

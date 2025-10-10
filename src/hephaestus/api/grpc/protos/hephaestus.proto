@@ -27,9 +27,12 @@ service CleanupService {
 service AnalyticsService {
   // Get refactoring rankings
   rpc GetRankings(RankingsRequest) returns (RankingsResponse);
-  
+
   // Get code hotspots
   rpc GetHotspots(HotspotsRequest) returns (HotspotsResponse);
+
+  // Stream analytics ingestion events
+  rpc StreamIngest(stream AnalyticsEvent) returns (AnalyticsIngestResponse);
 }
 
 // Guard Rails Messages
@@ -134,4 +137,19 @@ message Hotspot {
   int32 change_frequency = 2;
   int32 complexity = 3;
   double risk_score = 4;
+}
+
+message AnalyticsEvent {
+  string source = 1;
+  string kind = 2;
+  double value = 3;
+  string unit = 4;
+  map<string, double> metrics = 5;
+  map<string, string> metadata = 6;
+  string timestamp = 7;
+}
+
+message AnalyticsIngestResponse {
+  uint64 accepted = 1;
+  uint64 rejected = 2;
 }
