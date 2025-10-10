@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from hephaestus import telemetry
+from hephaestus import audit as audit_module, telemetry
 from hephaestus.api import auth
 from hephaestus.audit import AuditStatus, record_audit_event
 
@@ -87,3 +87,25 @@ def test_record_audit_event_serialises_unknown_types(
     payload = json.loads(files[0].read_text(encoding="utf-8").strip())
     assert payload["parameters"] == {"object": "sample"}
     assert payload["outcome"] == {"data": {"value": {"set": [1, 2]}}}
+
+
+def test_record_audit_event_uses_default_directory(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    principal: auth.AuthenticatedPrincipal,
+) -> None:
+    target_dir = tmp_path / "audit-default"
+    monkeypatch.delenv("HEPHAESTUS_AUDIT_LOG_DIR", raising=False)
+    monkeypatch.setattr(audit_module, "DEFAULT_AUDIT_DIR", target_dir)
+
+    record_audit_event(
+        principal,
+        operation="rest.guard-rails.run",
+        status=AuditStatus.SUCCESS,
+        parameters={},
+        outcome={},
+        protocol="rest",
+    )
+
+    files = list(target_dir.glob("*.jsonl"))
+    assert files, "audit sink should create default directory"

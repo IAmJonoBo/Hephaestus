@@ -163,12 +163,13 @@ class AnalyticsServiceServicer(hephaestus_pb2_grpc.AnalyticsServiceServicer):
     ) -> hephaestus_pb2.AnalyticsIngestResponse:
         principal = await _require_principal(context)
         operation = "grpc.analytics.stream_ingest"
-        auth.ServiceAccountVerifier.require_role(principal, auth.Role.ANALYTICS.value)
 
         accepted = 0
         rejected = 0
 
         try:
+            auth.ServiceAccountVerifier.require_role(principal, auth.Role.ANALYTICS.value)
+
             async for event in request_iterator:
                 payload = {
                     "source": event.source,
@@ -184,6 +185,16 @@ class AnalyticsServiceServicer(hephaestus_pb2_grpc.AnalyticsServiceServicer):
                     accepted += 1
                 else:
                     rejected += 1
+        except auth.AuthorizationError as exc:
+            record_audit_event(
+                principal,
+                operation=operation,
+                parameters={},
+                outcome={"error": str(exc)},
+                status=AuditStatus.DENIED,
+                protocol="grpc",
+            )
+            await context.abort(grpc.StatusCode.PERMISSION_DENIED, str(exc))
         except Exception as exc:  # pragma: no cover - defensive guard
             record_audit_event(
                 principal,

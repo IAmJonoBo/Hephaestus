@@ -322,14 +322,15 @@ async def ingest_analytics_stream(
 ) -> AnalyticsIngestResponse:
     """Ingest analytics events via NDJSON streaming."""
 
-    auth.ServiceAccountVerifier.require_role(principal, auth.Role.ANALYTICS.value)
-
     operation = "rest.analytics.ingest"
+    content_length = request.headers.get("content-length", "unknown")
     accepted = 0
     rejected = 0
     buffer = ""
 
     try:
+        auth.ServiceAccountVerifier.require_role(principal, auth.Role.ANALYTICS.value)
+
         async for chunk in request.stream():
             buffer += chunk.decode("utf-8")
             *lines, buffer = buffer.split("\n")
@@ -374,13 +375,23 @@ async def ingest_analytics_stream(
                         accepted += 1
                     else:
                         rejected += 1
+    except auth.AuthorizationError as exc:
+        record_audit_event(
+            principal,
+            operation=operation,
+            parameters={"content_length": content_length},
+            outcome={"error": str(exc)},
+            status=AuditStatus.DENIED,
+            protocol="rest",
+        )
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except HTTPException:
         raise
     except Exception as exc:  # pragma: no cover - defensive guard
         record_audit_event(
             principal,
             operation=operation,
-            parameters={"bytes": request.headers.get("content-length", "unknown")},
+            parameters={"content_length": content_length},
             outcome={"error": str(exc)},
             status=AuditStatus.FAILED,
             protocol="rest",
@@ -400,7 +411,10 @@ async def ingest_analytics_stream(
     record_audit_event(
         principal,
         operation=operation,
-        parameters={"events_received": accepted + rejected},
+        parameters={
+            "events_received": accepted + rejected,
+            "content_length": content_length,
+        },
         outcome={"accepted": accepted, "rejected": rejected},
         status=AuditStatus.SUCCESS,
         protocol="rest",
