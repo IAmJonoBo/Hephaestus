@@ -9,7 +9,14 @@ from __future__ import annotations
 import subprocess
 from typing import Any
 
+from hephaestus.command_helpers import build_pip_audit_command
 from hephaestus.plugins import PluginMetadata, PluginResult, QualityGatePlugin
+
+HEPHAESTUS_TEAM = "Hephaestus Team"
+
+_PATHS_LIST_ERROR = "'paths' must be a list of strings"
+_ARGS_LIST_ERROR = "'args' must be a list of strings"
+_IGNORE_VULNS_LIST_ERROR = "'ignore_vulns' must be a list of strings"
 
 __all__ = [
     "RuffCheckPlugin",
@@ -28,8 +35,8 @@ class RuffCheckPlugin(QualityGatePlugin):
         return PluginMetadata(
             name="ruff-check",
             version="1.0.0",
+            author=HEPHAESTUS_TEAM,
             description="Ruff linting for Python code",
-            author="Hephaestus Team",
             category="linting",
             requires=["ruff>=0.8.0"],
             order=10,  # Run early
@@ -38,9 +45,9 @@ class RuffCheckPlugin(QualityGatePlugin):
     def validate_config(self, config: dict[str, Any]) -> bool:
         """Validate configuration."""
         if "paths" in config and not isinstance(config["paths"], list):
-            raise ValueError("'paths' must be a list of strings")
+            raise ValueError(_PATHS_LIST_ERROR)
         if "args" in config and not isinstance(config["args"], list):
-            raise ValueError("'args' must be a list of strings")
+            raise ValueError(_ARGS_LIST_ERROR)
         return True
 
     def run(self, config: dict[str, Any]) -> PluginResult:
@@ -86,7 +93,7 @@ class RuffFormatPlugin(QualityGatePlugin):
             name="ruff-format",
             version="1.0.0",
             description="Ruff code formatting check",
-            author="Hephaestus Team",
+            author=HEPHAESTUS_TEAM,
             category="formatting",
             requires=["ruff>=0.8.0"],
             order=20,  # Run after linting
@@ -95,7 +102,7 @@ class RuffFormatPlugin(QualityGatePlugin):
     def validate_config(self, config: dict[str, Any]) -> bool:
         """Validate configuration."""
         if "paths" in config and not isinstance(config["paths"], list):
-            raise ValueError("'paths' must be a list of strings")
+            raise ValueError(_PATHS_LIST_ERROR)
         if "check" in config and not isinstance(config["check"], bool):
             raise ValueError("'check' must be a boolean")
         return True
@@ -146,7 +153,7 @@ class MypyPlugin(QualityGatePlugin):
             name="mypy",
             version="1.0.0",
             description="Static type checking with Mypy",
-            author="Hephaestus Team",
+            author=HEPHAESTUS_TEAM,
             category="type-checking",
             requires=["mypy>=1.14.0"],
             order=30,  # Run after formatting
@@ -155,9 +162,9 @@ class MypyPlugin(QualityGatePlugin):
     def validate_config(self, config: dict[str, Any]) -> bool:
         """Validate configuration."""
         if "paths" in config and not isinstance(config["paths"], list):
-            raise ValueError("'paths' must be a list of strings")
+            raise ValueError(_PATHS_LIST_ERROR)
         if "args" in config and not isinstance(config["args"], list):
-            raise ValueError("'args' must be a list of strings")
+            raise ValueError(_ARGS_LIST_ERROR)
         return True
 
     def run(self, config: dict[str, Any]) -> PluginResult:
@@ -203,7 +210,7 @@ class PytestPlugin(QualityGatePlugin):
             name="pytest",
             version="1.0.0",
             description="Test execution with pytest",
-            author="Hephaestus Team",
+            author=HEPHAESTUS_TEAM,
             category="testing",
             requires=["pytest>=8.0.0", "pytest-cov>=7.0.0"],
             order=40,  # Run after type checking
@@ -212,7 +219,7 @@ class PytestPlugin(QualityGatePlugin):
     def validate_config(self, config: dict[str, Any]) -> bool:
         """Validate configuration."""
         if "args" in config and not isinstance(config["args"], list):
-            raise ValueError("'args' must be a list of strings")
+            raise ValueError(_ARGS_LIST_ERROR)
         if "min_coverage" in config and not isinstance(config["min_coverage"], (int, float)):
             raise ValueError("'min_coverage' must be a number")
         return True
@@ -265,7 +272,7 @@ class PipAuditPlugin(QualityGatePlugin):
             name="pip-audit",
             version="1.0.0",
             description="Security audit of Python dependencies",
-            author="Hephaestus Team",
+            author=HEPHAESTUS_TEAM,
             category="security",
             requires=["pip-audit>=2.9.0"],
             order=50,  # Run after tests
@@ -274,9 +281,9 @@ class PipAuditPlugin(QualityGatePlugin):
     def validate_config(self, config: dict[str, Any]) -> bool:
         """Validate configuration."""
         if "args" in config and not isinstance(config["args"], list):
-            raise ValueError("'args' must be a list of strings")
+            raise ValueError(_ARGS_LIST_ERROR)
         if "ignore_vulns" in config and not isinstance(config["ignore_vulns"], list):
-            raise ValueError("'ignore_vulns' must be a list of strings")
+            raise ValueError(_IGNORE_VULNS_LIST_ERROR)
         return True
 
     def run(self, config: dict[str, Any]) -> PluginResult:
@@ -284,11 +291,7 @@ class PipAuditPlugin(QualityGatePlugin):
         extra_args = config.get("args", ["--strict"])
         ignore_vulns = config.get("ignore_vulns", [])
 
-        cmd = ["pip-audit"] + extra_args
-
-        # Add ignore flags for specific vulnerabilities
-        for vuln in ignore_vulns:
-            cmd.extend(["--ignore-vuln", vuln])
+        cmd = build_pip_audit_command(extra_args, ignore_vulns, prefer_uv_run=False)
 
         try:
             result = subprocess.run(
@@ -309,10 +312,10 @@ class PipAuditPlugin(QualityGatePlugin):
                 },
                 exit_code=result.returncode,
             )
-        except FileNotFoundError:
+        except FileNotFoundError as exc:
             return PluginResult(
                 success=False,
-                message="Pip-audit not installed",
-                details={"error": "pip-audit command not found"},
+                message="pip-audit command not available",
+                details={"error": str(exc), "command": cmd},
                 exit_code=127,
             )

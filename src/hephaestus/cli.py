@@ -29,6 +29,7 @@ from hephaestus import (
     toolbox,
 )
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
+from hephaestus.command_helpers import build_pip_audit_command
 from hephaestus.logging import LogFormat
 from hephaestus.telemetry import record_histogram, trace_command, trace_operation
 
@@ -1354,14 +1355,10 @@ def _run_guard_rails_standard(no_format: bool) -> None:  # NOSONAR(S3776)
         # Step 7: pip-audit
         console.print("[cyan]→ Running pip-audit...[/cyan]")
         subprocess.run(
-            [
-                "uv",
-                "run",
-                "pip-audit",
-                "--strict",
-                "--ignore-vuln",
-                "GHSA-4xh5-x5gv-qwph",
-            ],
+            build_pip_audit_command(
+                ignore_vulns=["GHSA-4xh5-x5gv-qwph"],
+                prefer_uv_run=True,
+            ),
             check=True,
         )
         record_histogram(
