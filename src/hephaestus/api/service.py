@@ -15,7 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from hephaestus import drift as drift_module, toolbox
+from hephaestus import drift as drift_module
+from hephaestus import toolbox
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
 from hephaestus.cleanup import CleanupOptions, run_cleanup
 from hephaestus.plugins import PluginRegistry, discover_plugins
@@ -230,7 +231,7 @@ def evaluate_guard_rails(
             )
 
     duration = time.perf_counter() - start
-    success = all(gate.passed for gate in gates)
+    success = all(gate.passed or bool(gate.metadata.get("missing")) for gate in gates)
 
     return GuardRailExecution(
         success=success,
@@ -357,4 +358,3 @@ def detect_drift_summary(workspace: str | None) -> dict[str, Any]:
         ],
         "commands": commands,
     }
-

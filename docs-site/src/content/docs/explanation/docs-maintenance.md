@@ -97,7 +97,6 @@ npm run prune-stale          # Detect stale content
 1. **Create Markdown File**
 
    Place file in appropriate Diátaxis category:
-   
    - `tutorials/` - Learning-oriented content
    - `how-to/` - Task-oriented guides
    - `explanation/` - Understanding-oriented content
@@ -110,7 +109,7 @@ npm run prune-stale          # Detect stale content
    title: "Your Page Title"
    description: "Brief description for SEO and navigation"
    ---
-   
+
    Your content here...
    ```
 
@@ -144,18 +143,18 @@ Example script structure:
 
 ```javascript
 #!/usr/bin/env node
-import { readFileSync, writeFileSync } from 'fs';
-import { resolve } from 'path';
+import { readFileSync, writeFileSync } from "fs";
+import { resolve } from "path";
 
 function main() {
-  console.log('🔄 Starting update...');
-  
+  console.log("🔄 Starting update...");
+
   try {
     // Your automation logic here
-    
-    console.log('✅ Update complete!');
+
+    console.log("✅ Update complete!");
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error("❌ Error:", error.message);
     process.exit(1);
   }
 }

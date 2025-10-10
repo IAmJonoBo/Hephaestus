@@ -2,7 +2,7 @@
 
 ## 📖 Documentation Site
 
-**Live Site:** https://iamjonobo.github.io/Hephaestus/
+**Live Site:** [https://iamjonobo.github.io/Hephaestus/](https://iamjonobo.github.io/Hephaestus/)
 
 ## 🚀 Quick Commands
 
@@ -44,7 +44,7 @@ The documentation automatically updates itself with:
 
 ## 📁 Directory Structure
 
-```
+```text
 docs-site/
 ├── src/
 │   ├── content/
@@ -77,14 +77,16 @@ docs-site/
 
 1. Create markdown file in appropriate category under `src/content/docs/`
 2. Add frontmatter:
+
    ```markdown
    ---
    title: "Your Page Title"
    description: "Brief description for SEO"
    ---
-   
+
    Your content here...
    ```
+
 3. Test locally: `npm run dev`
 4. Validate: `npm run validate-all`
 5. Commit and push - CI will handle the rest!
@@ -120,16 +122,19 @@ npm run prune-stale          # Detect stale content
 ### Troubleshooting
 
 **Build fails?**
+
 - Check Node.js version: `node --version` (need 20+)
 - Clean install: `rm -rf node_modules package-lock.json && npm install`
 - Check for TypeScript errors: `npm run check`
 
 **Content not showing?**
+
 - Ensure frontmatter is properly formatted
 - Check file is in `src/content/docs/`
 - Verify no validation errors in build output
 
 **Links broken?**
+
 - Run `npm run validate-links`
 - Use `/path/to/page/` format (with trailing slash)
 - For internal docs, use Starlight's slug format
@@ -137,6 +142,7 @@ npm run prune-stale          # Detect stale content
 ## 📊 Quality Metrics
 
 Current status:
+
 - ✅ 46 pages built
 - ✅ 45 pages indexed
 - ✅ 4,513 words indexed
@@ -146,11 +152,11 @@ Current status:
 
 ## 🔗 Important Links
 
-- **Documentation Site:** https://iamjonobo.github.io/Hephaestus/
-- **Maintenance Guide:** https://iamjonobo.github.io/Hephaestus/explanation/docs-maintenance/
-- **ADR 0007 (Migration Details):** https://iamjonobo.github.io/Hephaestus/adr/0007-astro-starlight-migration/
-- **Astro Starlight Docs:** https://starlight.astro.build/
-- **Diátaxis Framework:** https://diataxis.fr/
+- **Documentation Site:** [https://iamjonobo.github.io/Hephaestus/](https://iamjonobo.github.io/Hephaestus/)
+- **Maintenance Guide:** [https://iamjonobo.github.io/Hephaestus/explanation/docs-maintenance/](https://iamjonobo.github.io/Hephaestus/explanation/docs-maintenance/)
+- **ADR 0007 (Migration Details):** [https://iamjonobo.github.io/Hephaestus/adr/0007-astro-starlight-migration/](https://iamjonobo.github.io/Hephaestus/adr/0007-astro-starlight-migration/)
+- **Astro Starlight Docs:** [https://starlight.astro.build/](https://starlight.astro.build/)
+- **Diátaxis Framework:** [https://diataxis.fr/](https://diataxis.fr/)
 
 ## 🆘 Getting Help
 
@@ -159,6 +165,7 @@ Current status:
 - **CI/CD Issues:** File issue with `ci` label
 
 Include:
+
 1. Steps to reproduce
 2. Expected vs actual behavior
 3. Relevant logs/screenshots
@@ -166,6 +173,6 @@ Include:
 
 ---
 
-**Migration Date:** January 2025  
-**Previous System:** MkDocs Material (archived)  
+**Migration Date:** January 2025
+**Previous System:** MkDocs Material (archived)
 **Why:** Frontier-grade automation, self-updating content, better DX

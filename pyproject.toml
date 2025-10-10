@@ -146,7 +146,7 @@ branch = true               # Enable branch coverage analysis
 source = ["src/hephaestus"]
 
 [tool.coverage.report]
-fail_under = 85     # Frontier standard: minimum 85% test coverage
+fail_under = 85 # Frontier standard: minimum 85% test coverage
 show_missing = true # Show lines not covered by tests
 omit = [
   "src/hephaestus/api/grpc/protos/*",

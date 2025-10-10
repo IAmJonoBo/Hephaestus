@@ -2,6 +2,7 @@
 title: "Plugin Review Process"
 description: "This document outlines the process for reviewing and approving quality gate plugins for inclusion in the Hephaestus plugin catalog. The plugin review process..."
 ---
+
 This document outlines the process for reviewing and approving quality gate plugins for inclusion in the Hephaestus plugin catalog.
 
 ## Overview

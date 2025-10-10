@@ -190,9 +190,7 @@ async def test_analytics_service_stream_ingest() -> None:
     global_ingestor.reset()
 
     async def _generate() -> AsyncIterator[hephaestus_pb2.AnalyticsEvent]:
-        yield hephaestus_pb2.AnalyticsEvent(
-            source="ci", kind="coverage", value=0.95, unit="ratio"
-        )
+        yield hephaestus_pb2.AnalyticsEvent(source="ci", kind="coverage", value=0.95, unit="ratio")
         yield hephaestus_pb2.AnalyticsEvent(source="", kind="")
 
     response = await service.StreamIngest(_generate(), context)

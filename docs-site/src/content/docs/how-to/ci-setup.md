@@ -2,6 +2,7 @@
 title: "CI/CD Setup Guide"
 description: "This guide explains the Hephaestus CI/CD pipeline architecture and how to ensure bulletproof dependency management for ephemeral runners. The Hephaestus CI..."
 ---
+
 This guide explains the Hephaestus CI/CD pipeline architecture and how to ensure bulletproof dependency management for ephemeral runners.
 
 ## Architecture Overview

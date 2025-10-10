@@ -133,7 +133,9 @@ class AnalyticsEventPayload(BaseModel):
     kind: str = Field(description="Event type (coverage, latency, etc)")
     value: float | None = Field(default=None, description="Primary numeric value")
     unit: str | None = Field(default=None, description="Value unit")
-    metrics: dict[str, float] = Field(default_factory=dict, description="Additional numeric metrics")
+    metrics: dict[str, float] = Field(
+        default_factory=dict, description="Additional numeric metrics"
+    )
     metadata: dict[str, Any] = Field(default_factory=dict, description="Supplemental metadata")
     timestamp: datetime | None = Field(default=None, description="ISO-8601 timestamp for the event")
 

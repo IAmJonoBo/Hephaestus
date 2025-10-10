@@ -40,7 +40,11 @@ from hephaestus.api.rest.models import (
     TaskStatusResponse,
 )
 from hephaestus.api.rest.tasks import DEFAULT_TASK_TIMEOUT, TaskManager, TaskStatus
-from hephaestus.api.service import compute_rankings, evaluate_guard_rails_async, run_cleanup_summary
+from hephaestus.api.service import (
+    compute_rankings,
+    evaluate_guard_rails_async,
+    run_cleanup_summary,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -71,13 +75,20 @@ def verify_api_key(
         - Rate limiting per key
     """
     if credentials is None:
-        raise HTTPException(status_code=401, detail="Missing API key")
+        credentials = Security(security)
+        if credentials is None:
+            raise HTTPException(status_code=401, detail="Missing API key")
 
     api_key = credentials.credentials
 
-    # TODO(Sprint 4): Replace with secure key validation against database/vault
-    # Current implementation accepts any non-empty key for development only
-    if not api_key:
+    # Secure key validation against environment variable or vault
+    import os
+
+    # Load valid API keys from environment variable (comma-separated)
+    valid_keys = os.environ.get("HEPHAESTUS_API_KEYS", "")
+    valid_keys_set = {k.strip() for k in valid_keys.split(",") if k.strip()}
+
+    if not api_key or api_key not in valid_keys_set:
         raise HTTPException(status_code=403, detail="Invalid API key")
 
     return api_key
@@ -326,7 +337,14 @@ async def get_rankings(
     _ = api_key
 
     try:
-        request = RankingsRequest(strategy=strategy, limit=limit)
+        from hephaestus.api.rest.models import RankingStrategy
+
+        try:
+            strategy_enum = RankingStrategy(strategy)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid strategy: {strategy}") from None
+
+        request = RankingsRequest(strategy=strategy_enum, limit=limit)
         result = _execute_rankings(request)
 
         return RankingsResponse(

@@ -2,6 +2,7 @@
 title: "Evergreen Lifecycle Playbook"
 description: "This guide maps the Hephaestus toolkit to the full software development lifecycle and highlights the upgrades we now ship to keep the project evergreen from..."
 ---
+
 This guide maps the Hephaestus toolkit to the full software development lifecycle and highlights the
 upgrades we now ship to keep the project evergreen from discovery through long-term operations. Each
 phase lists the core intent, the tooling we rely on, and practical tips for maximising developer

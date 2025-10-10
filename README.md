@@ -55,7 +55,7 @@ Hephaestus is a standalone developer toolkit that helps engineering teams priori
 ### Quality & Tooling
 
 - **Drift Detection**: `hephaestus guard-rails --drift` validates environment and suggests fixes
-- **Guard-Rails Command**: One-command quality pipeline (cleanup → lint → format → typecheck → test → audit)
+- **Guard-Rails Command**: One-command quality pipeline (cleanup → lint → workflow lint → format → typecheck → test → audit)
 - **Nested Decorator Linting**: AST-based prevention of command registration bugs
 - **Quality Gate Validation**: Single script validates all frontier-level standards
 
@@ -96,7 +96,7 @@ cd Hephaestus
 ./scripts/setup-dev-env.sh
 
 # Or manual setup
-uv sync --extra dev --extra qa
+uv sync --extra dev --extra qa --extra grpc
 ```
 
 **Note for macOS users on external drives (exFAT, NTFS, FAT32):** The setup script automatically detects non-xattr filesystems and relocates the virtual environment to `$HOME/.uvenvs/<repo-name>` on your internal disk, creating a symlink at `.venv`. This prevents AppleDouble file issues. See [troubleshooting guide](https://iamjonobo.github.io/Hephaestus/how-to/troubleshooting/#working-on-externalusb-drives-exfat-ntfs-fat32) for details.
@@ -161,7 +161,7 @@ git push
 Run comprehensive quality and security pipeline in one command:
 
 ```bash
-# Full pipeline: cleanup → lint → import-sort → format → typecheck → test → audit
+# Full pipeline: cleanup → lint → workflow lint → import-sort → format → typecheck → test → audit
 hephaestus guard-rails
 
 # Skip auto-formatting to review changes first
@@ -175,11 +175,12 @@ hephaestus guard-rails --drift
 
 1. Deep cleanup of build artifacts
 2. Lint code with ruff (auto-fix enabled)
-3. Auto-sort imports with ruff isort (`ruff check --select I --fix`)
-4. Format code with ruff format
-5. Type-check with mypy (strict mode)
-6. Run pytest with coverage ≥85%
-7. Security audit with pip-audit
+3. Validate GitHub Actions workflows with actionlint
+4. Auto-sort imports with ruff isort (`ruff check --select I --fix`)
+5. Format code with ruff format
+6. Type-check with mypy (strict mode)
+7. Run pytest with coverage ≥85%
+8. Security audit with pip-audit
 
 #### cleanup
 
@@ -311,7 +312,7 @@ See [CLI Autocompletion documentation](https://iamjonobo.github.io/Hephaestus/re
 - Pre-commit hooks trigger `uv run hephaestus cleanup` on commits and pushes so macOS metadata never enters history.
 - Continuous integration runs on GitHub Actions (`CI` workflow) for pushes to `main` and pull requests, exercising the pytest suite against Python 3.12 and 3.13.
 - Linting and typing (Ruff + Mypy) run on every matrix job, with coverage published as artefacts and failing below 85%; each job performs a cleanup sweep immediately after dependency syncing.
-- The `uv run hephaestus guard-rails` command executes the local cleanup, lint, format, typing, testing, and audit pipeline sequentially for quick validation.
+- The `uv run hephaestus guard-rails` command executes the local cleanup, lint, workflow lint, format, typing, testing, and audit pipeline sequentially for quick validation.
 - Automated release tagging (`Automated Release Tagging` workflow) cuts a `v*` tag and GitHub Release whenever the version in `pyproject.toml` advances on `main`, and performs a deep-clean sweep before tagging.
 - Release wheelhouse packaging (`Build Wheelhouse` workflow) zips the built wheels and sdists for each release, uploads them as workflow artefacts, and attaches the bundle to the GitHub Release for easy download while PyPI access is pending.
 - The `hephaestus release install` command fetches the latest (or a specified) wheelhouse archive from GitHub Releases, verifies checksums and Sigstore attestations by default, and installs the wheels into the current environment, making consumption trivial from any repo.
@@ -333,16 +334,16 @@ See [CLI Autocompletion documentation](https://iamjonobo.github.io/Hephaestus/re
 
 ### Development-to-Deployment Flow
 
-| Stage                  | Tooling                                                                                                                               | Purpose                                                                                               |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Discovery & planning   | [Lifecycle Playbook](https://iamjonobo.github.io/Hephaestus/lifecycle/), [ADRs](https://iamjonobo.github.io/Hephaestus/adr/), `plan` command      | Capture intent, align stakeholders, and visualise rollouts.                                           |
-| Local analytics        | `tools refactor hotspots`, `tools refactor opportunities`                                                                             | Identify high-value refactor targets with churn and qualitative signals.                              |
-| Quality gates          | `guard-rails`, `scripts/validate_quality_gates.py`, `scripts/lint_nested_decorators.py`                                               | Comprehensive quality validation with frontier-level standards (coverage, linting, typing, security). |
-| Automation             | `hephaestus-toolkit/refactoring/scripts/`                                                                                             | Execute codemods, hotspot scans, and characterization harnesses with reproducible scripts.            |
-| Developer guard rails  | `.pre-commit-config.yaml`, Ruff (linting, formatting, import sorting), Black, PyUpgrade, Mypy, Pip Audit, `uv run hephaestus cleanup` | Keep code style, types, security, and workspace hygiene evergreen before commits land.                |
-| Continuous integration | `.github/workflows/ci.yml`, `tests/test_cli.py`                                                                                       | Enforce linting, typing, cleanup sweeps, and pytest during PRs with artefact uploads.                 |
-| Release & monitoring   | `.github/workflows/release-tag.yml`, `.github/workflows/turborepo-monitor.yml`, `ops/turborepo-release.json`, Dependabot              | Cut deep-clean releases automatically and track upstream updates while nudging dependency hygiene.    |
-| Post-release hygiene   | `cleanup` command, `cleanup-macos-cruft.sh`, automated CI/release/pre-commit hooks                                                    | Keep workspaces clean before packaging or mirroring artefacts and ensure future syncs stay pristine.  |
+| Stage                  | Tooling                                                                                                                                      | Purpose                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Discovery & planning   | [Lifecycle Playbook](https://iamjonobo.github.io/Hephaestus/lifecycle/), [ADRs](https://iamjonobo.github.io/Hephaestus/adr/), `plan` command | Capture intent, align stakeholders, and visualise rollouts.                                           |
+| Local analytics        | `tools refactor hotspots`, `tools refactor opportunities`                                                                                    | Identify high-value refactor targets with churn and qualitative signals.                              |
+| Quality gates          | `guard-rails`, `scripts/validate_quality_gates.py`, `scripts/lint_nested_decorators.py`                                                      | Comprehensive quality validation with frontier-level standards (coverage, linting, typing, security). |
+| Automation             | `hephaestus-toolkit/refactoring/scripts/`                                                                                                    | Execute codemods, hotspot scans, and characterization harnesses with reproducible scripts.            |
+| Developer guard rails  | `.pre-commit-config.yaml`, Ruff (linting, formatting, import sorting), Black, PyUpgrade, Mypy, Pip Audit, `uv run hephaestus cleanup`        | Keep code style, types, security, and workspace hygiene evergreen before commits land.                |
+| Continuous integration | `.github/workflows/ci.yml`, `tests/test_cli.py`                                                                                              | Enforce linting, typing, cleanup sweeps, and pytest during PRs with artefact uploads.                 |
+| Release & monitoring   | `.github/workflows/release-tag.yml`, `.github/workflows/turborepo-monitor.yml`, `ops/turborepo-release.json`, Dependabot                     | Cut deep-clean releases automatically and track upstream updates while nudging dependency hygiene.    |
+| Post-release hygiene   | `cleanup` command, `cleanup-macos-cruft.sh`, automated CI/release/pre-commit hooks                                                           | Keep workspaces clean before packaging or mirroring artefacts and ensure future syncs stay pristine.  |
 
 ### Project Layout
 

@@ -2,6 +2,7 @@
 title: "Refactoring Toolkit"
 description: "The refactoring toolkit ships alongside the CLI to streamline codebase upgrades. Dive into the resources within hephaestus-toolkit/refactoring/ for..."
 ---
+
 The refactoring toolkit ships alongside the CLI to streamline codebase upgrades. Dive into the
 resources within `hephaestus-toolkit/refactoring/` for configuration, scripts, and playbooks.
 

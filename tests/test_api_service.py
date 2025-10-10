@@ -7,7 +7,12 @@ from pathlib import Path
 import pytest
 
 from hephaestus.api import service
-from hephaestus.plugins import PluginMetadata, PluginRegistry, PluginResult, QualityGatePlugin
+from hephaestus.plugins import (
+    PluginMetadata,
+    PluginRegistry,
+    PluginResult,
+    QualityGatePlugin,
+)
 
 
 class _StubPlugin(QualityGatePlugin):
@@ -43,7 +48,13 @@ def _mock_cleanup(monkeypatch: pytest.MonkeyPatch) -> None:
         return {
             "files": 0,
             "bytes": 0,
-            "manifest": {"search_roots": 0, "preview_count": 0, "removed_count": 0, "skipped": 0, "errors": 0},
+            "manifest": {
+                "search_roots": 0,
+                "preview_count": 0,
+                "removed_count": 0,
+                "skipped": 0,
+                "errors": 0,
+            },
             "preview_paths": [],
             "removed_paths": [],
         }
@@ -57,7 +68,9 @@ def _setup_registry(plugin: QualityGatePlugin) -> PluginRegistry:
     return registry
 
 
-def test_evaluate_guard_rails_flags_missing_plugin_requirements(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_evaluate_guard_rails_flags_missing_plugin_requirements(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Guard-rails evaluation should fail when plugin tooling requirements are missing."""
 
     registry = _setup_registry(_StubPlugin("stub-plugin", ["tool-that-does-not-exist>=1.0"]))
@@ -86,7 +99,9 @@ def test_evaluate_guard_rails_flags_missing_plugin_requirements(monkeypatch: pyt
     assert "tool-that-does-not-exist" in plugin_gate.metadata["missing"]
 
 
-def test_evaluate_guard_rails_succeeds_when_requirements_present(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_evaluate_guard_rails_succeeds_when_requirements_present(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Guard-rails evaluation should succeed when required tooling exists."""
 
     registry = _setup_registry(_StubPlugin("stub-plugin", ["stub-tool>=1.0"]))

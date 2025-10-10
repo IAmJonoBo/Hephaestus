@@ -361,6 +361,54 @@ def discover_plugins(
     return registry_instance
 
 
+def _find_plugin_class(module: Any) -> type[QualityGatePlugin] | None:
+    """Find QualityGatePlugin subclass in a module."""
+    for attr_name in dir(module):
+        attr = getattr(module, attr_name)
+        if (
+            isinstance(attr, type)
+            and issubclass(attr, QualityGatePlugin)
+            and attr is not QualityGatePlugin
+        ):
+            return attr
+    return None
+
+
+def _load_from_module(module_name: str) -> type[QualityGatePlugin]:
+    """Load plugin class from importable module."""
+    try:
+        module = importlib.import_module(module_name)
+        plugin_class = _find_plugin_class(module)
+        if plugin_class is None:
+            raise ValueError(f"No QualityGatePlugin class found in module {module_name}")
+        return plugin_class
+    except ImportError as e:
+        raise ValueError(f"Failed to import plugin module {module_name}: {e}") from e
+
+
+def _load_from_path(plugin_name: str, path: str) -> type[QualityGatePlugin]:
+    """Load plugin class from file path."""
+    path_obj = Path(path)
+    if not path_obj.exists():
+        raise ValueError(f"Plugin path does not exist: {path}")
+
+    try:
+        spec = importlib.util.spec_from_file_location(plugin_name, path)
+        if spec is None or spec.loader is None:
+            raise ValueError(f"Failed to load plugin from {path}")
+
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[plugin_name] = module
+        spec.loader.exec_module(module)
+
+        plugin_class = _find_plugin_class(module)
+        if plugin_class is None:
+            raise ValueError(f"No QualityGatePlugin class found in {path}")
+        return plugin_class
+    except Exception as e:
+        raise ValueError(f"Failed to load plugin from {path}: {e}") from e
+
+
 def _load_external_plugin(config: PluginConfig, registry_instance: PluginRegistry) -> None:
     """Load an external plugin from module or file path.
 
@@ -374,62 +422,11 @@ def _load_external_plugin(config: PluginConfig, registry_instance: PluginRegistr
     if not config.enabled:
         return
 
-    # Edge case: neither module nor path specified
     if not config.module and not config.path:
         raise ValueError(f"Plugin {config.name} has neither 'module' nor 'path' specified")
 
-    plugin_class = None
+    plugin_class = _load_from_module(config.module) if config.module else _load_from_path(config.name, config.path)  # type: ignore
 
-    # Try loading from module
-    if config.module:
-        try:
-            module = importlib.import_module(config.module)
-            # Look for a class that inherits from QualityGatePlugin
-            for attr_name in dir(module):
-                attr = getattr(module, attr_name)
-                if (
-                    isinstance(attr, type)
-                    and issubclass(attr, QualityGatePlugin)
-                    and attr is not QualityGatePlugin
-                ):
-                    plugin_class = attr
-                    break
-        except ImportError as e:
-            raise ValueError(f"Failed to import plugin module {config.module}: {e}") from e
-
-    # Try loading from file path
-    elif config.path:
-        # Edge case: path doesn't exist
-        path_obj = Path(config.path)
-        if not path_obj.exists():
-            raise ValueError(f"Plugin path does not exist: {config.path}")
-
-        try:
-            spec = importlib.util.spec_from_file_location(config.name, config.path)
-            if spec is None or spec.loader is None:
-                raise ValueError(f"Failed to load plugin from {config.path}")
-
-            module = importlib.util.module_from_spec(spec)
-            sys.modules[config.name] = module
-            spec.loader.exec_module(module)
-
-            # Look for a class that inherits from QualityGatePlugin
-            for attr_name in dir(module):
-                attr = getattr(module, attr_name)
-                if (
-                    isinstance(attr, type)
-                    and issubclass(attr, QualityGatePlugin)
-                    and attr is not QualityGatePlugin
-                ):
-                    plugin_class = attr
-                    break
-        except Exception as e:
-            raise ValueError(f"Failed to load plugin from {config.path}: {e}") from e
-
-    if plugin_class is None:
-        raise ValueError(f"No QualityGatePlugin class found for plugin {config.name}")
-
-    # Instantiate and register the plugin
     try:
         plugin_instance = plugin_class()
         if not registry_instance.is_registered(config.name):

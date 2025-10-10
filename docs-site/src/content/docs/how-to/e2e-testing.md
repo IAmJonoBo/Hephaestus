@@ -2,6 +2,7 @@
 title: "E2E Testing Guide"
 description: "This guide covers end-to-end (E2E) testing for the Hephaestus development environment setup and workflows. E2E tests validate the complete development workflow..."
 ---
+
 This guide covers end-to-end (E2E) testing for the Hephaestus development environment setup and workflows.
 
 ## Overview
