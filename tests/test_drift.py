@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -243,3 +244,59 @@ def test_get_installed_version_no_version_in_output() -> None:
         mock_run.return_value = mock.Mock(returncode=0, stdout="No version info here", stderr="")
         result = _get_installed_version("some-tool")
         assert result is None
+
+
+def test_apply_remediation_commands_executes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """apply_remediation_commands should execute shell commands."""
+
+    from hephaestus.drift import apply_remediation_commands
+
+    calls: list[str] = []
+
+    def _fake_run(
+        cmd: str,
+        *,
+        shell: bool,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        env: dict[str, str] | None = None,
+    ) -> Any:
+        calls.append(cmd)
+
+        class Result:
+            returncode = 0
+            stdout = "ok"
+            stderr = ""
+
+        return Result()
+
+    monkeypatch.setattr("subprocess.run", _fake_run)
+
+    results = apply_remediation_commands(["echo ok"])
+
+    assert calls == ["echo ok"]
+    assert len(results) == 1
+    assert results[0].exit_code == 0
+    assert results[0].stdout == "ok"
+
+
+def test_apply_remediation_commands_handles_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """apply_remediation_commands should capture failures."""
+
+    from hephaestus.drift import apply_remediation_commands
+
+    class _Result:
+        returncode = 1
+        stdout = ""
+        stderr = "error"
+
+    def _fake_run(*args: Any, **kwargs: Any) -> Any:
+        return _Result()
+
+    monkeypatch.setattr("subprocess.run", _fake_run)
+
+    results = apply_remediation_commands(["exit 1"])
+
+    assert results[0].exit_code == 1
+    assert results[0].stderr == "error"

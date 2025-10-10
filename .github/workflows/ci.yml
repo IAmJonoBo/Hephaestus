@@ -71,6 +71,9 @@ jobs:
             'Not using isolated venv'"
           echo "Environment isolation verified ✓"
 
+      - name: Check tool drift
+        run: uv run hephaestus guard-rails --drift
+
       - name: Run tests
         run: uv run pytest -q
 

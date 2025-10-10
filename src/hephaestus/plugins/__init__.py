@@ -298,6 +298,11 @@ def discover_plugins(
     if registry_instance is None:
         registry_instance = registry
 
+    # Ensure we always honour the latest configuration by starting from a clean
+    # registry snapshot. This prevents previously enabled plugins from
+    # remaining registered after being disabled in configuration files.
+    registry_instance.clear()
+
     # Load plugin configurations
     configs = load_plugin_config(config_path)
 
