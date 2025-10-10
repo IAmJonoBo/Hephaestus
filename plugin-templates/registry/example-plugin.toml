@@ -1,0 +1,26 @@
+[plugin]
+name = "example-plugin"
+version = "1.0.0"
+description = "Example quality gate plugin shipped via the marketplace registry."
+category = "custom"
+author = "Hephaestus Maintainers"
+
+[plugin.compatibility]
+hephaestus = ">=0.2.0"
+python = ">=3.12"
+
+[[plugin.dependencies]]
+type = "plugin"
+name = "ruff-check"
+version = ">=0.1.0"
+
+[[plugin.dependencies]]
+type = "python"
+name = "pytest"
+version = ">=8.0"
+
+[plugin.entrypoint]
+path = "../example-plugin/example_plugin.py"
+
+[plugin.signature]
+bundle = "example-plugin.sigstore"

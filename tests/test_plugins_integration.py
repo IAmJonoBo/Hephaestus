@@ -1,11 +1,15 @@
-"""Integration tests for plugin system."""
-
-from __future__ import annotations
-
+import shutil
+import textwrap
 from pathlib import Path
 from typing import Any, NoReturn
 
 import pytest
+
+from hephaestus import telemetry
+from hephaestus.plugins import PluginResult
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_MARKETPLACE_ROOT = PROJECT_ROOT / "plugin-templates" / "registry"
 
 
 def test_plugin_system_imports() -> None:
@@ -102,7 +106,9 @@ def test_plugin_discovery_with_no_config() -> None:
 
     # Discover with non-existent config path
     result_registry = discover_plugins(
-        config_path=Path("/nonexistent/config.toml"), registry_instance=registry
+        config_path=Path("/nonexistent/config.toml"),
+        registry_instance=registry,
+        marketplace_root=DEFAULT_MARKETPLACE_ROOT,
     )
 
     # Should still load built-in plugins
@@ -128,11 +134,13 @@ def test_plugin_registry_ordering() -> None:
                 order=10,
             )
 
-        def validate_config(self, config: dict) -> bool:
+        def validate_config(self, config: dict[str, Any]) -> bool:
             return True
 
-        def run(self, config: dict):  # type: ignore[no-untyped-def]
-            pass
+        def run(self, config: dict[str, Any]) -> PluginResult:
+            from hephaestus.plugins import PluginResult
+
+            return PluginResult(success=True, message="ok")
 
     class LatePlugin(QualityGatePlugin):
         @property
@@ -147,11 +155,13 @@ def test_plugin_registry_ordering() -> None:
                 order=100,
             )
 
-        def validate_config(self, config: dict) -> bool:
+        def validate_config(self, config: dict[str, Any]) -> bool:
             return True
 
-        def run(self, config: dict):  # type: ignore[no-untyped-def]
-            pass
+        def run(self, config: dict[str, Any]) -> PluginResult:
+            from hephaestus.plugins import PluginResult
+
+            return PluginResult(success=True, message="ok")
 
     registry = PluginRegistry()
     registry.register(LatePlugin())
@@ -164,10 +174,10 @@ def test_plugin_registry_ordering() -> None:
 
 def test_plugin_lifecycle_hooks() -> None:
     """Test plugin setup and teardown hooks."""
-    from hephaestus.plugins import PluginMetadata, QualityGatePlugin
+    from hephaestus.plugins import PluginMetadata, PluginResult, QualityGatePlugin
 
-    setup_called = []
-    teardown_called = []
+    setup_called: list[bool] = []
+    teardown_called: list[bool] = []
 
     class LifecyclePlugin(QualityGatePlugin):
         @property
@@ -181,12 +191,10 @@ def test_plugin_lifecycle_hooks() -> None:
                 requires=[],
             )
 
-        def validate_config(self, config: dict) -> bool:
+        def validate_config(self, config: dict[str, Any]) -> bool:
             return True
 
-        def run(self, config: dict):  # type: ignore[no-untyped-def]
-            from hephaestus.plugins import PluginResult
-
+        def run(self, config: dict[str, Any]) -> PluginResult:
             return PluginResult(success=True, message="ok")
 
         def setup(self) -> None:
@@ -207,22 +215,163 @@ def test_plugin_lifecycle_hooks() -> None:
     assert len(teardown_called) == 1
 
 
-def test_discover_plugins_loads_all_builtins() -> None:
-    """Test that discover_plugins loads all built-in plugins by default."""
+def _write_plugin_config(tmp_path: Path, version: str = "1.0.0") -> Path:
+    config_dir = tmp_path / ".hephaestus"
+    config_dir.mkdir()
+    config_path = config_dir / "plugins.toml"
+    config_path.write_text(
+        textwrap.dedent(
+            f"""
+            [builtin]
+            [builtin.ruff-check]
+            enabled = true
+
+            [[marketplace]]
+            name = "example-plugin"
+            version = "{version}"
+            registry = "default"
+            enabled = true
+
+            [marketplace.config]
+            severity = "high"
+            """
+        ).strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    return config_path
+
+
+def _capture_counters(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, int, dict[str, Any]]]:
+    captured: list[tuple[str, int, dict[str, Any]]] = []
+
+    def fake_counter(name: str, value: int = 1, attributes: dict[str, Any] | None = None) -> None:
+        captured.append((name, value, attributes or {}))
+
+    monkeypatch.setattr(telemetry, "record_counter", fake_counter)
+    return captured
+
+
+def _copy_registry(tmp_path: Path) -> Path:
+    registry_root = tmp_path / "registry"
+    shutil.copytree(DEFAULT_MARKETPLACE_ROOT, registry_root)
+    example_source = PROJECT_ROOT / "plugin-templates" / "example-plugin"
+    shutil.copytree(example_source, tmp_path / "example-plugin")
+    return registry_root
+
+
+def test_marketplace_discovery_validates_signature_and_dependencies(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from hephaestus.plugins import PluginRegistry, discover_plugins
 
+    config_path = _write_plugin_config(tmp_path)
+    captured = _capture_counters(monkeypatch)
+
     registry = PluginRegistry()
-    discover_plugins(registry_instance=registry)
+    discover_plugins(
+        config_path=config_path,
+        registry_instance=registry,
+        marketplace_root=DEFAULT_MARKETPLACE_ROOT,
+    )
 
-    plugins = registry.all_plugins()
-    plugin_names = {p.metadata.name for p in plugins}
+    plugin = registry.get("example-plugin")
+    assert plugin.metadata.version == "1.0.0"
 
-    # Should have all built-in plugins
-    assert "ruff-check" in plugin_names
-    assert "ruff-format" in plugin_names
-    assert "mypy" in plugin_names
-    assert "pytest" in plugin_names
-    assert "pip-audit" in plugin_names
+    counter_names = {name for name, _, _ in captured}
+    assert "hephaestus.plugins.marketplace.fetch" in counter_names
+    assert "hephaestus.plugins.marketplace.verified" in counter_names
+    assert "hephaestus.plugins.marketplace.dependencies_resolved" in counter_names
+
+
+def test_marketplace_version_mismatch_raises(tmp_path: Path) -> None:
+    from hephaestus.plugins import PluginRegistry, discover_plugins
+
+    config_path = _write_plugin_config(tmp_path, version="9.9.9")
+    registry = PluginRegistry()
+
+    with pytest.raises(ValueError, match="version 9.9.9"):
+        discover_plugins(
+            config_path=config_path,
+            registry_instance=registry,
+            marketplace_root=DEFAULT_MARKETPLACE_ROOT,
+        )
+
+
+def test_marketplace_dependency_resolution_blocks_missing_python(tmp_path: Path) -> None:
+    from hephaestus.plugins import PluginRegistry, discover_plugins
+
+    registry_root = _copy_registry(tmp_path)
+
+    manifest_path = registry_root / "example-plugin.toml"
+    manifest_path.write_text(
+        textwrap.dedent(
+            """
+            [plugin]
+            name = "example-plugin"
+            version = "1.0.0"
+            description = "Example quality gate plugin"
+            category = "custom"
+            author = "Hephaestus Maintainers"
+
+            [plugin.compatibility]
+            hephaestus = ">=0.2.0"
+            python = ">=3.12"
+
+            [[plugin.dependencies]]
+            type = "python"
+            name = "totally-uninstalled-package"
+            version = ">=99.0"
+
+            [plugin.entrypoint]
+            path = "../example-plugin/example_plugin.py"
+
+            [plugin.signature]
+            bundle = "example-plugin.sigstore"
+            """
+        ).strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    config_path = _write_plugin_config(tmp_path)
+    registry = PluginRegistry()
+
+    with pytest.raises(ValueError, match="totally-uninstalled-package"):
+        discover_plugins(
+            config_path=config_path,
+            registry_instance=registry,
+            marketplace_root=registry_root,
+        )
+
+
+def test_marketplace_trust_policy_enforced(tmp_path: Path) -> None:
+    from hephaestus.plugins import PluginRegistry, discover_plugins
+
+    registry_root = _copy_registry(tmp_path)
+
+    trust_policy = registry_root / "trust-policy.toml"
+    trust_policy.write_text(
+        textwrap.dedent(
+            """
+            [trust]
+            require_signature = true
+            allowed_identities = ["mailto:other@hephaestus.dev"]
+            """
+        ).strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    config_path = _write_plugin_config(tmp_path)
+    registry = PluginRegistry()
+
+    with pytest.raises(ValueError, match="trust policy"):
+        discover_plugins(
+            config_path=config_path,
+            registry_instance=registry,
+            marketplace_root=registry_root,
+        )
 
 
 def test_plugin_result_with_details() -> None:
