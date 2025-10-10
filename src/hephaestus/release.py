@@ -49,6 +49,7 @@ __all__ = [
     "download_wheelhouse",
     "extract_archive",
     "install_from_directory",
+    "install_from_pypi",
 ]
 
 
@@ -788,6 +789,66 @@ def install_from_directory(
         message="Installation completed successfully",
         wheels=len(wheels),
         directory=str(wheel_directory),
+    )
+
+
+def install_from_pypi(
+    *,
+    project: str,
+    version: str | None = None,
+    python_executable: str | None = None,
+    pip_args: Sequence[str] | None = None,
+    upgrade: bool = True,
+    index_url: str | None = None,
+    extra_index_url: str | None = None,
+) -> None:
+    """Install *project* from a PyPI-compatible index using pip."""
+
+    if not project or project.strip() == "":
+        raise ReleaseError("A project name is required for PyPI installation.")
+
+    python_executable = python_executable or sys.executable
+    requirement = project if version is None else f"{project}=={version}"
+
+    cmd: list[str] = [python_executable, "-m", "pip", "install"]
+    if upgrade:
+        cmd.append("--upgrade")
+    if pip_args:
+        cmd.extend(pip_args)
+    if index_url:
+        cmd.extend(["--index-url", index_url])
+    if extra_index_url:
+        cmd.extend(["--extra-index-url", extra_index_url])
+    cmd.append(requirement)
+
+    telemetry.emit_event(
+        logger,
+        telemetry.RELEASE_INSTALL_START,
+        message=f"Installing {requirement} via pip",
+        project=project,
+        version=version or "latest",
+        index_url=index_url,
+        extra_index_url=extra_index_url,
+        upgrade=upgrade,
+    )
+
+    telemetry.emit_event(
+        logger,
+        telemetry.RELEASE_INSTALL_INVOKE,
+        message="Running pip install command",
+        command=cmd,
+    )
+
+    subprocess.check_call(cmd)
+
+    telemetry.emit_event(
+        logger,
+        telemetry.RELEASE_INSTALL_COMPLETE,
+        message="PyPI installation completed successfully",
+        project=project,
+        version=version or "latest",
+        index_url=index_url,
+        extra_index_url=extra_index_url,
     )
 
 

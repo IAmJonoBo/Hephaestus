@@ -85,6 +85,19 @@ pip install hephaestus-toolkit[dev,qa]
 pip install hephaestus-toolkit==0.2.0
 ```
 
+**Pre-release validation (Test PyPI via the CLI):**
+
+```bash
+# Install the latest prerelease published to Test PyPI
+hephaestus release install --source test-pypi
+
+# Install a specific prerelease tag (leading "v" is optional)
+hephaestus release install --source test-pypi --tag v0.3.0rc1
+
+# Target a managed virtual environment for isolation
+hephaestus release install --source test-pypi --python .venv/bin/python
+```
+
 **Development Installation (from source):**
 
 ```bash

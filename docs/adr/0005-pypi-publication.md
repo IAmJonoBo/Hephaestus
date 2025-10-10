@@ -68,6 +68,29 @@ Release Workflow:
 7. Attach checksums and Sigstore bundles
 ```
 
+### Trusted Publisher Configuration (2025-10-12)
+
+- **PyPI project**: [`hephaestus-toolkit`](https://pypi.org/project/hephaestus-toolkit/)
+- **Test PyPI project**: [`hephaestus-toolkit`](https://test.pypi.org/project/hephaestus-toolkit/)
+- **Trusted Publisher slugs**:
+  - Production: `pypi:project/hephaestus-toolkit`
+  - Staging: `testpypi:project/hephaestus-toolkit`
+- **Repository binding**: `IAmJonoBo/Hephaestus` (release workflow `publish-pypi.yml`)
+- **2FA enforcement**: PyPI maintainers must use TOTP/U2F; recovery codes stored in the security vault (see `SECURITY.md`).
+- **OIDC scope**: GitHub Actions (environment `pypi`) with `id-token: write` permission only.
+- **Manual rollback**: Use `pip index versions hephaestus-toolkit` + `pip yanking` procedures documented in security runbooks.
+
+### Automation Footprint (2025-10-12)
+
+- `.github/workflows/publish-pypi.yml` now:
+  - Builds with Python 3.12 using `python -m build`.
+  - Signs artifacts via `python -m sigstore sign dist/*`.
+  - Publishes prereleases to Test PyPI and runs `tests/smoke/test_testpypi_install.py` (gated by `HEPHAESTUS_TESTPYPI_SMOKE`).
+  - Installs the published package via `hephaestus release install --source test-pypi --tag <version>` before promoting a stable release.
+  - Uploads tarred Sigstore bundles (`sigstore-bundles-<tag>.tar.gz`) to the GitHub Release.
+- Trusted Publisher comment documents the production slug directly in the workflow for future maintainers.
+- Smoke verification uses a temporary virtual environment and respects the repository's release cache to avoid polluting runners.
+
 ### PyPI Package Metadata
 
 ```toml
