@@ -4,33 +4,39 @@
 
 set -euo pipefail
 
-# Colors for output
+# Colors and formatting for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
+# Progress indicators
+STEP=0
+TOTAL_STEPS=6
+
 echo -e "${CYAN}==================================================================${NC}"
-echo -e "${CYAN}Hephaestus Development Environment Setup${NC}"
+echo -e "${CYAN}${BOLD}Hephaestus Development Environment Setup${NC}"
 echo -e "${CYAN}==================================================================${NC}"
 echo ""
 
-# Function to print status messages
+# Function to print status messages with step numbers
 print_status() {
-  echo -e "${CYAN}→${NC} $1"
+  ((STEP++))
+  echo -e "${CYAN}[${STEP}/${TOTAL_STEPS}] →${NC} $1"
 }
 
 print_success() {
-  echo -e "${GREEN}✓${NC} $1"
+  echo -e "${GREEN}    ✓${NC} $1"
 }
 
 print_error() {
-  echo -e "${RED}✗${NC} $1"
+  echo -e "${RED}    ✗${NC} $1"
 }
 
 print_warning() {
-  echo -e "${YELLOW}⚠${NC} $1"
+  echo -e "${YELLOW}    ⚠${NC} $1"
 }
 
 # Function to sweep AppleDouble files from uv cache and .venv
@@ -89,6 +95,11 @@ export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${DEFAULT_VENV_PATH}}"
 export UV_CACHE_DIR="${UV_CACHE_DIR:-${DEFAULT_CACHE_PATH}}"
 
 mkdir -p "${UV_CACHE_DIR}"
+
+print_success "Repository root detected"
+print_status "Configuring environment..."
+echo -e "    ${CYAN}•${NC} UV_PROJECT_ENVIRONMENT: ${UV_PROJECT_ENVIRONMENT}"
+echo -e "    ${CYAN}•${NC} UV_CACHE_DIR: ${UV_CACHE_DIR}"
 
 # Step 1: Check for uv installation
 print_status "Checking for uv package manager..."
@@ -389,11 +400,14 @@ fi
 print_status "Validating development environment..."
 
 VALIDATION_FAILED=0
+VALIDATED_COUNT=0
+TOTAL_MODULES=6
 
 # Check core dependencies
 for module in "typer" "rich" "pydantic" "pytest" "ruff" "mypy"; do
   if uv run python -c "import ${module}; print(f'${module} OK')" &>/dev/null; then
-    print_success "${module} available"
+    ((VALIDATED_COUNT++))
+    print_success "${module} available (${VALIDATED_COUNT}/${TOTAL_MODULES})"
   else
     print_error "${module} not available"
     VALIDATION_FAILED=1

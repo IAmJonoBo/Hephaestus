@@ -9,10 +9,10 @@ from typing import Annotated
 
 import typer
 from rich.console import Console
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
 
-from hephaestus import cleanup as cleanup_module
-from hephaestus import events as telemetry
+from hephaestus import cleanup as cleanup_module, events as telemetry
 from hephaestus.telemetry import record_histogram, trace_command
 
 console = Console()
@@ -38,15 +38,25 @@ def _run_cleanup_pipeline(  # NOSONAR(S3776)
 
     # Preview
     start_time = time.perf_counter()
-    normalized = options.normalize()
-    search_roots = cleanup_module.gather_search_roots(normalized)
 
-    preview_start = time.perf_counter()
-    preview_result = cleanup_module.run_cleanup(
-        replace(options, dry_run=True),
-        on_remove=None,
-        on_skip=None,
-    )
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("[cyan]Analyzing workspace...", total=None)
+        normalized = options.normalize()
+        search_roots = cleanup_module.gather_search_roots(normalized)
+        progress.update(task, description="[cyan]Running cleanup preview...")
+
+        preview_start = time.perf_counter()
+        preview_result = cleanup_module.run_cleanup(
+            replace(options, dry_run=True),
+            on_remove=None,
+            on_skip=None,
+        )
+        progress.update(task, description="[green]Preview complete ✓")
+
     record_histogram(
         "hephaestus.cleanup.preview.duration",
         time.perf_counter() - preview_start,
@@ -98,16 +108,37 @@ def _run_cleanup_pipeline(  # NOSONAR(S3776)
     # Execute
     removal_log: list[Path] = []
 
-    def _on_remove(path: Path) -> None:
-        removal_log.append(path)
-        console.print(f"[green]- removed[/green] {path}")
+    console.print("\n[cyan]→ Starting cleanup...[/cyan]")
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        console=console,
+    ) as progress:
+        # Estimate total from preview
+        total_items = len(preview_result.preview_paths)
+        task = progress.add_task("[cyan]Cleaning workspace...", total=total_items)
+        items_processed = 0
 
-    def _on_skip(path: Path, reason: str) -> None:
-        console.print(f"[yellow]! skipped[/yellow] {path} ({reason})")
+        def _on_remove(path: Path) -> None:
+            nonlocal items_processed
+            removal_log.append(path)
+            items_processed += 1
+            progress.update(
+                task, advance=1, description=f"[green]Removed {items_processed}/{total_items} items"
+            )
 
-    cleanup_start = time.perf_counter()
-    result = cleanup_module.run_cleanup(options, on_remove=_on_remove, on_skip=_on_skip)
-    cleanup_duration = time.perf_counter() - cleanup_start
+        def _on_skip(path: Path, reason: str) -> None:
+            nonlocal items_processed
+            items_processed += 1
+            progress.update(task, advance=1)
+
+        cleanup_start = time.perf_counter()
+        result = cleanup_module.run_cleanup(options, on_remove=_on_remove, on_skip=_on_skip)
+        cleanup_duration = time.perf_counter() - cleanup_start
+
+    console.print("[green]✓ Cleanup complete[/green]\n")
 
     record_histogram(
         "hephaestus.cleanup.execution.duration",

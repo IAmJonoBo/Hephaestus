@@ -11,9 +11,7 @@ from typing import Any, cast
 
 import pytest
 
-from hephaestus import events
-from hephaestus import logging as heph_logging
-from hephaestus import telemetry
+from hephaestus import events, logging as heph_logging, telemetry
 
 
 def _reset_logging() -> None:

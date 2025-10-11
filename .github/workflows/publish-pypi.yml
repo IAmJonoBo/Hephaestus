@@ -1,11 +1,13 @@
+---
 name: Publish to PyPI
 
-on:
+'on':
   release:
     types: [published]
 
 permissions:
-  id-token: write # Required for PyPI Trusted Publishers (pypi:project/hephaestus-toolkit)
+  # Required for PyPI Trusted Publishers (pypi:project/hephaestus-toolkit)
+  id-token: write
   contents: write
 
 jobs:

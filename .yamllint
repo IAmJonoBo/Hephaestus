@@ -1,0 +1,34 @@
+---
+# yamllint configuration for Hephaestus project
+# Balances strict formatting with practical workflow patterns
+
+extends: default
+
+rules:
+  # Document start (---) is optional but enforced for consistency
+  document-start:
+    present: true
+
+  # Line length relaxed to 120 for GitHub Actions readability
+  line-length:
+    max: 120
+    level: warning
+
+  # Comments spacing: require at least 1 space before comment
+  comments:
+    min-spaces-from-content: 1
+
+  # Truthy values: allow 'on' for GitHub Actions triggers
+  truthy:
+    allowed-values: ['true', 'false', 'on', 'off']
+    check-keys: false
+
+  # Indentation: 2 spaces (GitHub Actions standard)
+  indentation:
+    spaces: 2
+    indent-sequences: true
+
+  # Allow empty values for GitHub Actions optional fields
+  empty-values:
+    forbid-in-block-mappings: false
+    forbid-in-flow-mappings: false

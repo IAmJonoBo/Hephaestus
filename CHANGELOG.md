@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Enhanced UX with Progress Indicators**:
+  - Progress bars and spinners for long-running operations in cleanup command
+  - Visual progress indicators for guard-rails pipeline with step counters and time tracking
+  - Enhanced setup script with step numbers and formatted output
+  - `.yamllint` configuration file in project root for consistent YAML linting
+  - Comprehensive YAML formatting fixes across all workflow files
+
+### Changed
+
+- **Improved Visual Feedback**:
+  - Guard-rails command now shows real-time progress with Rich progress bars
+  - Cleanup command displays progress bars during file removal operations
+  - Setup script now shows progress indicators and module validation counts
+  - YAML linting now uses `.yamllint` config instead of `.trunk/configs/.yamllint.yaml`
+  - All GitHub Actions workflow files now start with `---` document marker
+  - Workflow files use `'on':` syntax for GitHub Actions trigger compatibility
+  - Better visual feedback throughout the CLI with color-coded messages
+  - Enhanced error messages with step numbers in guard-rails pipeline
+
 - **API & Automation (ADR-0004 Phase 2)**:
   - FastAPI implementation with shared execution engine for guard-rails, cleanup, analytics rankings, and auto-remediation.
   - gRPC services refreshed for parity plus client-streaming analytics ingestion with deterministic responses.
