@@ -2,7 +2,131 @@
 
 This directory contains automation scripts for quality validation and enforcement.
 
+## 🚀 Quick Start: Unified Orchestrator
+
+**NEW**: Use the unified orchestrator for intelligent, context-aware automation:
+
+```bash
+# First-time setup (auto-fixes everything)
+./scripts/hephaestus-orchestrator.sh
+
+# Fast mode (uses cached validations, runs frequently)
+./scripts/hephaestus-orchestrator.sh --fast
+
+# Skip quality checks (development workflow)
+./scripts/hephaestus-orchestrator.sh --fast --skip-tests
+
+# Help
+./scripts/hephaestus-orchestrator.sh --help
+```
+
+### Unified Orchestrator Features
+
+- **🧠 Context-Aware**: Caches validation results to avoid redundant checks
+- **⚡ Fast Mode**: Skips recently validated checks (perfect for frequent runs)
+- **🔗 Integrated**: Runs all validation and setup scripts in optimal order
+- **🔒 Concurrent-Safe**: File locking prevents conflicts from multiple instances
+- **📊 State Tracking**: Maintains state between runs in `~/.hephaestus/state.json`
+- **🎯 Intelligent**: Detects what needs to run based on environment changes
+
+**Recommended Workflow:**
+```bash
+# On first clone
+./scripts/hephaestus-orchestrator.sh
+
+# During development (run frequently)
+./scripts/hephaestus-orchestrator.sh --fast --skip-tests
+
+# Before commit
+./scripts/hephaestus-orchestrator.sh --fast
+
+# Full validation
+./scripts/hephaestus-orchestrator.sh
+```
+
 ## Scripts
+
+### hephaestus-orchestrator.sh
+
+**🌟 NEW**: Unified orchestrator that intelligently runs all validation and setup operations.
+
+**Usage:**
+
+```bash
+# Standard run (auto-remediation enabled)
+./scripts/hephaestus-orchestrator.sh
+
+# Fast mode with caching
+./scripts/hephaestus-orchestrator.sh --fast
+
+# Development workflow
+./scripts/hephaestus-orchestrator.sh --fast --skip-tests
+
+# Dry-run mode
+DRY_RUN=1 ./scripts/hephaestus-orchestrator.sh
+
+# Interactive mode
+INTERACTIVE=1 ./scripts/hephaestus-orchestrator.sh
+```
+
+**What it orchestrates:**
+
+1. **Environment Validation** - Python version, uv installation
+2. **Dependency Orchestration** - Lockfile sync, venv setup, dependency sync
+3. **Code Quality** - Linting, formatting, type checking
+4. **Platform-Specific** - macOS setup validation
+
+**Key Features:**
+
+- **Context-Aware Caching**: Skips recently validated checks (configurable duration)
+- **File Locking**: Prevents conflicts from concurrent execution
+- **State Persistence**: Maintains validation state in `~/.hephaestus/state.json`
+- **Intelligent Ordering**: Runs checks in optimal dependency order
+- **Comprehensive Logging**: All actions logged to `~/.hephaestus/logs/`
+
+**Cache Durations (Fast Mode):**
+
+| Check | Cache Duration |
+|-------|----------------|
+| Python version | 1 hour |
+| UV installation | 1 hour |
+| Virtual environment | 10 minutes |
+| Lockfile sync | 5 minutes |
+| Dependency sync | 30 minutes |
+| Quality checks | 10 minutes |
+| macOS setup | 1 hour |
+
+**Environment Variables:**
+
+- `AUTO_REMEDIATE=1` - Enable auto-remediation (default)
+- `DRY_RUN=1` - Show what would be done
+- `INTERACTIVE=1` - Prompt before changes
+- `PERSIST_CONFIG=1` - Persist settings to shell profile
+- `FAST_MODE=1` - Use cached validations
+- `SKIP_TESTS=1` - Skip quality checks
+- `LOG_REMEDIATION=1` - Enable logging (default)
+
+**Exit codes:**
+
+- 0: All checks passed
+- 1: One or more checks failed
+
+**Recommended usage patterns:**
+
+```bash
+# First time setup
+./scripts/hephaestus-orchestrator.sh
+
+# Add dependency
+# (automatically syncs and validates)
+./scripts/hephaestus-orchestrator.sh --fast
+
+# Pre-commit
+./scripts/hephaestus-orchestrator.sh --fast
+
+# Before PR
+./scripts/hephaestus-orchestrator.sh
+```
 
 ### validate_quality_gates.py
 
