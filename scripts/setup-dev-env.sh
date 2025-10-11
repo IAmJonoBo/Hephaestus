@@ -33,6 +33,44 @@ print_warning() {
   echo -e "${YELLOW}⚠${NC} $1"
 }
 
+# Function to sweep AppleDouble files from uv cache and .venv
+sweep_appledouble() {
+  if [[ ${OSTYPE} != "darwin"* ]]; then
+    return 0
+  fi
+  if ! command -v find >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local UV_CACHE_DIR="${UV_CACHE_DIR:-${HOME}/.cache/uv}"
+  local UV_SHARE_DIR="${HOME}/.local/share/uv"
+
+  # Sweep uv cache directories
+  for cache_dir in "${UV_CACHE_DIR}" "${UV_SHARE_DIR}"; do
+    if [[ -d ${cache_dir} ]]; then
+      find "${cache_dir}" -name "._*" -type f -delete 2>/dev/null || true
+      find "${cache_dir}" -name ".DS_Store" -type f -delete 2>/dev/null || true
+      find "${cache_dir}" -name "__MACOSX" -type d -exec rm -rf {} + 2>/dev/null || true
+    fi
+  done
+
+  # Sweep .venv if it exists (handles both directory and symlink)
+  local venv_path=".venv"
+  if [[ -L "${venv_path}" ]]; then
+    venv_path=$(readlink "${venv_path}")
+  fi
+  
+  if [[ -d ${venv_path} ]]; then
+    find "${venv_path}" -name "._*" -type f -delete 2>/dev/null || true
+    find "${venv_path}" -name ".DS_Store" -type f -delete 2>/dev/null || true
+    find "${venv_path}" -name "__MACOSX" -type d -exec rm -rf {} + 2>/dev/null || true
+    # Strip extended attributes
+    if command -v xattr >/dev/null 2>&1; then
+      xattr -rc "${venv_path}" 2>/dev/null || true
+    fi
+  fi
+}
+
 # Check if we're in the repository root
 if [[ ! -f "pyproject.toml" ]]; then
   print_error "Must be run from the repository root"
@@ -227,6 +265,13 @@ fi
 print_status "Syncing dependencies with uv..."
 if uv sync --locked --extra dev --extra qa --extra grpc; then
   print_success "Dependencies synced successfully"
+
+  # Sweep AppleDouble files after sync to prevent wheel RECORD mismatches
+  if [[ ${OSTYPE} == "darwin"* ]]; then
+    print_status "Sweeping AppleDouble files from cache and .venv..."
+    sweep_appledouble
+    print_success "AppleDouble sweep complete"
+  fi
 
   # Create/update .venv symlink if environment was relocated
   if [[ ${ENV_RELOCATED} -eq 1 ]] && [[ -n ${UV_PROJECT_ENVIRONMENT-} ]]; then
