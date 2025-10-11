@@ -72,7 +72,7 @@ This linter prevents regression of the "guard-rails availability bug" where the 
 
 ### run_actionlint.sh
 
-Installs and runs actionlint for GitHub Actions workflow validation.
+Installs and runs actionlint for GitHub Actions workflow validation. **Features automatic installation and resilient error handling.**
 
 **Usage:**
 
@@ -82,34 +82,51 @@ bash scripts/run_actionlint.sh
 
 **What it does:**
 
-- Downloads and installs actionlint v1.7.7 if not present
-- Validates all workflow files in `.github/workflows/`
+- **Auto-downloads and installs actionlint v1.7.7** if not present or wrong version
+- Validates all workflow files in `.github/workflows/` (both .yml and .yaml)
 - Checks for syntax errors, deprecated actions, and common mistakes
 - Reports shellcheck issues in workflow scripts
+- Provides clear error messages and troubleshooting guidance
 
 **Features:**
 
+- **🔧 Automatic installation** - Downloads and installs actionlint automatically
 - Automatic installation to `~/.local/bin`
 - Version pinning for reproducibility
 - Comprehensive workflow validation
+- Platform detection (Linux, macOS)
+- Architecture detection (amd64, arm64)
+- Resilient error handling
 
 **Exit codes:**
 
 - 0: All workflows valid
-- 1: Validation errors found
+- 1: Validation errors found or installation failed
+
+**Example output:**
+
+```bash
+$ bash scripts/run_actionlint.sh
+→ Checking for actionlint...
+→ actionlint not found, installing...
+→ Installing actionlint 1.7.7 for linux/amd64...
+✓ actionlint installed to /home/user/.local/bin/actionlint
+→ Running actionlint on workflow files...
+✓ All 15 workflow file(s) passed actionlint validation
+```
 
 ### bump_version.sh
 
-Interactive version bumping script that updates version numbers across the project.
+Interactive version bumping script that updates version numbers across the project. **Features automatic lockfile regeneration.**
 
 **Usage:**
 
 ```bash
-# Bump to a new version
+# Bump to a new version (auto-regenerates lockfile)
 ./scripts/bump_version.sh 0.3.0
 
-# Or with bash explicitly
-bash scripts/bump_version.sh 0.3.0
+# Bump without auto-regenerating lockfile
+AUTO_LOCK=0 ./scripts/bump_version.sh 0.3.0
 ```
 
 **What it does:**
@@ -119,11 +136,13 @@ bash scripts/bump_version.sh 0.3.0
 3. Determines release type (MAJOR, MINOR, PATCH)
 4. Updates `pyproject.toml`
 5. Updates `src/hephaestus/__init__.py` (if version present)
-6. Generates CHANGELOG template
-7. Provides next steps guidance
+6. **Auto-regenerates lockfile via `uv lock`** (if `AUTO_LOCK=1`, default)
+7. Generates CHANGELOG template
+8. Provides next steps guidance
 
 **Features:**
 
+- **🔧 Auto-regeneration** - Automatically updates lockfile after version bump
 - Semantic versioning validation
 - Prevents version downgrades
 - Interactive confirmation
@@ -151,6 +170,9 @@ This will:
 Continue? [y/N] y
 ✓ Version bumped to 0.3.0
 
+→ Regenerating lockfile...
+✓ Lockfile regenerated (uv.lock)
+
 CHANGELOG template for version 0.3.0:
 ...
 ```
@@ -161,39 +183,67 @@ CHANGELOG template for version 0.3.0:
 
 ### validate-dependency-orchestration.sh
 
-Comprehensive dependency orchestration validation script that ensures all dependency management components are properly configured.
+Comprehensive dependency orchestration validation script that ensures all dependency management components are properly configured. **Features automatic remediation of common issues.**
 
 **Usage:**
 
 ```bash
+# Run with auto-remediation (default)
 ./scripts/validate-dependency-orchestration.sh
+
+# Run without auto-remediation (validation only)
+AUTO_REMEDIATE=0 ./scripts/validate-dependency-orchestration.sh
 ```
 
-**What it checks:**
+**What it checks and auto-remediates:**
 
-- Python version ≥3.12
-- uv installation and version
-- pyproject.toml existence
-- uv.lock existence and sync status
-- Workflow Python version consistency (no invalid 3.14)
-- Workflow --locked flag usage
-- setup-uv python-version specifications
-- Dependabot configuration
-- Dependency sync functionality
-- Environment isolation (.venv usage)
+- **Python version ≥3.12** - Auto-installs via `uv python install 3.12` if missing
+- **uv installation** - Auto-installs from https://astral.sh/uv if not found
+- **pyproject.toml existence** - Validation only
+- **uv.lock sync status** - Auto-regenerates lockfile if out of sync
+- **Workflow Python version consistency** - Validation only
+- **Workflow --locked flag usage** - Validation only
+- **setup-uv python-version specifications** - Validation only
+- **Dependabot configuration** - Validation only
+- **Dependency sync functionality** - Auto-syncs dependencies if needed
+- **Environment isolation (.venv usage)** - Auto-creates virtual environment
+- **macOS environment variables** - Auto-sets `COPYFILE_DISABLE=1` and `UV_LINK_MODE=copy`
 
 **Exit codes:**
 
 - 0: All checks passed
-- 1: One or more checks failed
+- 1: One or more checks failed (even after auto-remediation)
 
 **Features:**
 
-- Color-coded output (✓ success, ✗ error, ⚠ warning)
+- **🔧 Auto-remediation** - Automatically fixes common issues
+- Color-coded output (✓ success, ✗ error, ⚠ warning, ⚙ remediated)
 - Comprehensive validation across all components
 - Detects common misconfigurations
 - Can be run locally or in CI
 - Guards against drift during repo sync
+- Intelligent and foolproof - works without manual intervention
+
+**Auto-remediation examples:**
+
+```bash
+# If Python 3.12 is missing, the script will:
+# 1. Detect the issue
+# 2. Run: uv python install 3.12
+# 3. Run: uv python pin 3.12
+# 4. Continue validation
+
+# If uv is missing, the script will:
+# 1. Detect the issue
+# 2. Download and run: curl -LsSf https://astral.sh/uv/install.sh | sh
+# 3. Add to PATH for the session
+# 4. Continue validation
+
+# If lockfile is out of sync, the script will:
+# 1. Detect the issue
+# 2. Run: uv lock
+# 3. Continue validation
+```
 
 **Example output:**
 
@@ -204,12 +254,17 @@ Hephaestus Dependency Orchestration Validator
 ==================================================================
 
 → Checking Python version...
-✓ Python 3.12.3 detected
+⚠ Python 3.12+ required, found 3.9.6
+⚙ Attempting to install Python 3.12 via uv...
+✓ Python 3.12 installed via uv
+✓ Python 3.12 pinned for this project
+✓ Python 3.12.8 now available
 → Checking uv installation...
 ✓ uv detected: uv 0.9.1
 ...
 ==================================================================
 ✓ All dependency orchestration checks passed
+⚙ 3 issue(s) were auto-remediated
 ```
 
 **See also:**
