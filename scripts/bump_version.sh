@@ -9,6 +9,7 @@
 # - Updates version in pyproject.toml
 # - Updates version in __init__.py (if present)
 # - Validates version format
+# - Auto-regenerates lockfile
 # - Provides next steps guidance
 
 set -euo pipefail
@@ -17,7 +18,10 @@ set -euo pipefail
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
+
+AUTO_LOCK="${AUTO_LOCK:-1}" # Auto-regenerate lockfile by default
 
 # Function to print colored output
 print_error() {
@@ -30,6 +34,10 @@ print_success() {
 
 print_info() {
   echo -e "${YELLOW}$1${NC}"
+}
+
+print_status() {
+  echo -e "${CYAN}→${NC} $1"
 }
 
 # Check arguments
@@ -137,6 +145,17 @@ fi
 
 print_success "✓ Version bumped to $NEW_VERSION"
 
+# Auto-regenerate lockfile if uv is available
+if [[ ${AUTO_LOCK} -eq 1 ]] && command -v uv &>/dev/null; then
+  echo ""
+  print_status "Regenerating lockfile..."
+  if uv lock >/dev/null 2>&1; then
+    print_success "✓ Lockfile regenerated (uv.lock)"
+  else
+    print_info "⚠ Failed to regenerate lockfile - you may need to run: uv lock"
+  fi
+fi
+
 # Generate CHANGELOG template
 echo ""
 print_info "CHANGELOG template for version $NEW_VERSION:"
@@ -182,8 +201,7 @@ echo "   git add pyproject.toml $INIT_FILE CHANGELOG.md README.md"
 echo "   git commit -m 'chore: Prepare release v$NEW_VERSION'"
 echo ""
 echo "4. Run quality checks:"
-echo "   hephaestus guard-rails"
-echo "   hephaestus guard-rails --drift"
+echo "   uv run hephaestus guard-rails"
 echo ""
 echo "5. Push changes:"
 if [ "$RELEASE_TYPE" = "PATCH" ]; then
