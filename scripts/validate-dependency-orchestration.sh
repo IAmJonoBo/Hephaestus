@@ -175,7 +175,7 @@ fi
 
 # Check 14: Smoke test hephaestus CLI
 print_status "Testing hephaestus CLI smoke test..."
-if uv run hephaestus --version >/dev/null 2>&1; then
+if uv run hephaestus version >/dev/null 2>&1; then
   print_success "hephaestus CLI smoke test passed"
 else
   print_error "hephaestus CLI smoke test failed"
