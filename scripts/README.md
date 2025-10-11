@@ -193,7 +193,33 @@ Comprehensive dependency orchestration validation script that ensures all depend
 
 # Run without auto-remediation (validation only)
 AUTO_REMEDIATE=0 ./scripts/validate-dependency-orchestration.sh
+
+# Dry-run mode - show what would be done without doing it
+DRY_RUN=1 ./scripts/validate-dependency-orchestration.sh
+
+# Interactive mode - prompt before each change
+INTERACTIVE=1 ./scripts/validate-dependency-orchestration.sh
+
+# Persist environment variables to shell profile
+PERSIST_CONFIG=1 ./scripts/validate-dependency-orchestration.sh
+
+# Disable logging
+LOG_REMEDIATION=0 ./scripts/validate-dependency-orchestration.sh
+
+# Combined flags (dry-run + interactive + persist)
+DRY_RUN=1 INTERACTIVE=1 PERSIST_CONFIG=1 ./scripts/validate-dependency-orchestration.sh
 ```
+
+**Configuration Flags:**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `AUTO_REMEDIATE` | 1 | Enable/disable auto-remediation |
+| `DRY_RUN` | 0 | Show what would be done without doing it |
+| `INTERACTIVE` | 0 | Prompt before each change |
+| `PERSIST_CONFIG` | 0 | Add environment variables to shell profile |
+| `LOG_REMEDIATION` | 1 | Log all actions to `~/.hephaestus/logs/` |
+| `PRE_FLIGHT_CHECK` | 0 | Run health checks before operations |
 
 **What it checks and auto-remediates:**
 
@@ -217,6 +243,11 @@ AUTO_REMEDIATE=0 ./scripts/validate-dependency-orchestration.sh
 **Features:**
 
 - **🔧 Auto-remediation** - Automatically fixes common issues
+- **📝 Remediation Logs** - Tracks all actions in timestamped log files
+- **🤖 Interactive Mode** - Prompts before making changes (for paranoid users)
+- **👀 Dry-Run Mode** - Shows what would be done without doing it
+- **💾 Persistent Config** - Auto-adds environment variables to shell profile
+- **🏥 Health Checks** - Pre-flight validation (optional, off by default)
 - Color-coded output (✓ success, ✗ error, ⚠ warning, ⚙ remediated)
 - Comprehensive validation across all components
 - Detects common misconfigurations
