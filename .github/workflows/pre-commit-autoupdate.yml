@@ -1,6 +1,7 @@
+---
 name: pre-commit autoupdate
 
-on:
+'on':
   schedule:
     - cron: 0 5 * * 1
   workflow_dispatch:

@@ -1,6 +1,7 @@
+---
 name: dependency-review
 
-on:
+'on':
   pull_request:
 
 permissions: read-all

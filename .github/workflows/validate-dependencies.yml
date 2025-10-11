@@ -1,9 +1,10 @@
+---
 name: Validate Dependencies
 
 # Runs on PRs to ensure uv.lock is in sync with pyproject.toml
 # Especially important for dependabot PRs
 
-on:
+'on':
   pull_request:
     paths:
       - "pyproject.toml"

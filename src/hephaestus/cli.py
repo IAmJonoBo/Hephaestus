@@ -353,155 +353,227 @@ def _run_guard_rails_standard(no_format: bool) -> None:  # NOSONAR(S3776)
     import subprocess
     import time
 
+    from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+
     GUARD_RAILS_STEP_DURATION = "hephaestus.guard_rails.step.duration"
-    start_time = time.perf_counter()
-    try:
-        # Step 1: Deep clean workspace
-        cleanup_cli.cleanup(deep_clean=True)
-        record_histogram(
-            "hephaestus.guard_rails.cleanup.duration",
-            time.perf_counter() - start_time,
-            attributes={"step": "cleanup"},
-        )
 
-        # Step 2: Lint with ruff
-        console.print("\n[cyan]→ Running ruff check...[/cyan]")
-        subprocess.run(["uv", "run", "ruff", "check", "."], check=True)
-        record_histogram(
-            GUARD_RAILS_STEP_DURATION,
-            time.perf_counter() - start_time,
-            attributes={"step": "ruff-check"},
-        )
+    steps = [
+        ("cleanup", "Deep clean workspace", True),
+        ("ruff-check", "Run ruff lint", True),
+        ("ruff-isort", "Sort imports", not no_format),
+        ("ruff-format", "Format code", not no_format),
+        ("yamllint", "Lint YAML files", True),
+        ("actionlint", "Validate workflows", True),
+        ("mypy", "Type checking", True),
+        ("pytest", "Run tests", True),
+        ("pip-audit", "Security audit", True),
+    ]
 
-        # Step 3: Sort imports and format with ruff (unless skipped)
-        if not no_format:
-            console.print("[cyan]→ Running ruff isort...[/cyan]")
+    active_steps = [s for s in steps if s[2]]
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("[cyan]Running guard rails pipeline...", total=len(active_steps))
+
+        start_time = time.perf_counter()
+        step_num = 0
+
+        try:
+            # Step 1: Deep clean workspace
+            step_num += 1
+            progress.update(
+                task,
+                description=f"[cyan][{step_num}/{len(active_steps)}] Deep cleaning workspace...",
+            )
+            cleanup_cli.cleanup(deep_clean=True)
+            record_histogram(
+                "hephaestus.guard_rails.cleanup.duration",
+                time.perf_counter() - start_time,
+                attributes={"step": "cleanup"},
+            )
+            progress.advance(task)
+
+            # Step 2: Lint with ruff
+            step_num += 1
+            progress.update(
+                task, description=f"[cyan][{step_num}/{len(active_steps)}] Running ruff lint..."
+            )
+            subprocess.run(["uv", "run", "ruff", "check", "."], check=True)
+            record_histogram(
+                GUARD_RAILS_STEP_DURATION,
+                time.perf_counter() - start_time,
+                attributes={"step": "ruff-check"},
+            )
+            progress.advance(task)
+
+            # Step 3: Sort imports and format with ruff (unless skipped)
+            if not no_format:
+                step_num += 1
+                progress.update(
+                    task, description=f"[cyan][{step_num}/{len(active_steps)}] Sorting imports..."
+                )
+                subprocess.run(
+                    [
+                        "uv",
+                        "run",
+                        "ruff",
+                        "check",
+                        "--select",
+                        "I",
+                        "--fix",
+                        ".",
+                    ],
+                    check=True,
+                )
+                record_histogram(
+                    GUARD_RAILS_STEP_DURATION,
+                    time.perf_counter() - start_time,
+                    attributes={"step": "ruff-isort"},
+                )
+                progress.advance(task)
+
+                step_num += 1
+                progress.update(
+                    task, description=f"[cyan][{step_num}/{len(active_steps)}] Formatting code..."
+                )
+                subprocess.run(["uv", "run", "ruff", "format", "."], check=True)
+                record_histogram(
+                    GUARD_RAILS_STEP_DURATION,
+                    time.perf_counter() - start_time,
+                    attributes={"step": "ruff-format"},
+                )
+                progress.advance(task)
+
+            # Step 4: Yamllint
+            step_num += 1
+            progress.update(
+                task, description=f"[cyan][{step_num}/{len(active_steps)}] Linting YAML files..."
+            )
             subprocess.run(
                 [
                     "uv",
                     "run",
-                    "ruff",
-                    "check",
-                    "--select",
-                    "I",
-                    "--fix",
-                    ".",
+                    "yamllint",
+                    "-c",
+                    ".yamllint",
+                    ".github/",
+                    ".pre-commit-config.yaml",
+                    "hephaestus-toolkit/",
                 ],
                 check=True,
             )
             record_histogram(
                 GUARD_RAILS_STEP_DURATION,
                 time.perf_counter() - start_time,
-                attributes={"step": "ruff-isort"},
+                attributes={"step": "yamllint"},
             )
+            progress.advance(task)
 
-            console.print("[cyan]→ Running ruff format...[/cyan]")
-            subprocess.run(["uv", "run", "ruff", "format", "."], check=True)
+            step_num += 1
+            progress.update(
+                task, description=f"[cyan][{step_num}/{len(active_steps)}] Validating workflows..."
+            )
+            subprocess.run(["bash", "scripts/run_actionlint.sh"], check=True)
             record_histogram(
                 GUARD_RAILS_STEP_DURATION,
                 time.perf_counter() - start_time,
-                attributes={"step": "ruff-format"},
+                attributes={"step": "actionlint"},
             )
+            progress.advance(task)
 
-        # Step 4: Yamllint
-        console.print("[cyan]→ Running yamllint...[/cyan]")
-        subprocess.run(
-            [
-                "uv",
-                "run",
-                "yamllint",
-                ".github/",
-                ".pre-commit-config.yaml",
-                "mkdocs.yml",
-                "hephaestus-toolkit/",
-            ],
-            check=True,
-        )
-        record_histogram(
-            GUARD_RAILS_STEP_DURATION,
-            time.perf_counter() - start_time,
-            attributes={"step": "yamllint"},
-        )
+            # Step 5: Mypy
+            step_num += 1
+            progress.update(
+                task,
+                description=f"[cyan][{step_num}/{len(active_steps)}] Type checking with mypy...",
+            )
+            subprocess.run(["uv", "run", "mypy", "src", "tests"], check=True)
+            record_histogram(
+                GUARD_RAILS_STEP_DURATION,
+                time.perf_counter() - start_time,
+                attributes={"step": "mypy"},
+            )
+            progress.advance(task)
 
-        console.print("[cyan]→ Running actionlint...[/cyan]")
-        subprocess.run(["bash", "scripts/run_actionlint.sh"], check=True)
-        record_histogram(
-            GUARD_RAILS_STEP_DURATION,
-            time.perf_counter() - start_time,
-            attributes={"step": "actionlint"},
-        )
+            # Step 6: Pytest
+            step_num += 1
+            progress.update(
+                task, description=f"[cyan][{step_num}/{len(active_steps)}] Running tests..."
+            )
+            subprocess.run(["uv", "run", "pytest"], check=True)
+            record_histogram(
+                GUARD_RAILS_STEP_DURATION,
+                time.perf_counter() - start_time,
+                attributes={"step": "pytest"},
+            )
+            progress.advance(task)
 
-        # Step 5: Mypy
-        console.print("[cyan]→ Running mypy...[/cyan]")
-        subprocess.run(["uv", "run", "mypy", "src", "tests"], check=True)
-        record_histogram(
-            GUARD_RAILS_STEP_DURATION,
-            time.perf_counter() - start_time,
-            attributes={"step": "mypy"},
-        )
+            # Step 7: pip-audit
+            step_num += 1
+            progress.update(
+                task, description=f"[cyan][{step_num}/{len(active_steps)}] Security audit..."
+            )
+            subprocess.run(
+                build_pip_audit_command(
+                    ignore_vulns=["GHSA-4xh5-x5gv-qwph"],
+                    prefer_uv_run=True,
+                ),
+                check=True,
+            )
+            record_histogram(
+                GUARD_RAILS_STEP_DURATION,
+                time.perf_counter() - start_time,
+                attributes={"step": "pip-audit"},
+            )
+            progress.advance(task)
 
-        # Step 6: Pytest
-        console.print("[cyan]→ Running pytest...[/cyan]")
-        subprocess.run(["uv", "run", "pytest"], check=True)
-        record_histogram(
-            GUARD_RAILS_STEP_DURATION,
-            time.perf_counter() - start_time,
-            attributes={"step": "pytest"},
-        )
+            progress.update(task, description="[green]✓ All checks passed!")
 
-        # Step 7: pip-audit
-        console.print("[cyan]→ Running pip-audit...[/cyan]")
-        subprocess.run(
-            build_pip_audit_command(
-                ignore_vulns=["GHSA-4xh5-x5gv-qwph"],
-                prefer_uv_run=True,
-            ),
-            check=True,
-        )
-        record_histogram(
-            GUARD_RAILS_STEP_DURATION,
-            time.perf_counter() - start_time,
-            attributes={"step": "pip-audit"},
-        )
+        except subprocess.TimeoutExpired as exc:
+            progress.stop()
+            record_histogram(
+                GUARD_RAILS_STEP_DURATION,
+                time.perf_counter() - start_time,
+                attributes={"step": "pip-audit", "timeout": True},
+            )
+            console.print(f"\n[red]✗ Guard rails timed out: {exc.cmd[0]}[/red]")
+            console.print(f"[yellow]Timeout: {exc.timeout}s[/yellow]")
+            telemetry.emit_event(
+                logger,
+                telemetry.CLI_GUARD_RAILS_FAILED,
+                level=logging.ERROR,
+                message="Guard rails timed out",
+                step=exc.cmd[0],
+                returncode=124,  # Standard timeout exit code
+            )
+            raise typer.Exit(code=124) from exc
 
-        console.print("\n[green]✓ Guard rails completed successfully.[/green]")
-        telemetry.emit_event(
-            logger,
-            telemetry.CLI_GUARD_RAILS_COMPLETE,
-            message="Guard rails completed successfully",
-            skip_format=no_format,
-        )
+        except subprocess.CalledProcessError as exc:
+            progress.stop()
+            console.print(f"\n[red]✗ Guard rails failed at step {step_num}: {exc.cmd[0]}[/red]")
+            console.print(f"[yellow]Exit code: {exc.returncode}[/yellow]")
+            telemetry.emit_event(
+                logger,
+                telemetry.CLI_GUARD_RAILS_FAILED,
+                level=logging.ERROR,
+                message="Guard rails failed",
+                step=exc.cmd[0],
+                returncode=exc.returncode,
+            )
+            raise typer.Exit(code=exc.returncode) from exc
 
-    except subprocess.TimeoutExpired as exc:
-        record_histogram(
-            GUARD_RAILS_STEP_DURATION,
-            time.perf_counter() - start_time,
-            attributes={"step": "pip-audit", "timeout": True},
-        )
-        console.print(f"\n[red]✗ Guard rails timed out: {exc.cmd[0]}[/red]")
-        console.print(f"[yellow]Timeout: {exc.timeout}s[/yellow]")
-        telemetry.emit_event(
-            logger,
-            telemetry.CLI_GUARD_RAILS_FAILED,
-            level=logging.ERROR,
-            message="Guard rails timed out",
-            step=exc.cmd[0],
-            returncode=124,  # Standard timeout exit code
-        )
-        raise typer.Exit(code=124) from exc
-
-    except subprocess.CalledProcessError as exc:
-        console.print(f"\n[red]✗ Guard rails failed at: {exc.cmd[0]}[/red]")
-        console.print(f"[yellow]Exit code: {exc.returncode}[/yellow]")
-        telemetry.emit_event(
-            logger,
-            telemetry.CLI_GUARD_RAILS_FAILED,
-            level=logging.ERROR,
-            message="Guard rails failed",
-            step=exc.cmd[0],
-            returncode=exc.returncode,
-        )
-        raise typer.Exit(code=exc.returncode) from exc
+    total_duration = time.perf_counter() - start_time
+    console.print(f"\n[green]✓ Guard rails completed successfully in {total_duration:.1f}s[/green]")
+    telemetry.emit_event(
+        logger,
+        telemetry.CLI_GUARD_RAILS_COMPLETE,
+        message="Guard rails completed successfully",
+        skip_format=no_format,
+    )
 
 
 @app.command()

@@ -1,6 +1,7 @@
+---
 name: Deploy Documentation
 
-on:
+'on':
   push:
     branches: [main]
     paths:

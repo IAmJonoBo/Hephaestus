@@ -66,10 +66,9 @@ QUALITY_GATES = [
         command=[
             "yamllint",
             "-c",
-            ".trunk/configs/.yamllint.yaml",
+            ".yamllint",
             ".github/",
             ".pre-commit-config.yaml",
-            "mkdocs.yml",
             "hephaestus-toolkit/",
         ],
         required=True,

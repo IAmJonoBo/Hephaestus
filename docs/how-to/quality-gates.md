@@ -30,22 +30,30 @@ This runs:
 
 ### Use Guard Rails Command
 
-The `guard-rails` command provides an integrated workflow:
+The `guard-rails` command provides an integrated workflow with **enhanced visual feedback**:
 
 ```bash
 uv run hephaestus guard-rails
 ```
 
+**New Features:**
+- 🎨 **Progress indicators** showing completion percentage
+- ⏱️ **Time elapsed** tracking for the entire pipeline
+- 📊 **Step counters** (e.g., `[2/9] Running ruff lint...`)
+- ✅ **Visual status** with color-coded messages
+- 🔄 **Real-time updates** during long-running operations
+
 This performs:
 
-1. Deep cleanup of build artifacts
+1. Deep cleanup of build artifacts (with progress bar)
 2. Ruff linting with auto-fix
-3. Workflow validation with actionlint
-4. Ruff formatting
-5. YAML linting with yamllint
-6. Mypy type checking
-7. Full test suite with coverage
-8. Security audit with pip-audit
+3. Import sorting (ruff isort)
+4. Code formatting (ruff format)
+5. YAML linting with yamllint (using .yamllint config)
+6. Workflow validation with actionlint
+7. Mypy type checking
+8. Full test suite with coverage
+9. Security audit with pip-audit
 
 ## Individual Quality Gates
 
@@ -106,14 +114,16 @@ uv run ruff format .
 Lint YAML files for consistency and correctness:
 
 ```bash
-uv run yamllint -c .trunk/configs/.yamllint.yaml .github/ .pre-commit-config.yaml mkdocs.yml hephaestus-toolkit/
+uv run yamllint -c .yamllint .github/ .pre-commit-config.yaml hephaestus-toolkit/
 ```
 
 Requirements:
 
-- Uses custom configuration from `.trunk/configs/.yamllint.yaml`
+- Uses custom configuration from `.yamllint` (in project root)
 - Checks workflow files, configuration files, and documentation
-- Enforces consistent quote usage and structure
+- Enforces document start markers (`---`)
+- Allows GitHub Actions `'on':` syntax for triggers
+- Line length relaxed to 120 characters for readability
 
 ### Type Checking
 

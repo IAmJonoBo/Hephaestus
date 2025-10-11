@@ -1,6 +1,7 @@
+---
 name: Build Wheelhouse
 
-on:
+'on':
   release:
     types:
       - published

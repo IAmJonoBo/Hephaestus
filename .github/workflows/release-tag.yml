@@ -1,6 +1,7 @@
+---
 name: Automated Release Tagging
 
-on:
+'on':
   push:
     branches:
       - main
