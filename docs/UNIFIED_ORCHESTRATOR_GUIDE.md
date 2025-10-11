@@ -7,21 +7,25 @@ The Hephaestus Unified Orchestrator (`hephaestus-orchestrator.sh`) is an intelli
 ## Key Benefits
 
 ### 🧠 Context-Aware Intelligence
+
 - Caches validation results to avoid redundant checks
 - Detects what actually needs to run based on environment changes
 - Maintains state between runs for smart decision-making
 
 ### ⚡ Performance Optimized
+
 - **Fast Mode**: Uses cached validations (10x faster for frequent runs)
 - Skip recently validated checks automatically
 - Configurable cache durations for each check type
 
 ### 🔗 Unified Workflow
+
 - Runs all validation and setup scripts in optimal order
 - Handles dependencies automatically
 - Single command replaces multiple manual steps
 
 ### 🔒 Production-Ready
+
 - File locking prevents concurrent execution conflicts
 - Automatic stale lock detection and cleanup
 - Log rotation (keeps last 20 logs)
@@ -55,30 +59,35 @@ INTERACTIVE=1 ./scripts/hephaestus-orchestrator.sh
 ### Recommended Workflows
 
 #### First Clone
+
 ```bash
 # Complete setup with all validations
 ./scripts/hephaestus-orchestrator.sh
 ```
 
 #### During Development (Run Frequently)
+
 ```bash
 # Fast, skips tests, uses cache
 ./scripts/hephaestus-orchestrator.sh --fast --skip-tests
 ```
 
 #### After Adding a Dependency
+
 ```bash
 # Fast mode automatically detects lockfile changes
 ./scripts/hephaestus-orchestrator.sh --fast
 ```
 
 #### Before Commit
+
 ```bash
 # Full validation with quality checks
 ./scripts/hephaestus-orchestrator.sh --fast
 ```
 
 #### Before Pull Request
+
 ```bash
 # Complete validation (no cache)
 ./scripts/hephaestus-orchestrator.sh
@@ -87,6 +96,7 @@ INTERACTIVE=1 ./scripts/hephaestus-orchestrator.sh
 ## Orchestration Phases
 
 ### Phase 1: Environment Validation
+
 - Python version check (≥3.12)
 - UV package manager installation
 - Basic environment setup
@@ -94,6 +104,7 @@ INTERACTIVE=1 ./scripts/hephaestus-orchestrator.sh
 **Cache Duration**: 1 hour
 
 ### Phase 2: Dependency Orchestration
+
 - Lockfile sync status
 - Virtual environment existence
 - Dependency synchronization
@@ -102,6 +113,7 @@ INTERACTIVE=1 ./scripts/hephaestus-orchestrator.sh
 **Cache Duration**: 5-30 minutes (depending on check)
 
 ### Phase 3: Code Quality Validation
+
 - Fast mode: Ruff linting only
 - Full mode: All quality gates
 - Skippable with `--skip-tests`
@@ -109,6 +121,7 @@ INTERACTIVE=1 ./scripts/hephaestus-orchestrator.sh
 **Cache Duration**: 10 minutes
 
 ### Phase 4: Platform-Specific Validation
+
 - macOS setup checks (if on macOS)
 - Platform-specific configurations
 
@@ -118,15 +131,15 @@ INTERACTIVE=1 ./scripts/hephaestus-orchestrator.sh
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `AUTO_REMEDIATE` | 1 | Enable automatic fixes |
-| `DRY_RUN` | 0 | Show actions without executing |
-| `INTERACTIVE` | 0 | Prompt before each change |
-| `PERSIST_CONFIG` | 0 | Persist settings to shell profile |
-| `FAST_MODE` | 0 | Use cached validations |
-| `SKIP_TESTS` | 0 | Skip quality checks |
-| `LOG_REMEDIATION` | 1 | Enable logging |
+| Variable          | Default | Description                       |
+| ----------------- | ------- | --------------------------------- |
+| `AUTO_REMEDIATE`  | 1       | Enable automatic fixes            |
+| `DRY_RUN`         | 0       | Show actions without executing    |
+| `INTERACTIVE`     | 0       | Prompt before each change         |
+| `PERSIST_CONFIG`  | 0       | Persist settings to shell profile |
+| `FAST_MODE`       | 0       | Use cached validations            |
+| `SKIP_TESTS`      | 0       | Skip quality checks               |
+| `LOG_REMEDIATION` | 1       | Enable logging                    |
 
 ### Examples
 
@@ -145,15 +158,15 @@ FAST_MODE=1 SKIP_TESTS=1 ./scripts/hephaestus-orchestrator.sh
 
 ### Cache Durations
 
-| Check Type | Default Cache | Rationale |
-|-----------|---------------|-----------|
-| Python version | 1 hour | Rarely changes |
-| UV installation | 1 hour | Rarely changes |
-| Virtual environment | 10 minutes | May be deleted during dev |
-| Lockfile sync | 5 minutes | Changes with dependencies |
-| Dependency sync | 30 minutes | Expensive operation |
-| Quality checks | 10 minutes | Fast to run again |
-| macOS setup | 1 hour | Platform-specific, stable |
+| Check Type          | Default Cache | Rationale                 |
+| ------------------- | ------------- | ------------------------- |
+| Python version      | 1 hour        | Rarely changes            |
+| UV installation     | 1 hour        | Rarely changes            |
+| Virtual environment | 10 minutes    | May be deleted during dev |
+| Lockfile sync       | 5 minutes     | Changes with dependencies |
+| Dependency sync     | 30 minutes    | Expensive operation       |
+| Quality checks      | 10 minutes    | Fast to run again         |
+| macOS setup         | 1 hour        | Platform-specific, stable |
 
 ### Cache Location
 
@@ -187,6 +200,7 @@ The orchestrator uses file locking to prevent conflicts:
 ```
 
 Features:
+
 - Automatically detects stale locks
 - Waits up to 30 seconds for other instances
 - Cleans up locks on exit (including crashes)
@@ -219,6 +233,7 @@ If you try to run multiple instances:
 ```
 
 **Levels:**
+
 - `HEADER`: Major phase transitions
 - `SECTION`: Sub-phase starts
 - `STATUS`: Operation in progress
@@ -249,6 +264,7 @@ grep -E "STATUS|SUCCESS|ERROR" ~/.hephaestus/logs/orchestrator-*.log
 ## Performance Comparison
 
 ### Without Orchestrator
+
 ```bash
 # Manual process (5-10 minutes)
 ./scripts/validate-dependency-orchestration.sh
@@ -258,12 +274,14 @@ grep -E "STATUS|SUCCESS|ERROR" ~/.hephaestus/logs/orchestrator-*.log
 ```
 
 ### With Orchestrator (First Run)
+
 ```bash
 # Unified process (3-5 minutes)
 ./scripts/hephaestus-orchestrator.sh
 ```
 
 ### With Orchestrator (Fast Mode)
+
 ```bash
 # Cached validation (5-15 seconds)
 ./scripts/hephaestus-orchestrator.sh --fast --skip-tests
@@ -278,6 +296,7 @@ grep -E "STATUS|SUCCESS|ERROR" ~/.hephaestus/logs/orchestrator-*.log
 **Problem**: Script hangs waiting for lock
 
 **Solution**: Clean stale locks manually
+
 ```bash
 rm ~/.hephaestus/orchestrator.lock
 ./scripts/hephaestus-orchestrator.sh
@@ -288,6 +307,7 @@ rm ~/.hephaestus/orchestrator.lock
 **Problem**: Validation seems stale
 
 **Solution**: Clear cache and run full validation
+
 ```bash
 rm ~/.hephaestus/state.json
 ./scripts/hephaestus-orchestrator.sh
@@ -298,6 +318,7 @@ rm ~/.hephaestus/state.json
 **Problem**: Too many logs
 
 **Solution**: Logs auto-rotate, but can manually clean
+
 ```bash
 rm ~/.hephaestus/logs/orchestrator-*.log
 ```
@@ -307,6 +328,7 @@ rm ~/.hephaestus/logs/orchestrator-*.log
 **Problem**: "Insufficient disk space" error
 
 **Solution**: Free up disk space (need at least 1GB)
+
 ```bash
 # Clean Python caches
 find . -type d -name __pycache__ -exec rm -rf {} +
@@ -412,20 +434,21 @@ tail -f ~/.hephaestus/logs/orchestrator-*.log
 
 ## Comparison with Individual Scripts
 
-| Aspect | Individual Scripts | Unified Orchestrator |
-|--------|-------------------|---------------------|
-| Setup Time | 5-10 minutes | 3-5 minutes (first run) |
-| Validation Time | 5-10 minutes | 5-15 seconds (cached) |
-| Commands Needed | 3-5 separate | 1 unified |
-| State Management | None | Intelligent caching |
-| Concurrent Safe | No | Yes (file locking) |
-| Log Rotation | Manual | Automatic |
-| Disk Space Check | No | Automatic |
-| Context Awareness | None | Full |
+| Aspect            | Individual Scripts | Unified Orchestrator    |
+| ----------------- | ------------------ | ----------------------- |
+| Setup Time        | 5-10 minutes       | 3-5 minutes (first run) |
+| Validation Time   | 5-10 minutes       | 5-15 seconds (cached)   |
+| Commands Needed   | 3-5 separate       | 1 unified               |
+| State Management  | None               | Intelligent caching     |
+| Concurrent Safe   | No                 | Yes (file locking)      |
+| Log Rotation      | Manual             | Automatic               |
+| Disk Space Check  | No                 | Automatic               |
+| Context Awareness | None               | Full                    |
 
 ## Future Enhancements
 
 Planned improvements:
+
 - [ ] Parallel phase execution where safe
 - [ ] Webhook notifications on completion
 - [ ] JSON output mode for CI integration

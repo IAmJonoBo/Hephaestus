@@ -27,20 +27,20 @@ AUTO_REMEDIATE=0 ./scripts/validate-dependency-orchestration.sh
 
 ### validate-dependency-orchestration.sh
 
-| Flag | Default | Description | Use When |
-|------|---------|-------------|----------|
-| `AUTO_REMEDIATE` | 1 | Automatically fix issues | You want hands-free setup |
-| `DRY_RUN` | 0 | Show actions without doing them | Testing or preview mode |
-| `INTERACTIVE` | 0 | Prompt before each change | You want control over each action |
-| `PERSIST_CONFIG` | 0 | Add env vars to shell profile | You want permanent configuration |
-| `LOG_REMEDIATION` | 1 | Log all actions to file | You want audit trail (recommended) |
-| `PRE_FLIGHT_CHECK` | 0 | Run health checks first | You want to validate system state |
+| Flag               | Default | Description                     | Use When                           |
+| ------------------ | ------- | ------------------------------- | ---------------------------------- |
+| `AUTO_REMEDIATE`   | 1       | Automatically fix issues        | You want hands-free setup          |
+| `DRY_RUN`          | 0       | Show actions without doing them | Testing or preview mode            |
+| `INTERACTIVE`      | 0       | Prompt before each change       | You want control over each action  |
+| `PERSIST_CONFIG`   | 0       | Add env vars to shell profile   | You want permanent configuration   |
+| `LOG_REMEDIATION`  | 1       | Log all actions to file         | You want audit trail (recommended) |
+| `PRE_FLIGHT_CHECK` | 0       | Run health checks first         | You want to validate system state  |
 
 ### bump_version.sh
 
-| Flag | Default | Description | Use When |
-|------|---------|-------------|----------|
-| `AUTO_LOCK` | 1 | Regenerate lockfile after version bump | Normal version bumps |
+| Flag        | Default | Description                            | Use When             |
+| ----------- | ------- | -------------------------------------- | -------------------- |
+| `AUTO_LOCK` | 1       | Regenerate lockfile after version bump | Normal version bumps |
 
 ## Usage Examples
 
@@ -110,61 +110,77 @@ DRY_RUN=1 INTERACTIVE=1 LOG_REMEDIATION=1 PRE_FLIGHT_CHECK=1 ./scripts/validate-
 ### Recommended Combinations
 
 #### 🟢 For Beginners
+
 ```bash
 INTERACTIVE=1 ./scripts/validate-dependency-orchestration.sh
 ```
-*See what's happening and approve each step*
+
+_See what's happening and approve each step_
 
 #### 🟢 For Experienced Users
+
 ```bash
 ./scripts/validate-dependency-orchestration.sh
 ```
-*Default auto-remediation, works out of the box*
+
+_Default auto-remediation, works out of the box_
 
 #### 🟢 For Paranoid Users
+
 ```bash
 INTERACTIVE=1 DRY_RUN=1 ./scripts/validate-dependency-orchestration.sh
 ```
-*See what would happen, approve before actual run*
+
+_See what would happen, approve before actual run_
 
 #### 🟢 For CI/CD
+
 ```bash
 AUTO_REMEDIATE=1 LOG_REMEDIATION=0 ./scripts/validate-dependency-orchestration.sh
 ```
-*Automated, no logs to clean up*
+
+_Automated, no logs to clean up_
 
 #### 🟢 For Production Setup
+
 ```bash
 PERSIST_CONFIG=1 LOG_REMEDIATION=1 ./scripts/validate-dependency-orchestration.sh
 ```
-*Make it permanent, keep audit trail*
+
+_Make it permanent, keep audit trail_
 
 ### Discouraged Combinations
 
 #### 🔴 Don't Do This
+
 ```bash
 AUTO_REMEDIATE=0 DRY_RUN=1
 ```
-*Pointless: nothing will be done or shown*
+
+_Pointless: nothing will be done or shown_
 
 ```bash
 DRY_RUN=1 PERSIST_CONFIG=1
 ```
-*Conflicting: dry-run won't persist anything*
+
+_Conflicting: dry-run won't persist anything_
 
 ```bash
 INTERACTIVE=0 AUTO_REMEDIATE=0
 ```
-*Pointless: just validation with no action*
+
+_Pointless: just validation with no action_
 
 ## Log Files
 
 ### Location
+
 ```bash
 ~/.hephaestus/logs/remediation-YYYYMMDD-HHMMSS.log
 ```
 
 ### Viewing Logs
+
 ```bash
 # View latest log
 cat ~/.hephaestus/logs/remediation-*.log | tail -50
@@ -180,11 +196,13 @@ cd ~/.hephaestus/logs && ls -t remediation-*.log | tail -n +11 | xargs rm -f
 ```
 
 ### Log Format
+
 ```
 [YYYY-MM-DD HH:MM:SS] LEVEL: Message
 ```
 
 **Levels:**
+
 - `STATUS`: Informational message
 - `SUCCESS`: Operation succeeded
 - `WARNING`: Issue detected
@@ -203,6 +221,7 @@ cd ~/.hephaestus/logs && ls -t remediation-*.log | tail -n +11 | xargs rm -f
 When using `PERSIST_CONFIG=1`, these variables are added to your shell profile:
 
 **For macOS:**
+
 ```bash
 # Added by Hephaestus dependency orchestration validator
 export COPYFILE_DISABLE=1
@@ -210,6 +229,7 @@ export UV_LINK_MODE=copy
 ```
 
 **For all platforms:**
+
 - Only variables that are missing are added
 - Existing variables are not duplicated
 - Variables are appended to the end of the file
@@ -218,6 +238,7 @@ export UV_LINK_MODE=copy
 ### Shell Profile Detection
 
 The script automatically detects:
+
 - `.zshrc` for zsh users
 - `.bashrc` for bash users
 - Falls back to `$SHELL` environment variable
@@ -239,19 +260,25 @@ echo 'export UV_LINK_MODE=copy' >> ~/.bashrc
 ## Troubleshooting
 
 ### Issue: Script hangs during pre-flight check
+
 **Solution:** Disable pre-flight checks (they're off by default)
+
 ```bash
 PRE_FLIGHT_CHECK=0 ./scripts/validate-dependency-orchestration.sh
 ```
 
 ### Issue: Don't want logs created
+
 **Solution:** Disable logging
+
 ```bash
 LOG_REMEDIATION=0 ./scripts/validate-dependency-orchestration.sh
 ```
 
 ### Issue: Want to undo shell profile changes
+
 **Solution:** Edit your profile manually
+
 ```bash
 # Remove Hephaestus additions
 nano ~/.zshrc  # or ~/.bashrc
@@ -259,13 +286,17 @@ nano ~/.zshrc  # or ~/.bashrc
 ```
 
 ### Issue: Want to see what changed
+
 **Solution:** Check the log file
+
 ```bash
 cat ~/.hephaestus/logs/remediation-*.log
 ```
 
 ### Issue: Auto-remediation not working
+
 **Solution:** Check if it's disabled
+
 ```bash
 # Make sure AUTO_REMEDIATE is 1
 AUTO_REMEDIATE=1 ./scripts/validate-dependency-orchestration.sh

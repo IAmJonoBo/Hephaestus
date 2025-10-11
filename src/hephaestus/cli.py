@@ -14,12 +14,12 @@ from rich.table import Table
 
 from hephaestus import (
     __version__,
-    drift as drift_module,
-    events as telemetry,
-    logging as logging_utils,
-    planning as planning_module,
-    schema as schema_module,
 )
+from hephaestus import drift as drift_module
+from hephaestus import events as telemetry
+from hephaestus import logging as logging_utils
+from hephaestus import planning as planning_module
+from hephaestus import schema as schema_module
 from hephaestus.command_helpers import build_pip_audit_command
 from hephaestus.logging import LogFormat
 from hephaestus.telemetry import record_histogram, trace_command, trace_operation

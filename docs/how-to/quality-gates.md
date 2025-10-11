@@ -37,6 +37,7 @@ uv run hephaestus guard-rails
 ```
 
 **New Features:**
+
 - 🎨 **Progress indicators** showing completion percentage
 - ⏱️ **Time elapsed** tracking for the entire pipeline
 - 📊 **Step counters** (e.g., `[2/9] Running ruff lint...`)

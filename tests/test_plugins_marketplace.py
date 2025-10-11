@@ -28,8 +28,8 @@ from hephaestus.plugins import (
     _verify_marketplace_signature,
     discover_plugins,
     load_plugin_config,
-    registry as global_registry,
 )
+from hephaestus.plugins import registry as global_registry
 
 
 @pytest.fixture(autouse=True)

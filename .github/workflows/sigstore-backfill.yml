@@ -4,12 +4,12 @@ name: Sigstore Bundle Backfill
 # Workflow for backfilling Sigstore bundles on historical releases (ADR-0006)
 # This is a manually triggered workflow to avoid accidental execution
 
-'on':
+"on":
   workflow_dispatch:
 
 permissions:
-  contents: write  # Required to upload release assets and update notes
-  id-token: write  # Required for Sigstore OIDC authentication
+  contents: write # Required to upload release assets and update notes
+  id-token: write # Required for Sigstore OIDC authentication
 
 jobs:
   backfill:

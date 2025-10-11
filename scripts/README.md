@@ -30,6 +30,7 @@ This directory contains automation scripts for quality validation and enforcemen
 - **🎯 Intelligent**: Detects what needs to run based on environment changes
 
 **Recommended Workflow:**
+
 ```bash
 # On first clone
 ./scripts/hephaestus-orchestrator.sh
@@ -86,15 +87,15 @@ INTERACTIVE=1 ./scripts/hephaestus-orchestrator.sh
 
 **Cache Durations (Fast Mode):**
 
-| Check | Cache Duration |
-|-------|----------------|
-| Python version | 1 hour |
-| UV installation | 1 hour |
-| Virtual environment | 10 minutes |
-| Lockfile sync | 5 minutes |
-| Dependency sync | 30 minutes |
-| Quality checks | 10 minutes |
-| macOS setup | 1 hour |
+| Check               | Cache Duration |
+| ------------------- | -------------- |
+| Python version      | 1 hour         |
+| UV installation     | 1 hour         |
+| Virtual environment | 10 minutes     |
+| Lockfile sync       | 5 minutes      |
+| Dependency sync     | 30 minutes     |
+| Quality checks      | 10 minutes     |
+| macOS setup         | 1 hour         |
 
 **Environment Variables:**
 
@@ -336,14 +337,14 @@ DRY_RUN=1 INTERACTIVE=1 PERSIST_CONFIG=1 ./scripts/validate-dependency-orchestra
 
 **Configuration Flags:**
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `AUTO_REMEDIATE` | 1 | Enable/disable auto-remediation |
-| `DRY_RUN` | 0 | Show what would be done without doing it |
-| `INTERACTIVE` | 0 | Prompt before each change |
-| `PERSIST_CONFIG` | 0 | Add environment variables to shell profile |
-| `LOG_REMEDIATION` | 1 | Log all actions to `~/.hephaestus/logs/` |
-| `PRE_FLIGHT_CHECK` | 0 | Run health checks before operations |
+| Flag               | Default | Description                                |
+| ------------------ | ------- | ------------------------------------------ |
+| `AUTO_REMEDIATE`   | 1       | Enable/disable auto-remediation            |
+| `DRY_RUN`          | 0       | Show what would be done without doing it   |
+| `INTERACTIVE`      | 0       | Prompt before each change                  |
+| `PERSIST_CONFIG`   | 0       | Add environment variables to shell profile |
+| `LOG_REMEDIATION`  | 1       | Log all actions to `~/.hephaestus/logs/`   |
+| `PRE_FLIGHT_CHECK` | 0       | Run health checks before operations        |
 
 **What it checks and auto-remediates:**
 

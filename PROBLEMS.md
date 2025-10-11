@@ -16,6 +16,7 @@ The script now automatically fixes common issues instead of just reporting them:
 - ✅ **macOS env variables not set?** → Auto-sets `COPYFILE_DISABLE=1` and `UV_LINK_MODE=copy` for the session
 
 **Usage:**
+
 ```bash
 # With auto-remediation (default)
 ./scripts/validate-dependency-orchestration.sh
@@ -33,6 +34,7 @@ Enhanced with automatic lockfile regeneration:
 - ✅ **Better error handling** and user guidance
 
 **Usage:**
+
 ```bash
 # With auto-lock regeneration (default)
 ./scripts/bump_version.sh 0.3.0
@@ -76,11 +78,12 @@ All scripts have been tested and verified to work correctly:
 ✅ `validate-macos-setup.sh` - All validation tests pass  
 ✅ `validate_quality_gates.py` - Auto-installs missing modules and retries  
 ✅ Test suite - 395 tests passed (85.62% coverage)  
-✅ Guard rails - All checks pass  
+✅ Guard rails - All checks pass
 
 ## Documentation
 
 All changes are documented in:
+
 - `scripts/README.md` - Updated with auto-remediation features and usage examples
 - Inline script comments - Clear explanations of auto-remediation logic
 
@@ -95,9 +98,9 @@ All changes are documented in:
 
 ## Original Problem Statement
 
-> "The entire setup should be intelligent, automated, resilient, self- and autoremediating 
-> from a single command so that everything is automatically set up and corrected/remedied 
-> where required, including ensuring dependencies are synced or downloaded, then verified 
+> "The entire setup should be intelligent, automated, resilient, self- and autoremediating
+> from a single command so that everything is automatically set up and corrected/remedied
+> where required, including ensuring dependencies are synced or downloaded, then verified
 > until everything runs green. This should be made foolproof."
 
 **✅ FULLY IMPLEMENTED** - All scripts now embody these principles.
@@ -106,4 +109,3 @@ All changes are documented in:
 
 **Date Resolved:** 2025-10-11  
 **PR:** [Link to be added after merge]
-

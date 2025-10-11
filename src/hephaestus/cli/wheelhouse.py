@@ -8,7 +8,8 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
-from hephaestus import events as telemetry, resource_forks
+from hephaestus import events as telemetry
+from hephaestus import resource_forks
 
 console = Console()
 

@@ -1,6 +1,6 @@
 ---
 name: Copilot Setup Steps
-'on':
+"on":
   workflow_dispatch:
   push:
     paths: [.github/workflows/copilot-setup-steps.yml]
