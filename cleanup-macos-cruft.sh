@@ -39,7 +39,7 @@ fi
 
 cd "${PROJECT_ROOT}" || exit 1
 
-ARGS=("$@")
+declare -a ARGS=("$@")
 
 # Prevent cp/tar from emitting AppleDouble files on non-HFS targets.
 export COPYFILE_DISABLE="${COPYFILE_DISABLE:-1}"
@@ -47,7 +47,7 @@ export UV_LINK_MODE="${UV_LINK_MODE:-copy}"
 
 # Check if we need to inject the repository root
 should_inject_root=true
-for arg in "${ARGS[@]}"; do
+for arg in "${ARGS[@]-}"; do
   if [[ ${arg} != -* ]]; then
     # Found a non-flag argument, assume it's the root
     should_inject_root=false
@@ -56,12 +56,12 @@ for arg in "${ARGS[@]}"; do
 done
 
 if [[ ${should_inject_root} == true ]]; then
-  ARGS=("${PROJECT_ROOT}" "${ARGS[@]}")
+  ARGS=("${PROJECT_ROOT}" "${ARGS[@]-}")
 fi
 
 flag_present() {
   local flag="$1"
-  for arg in "${ARGS[@]}"; do
+  for arg in "${ARGS[@]-}"; do
     if [[ ${arg} == "${flag}" ]]; then
       return 0
     fi
@@ -70,7 +70,7 @@ flag_present() {
 }
 
 has_deep_clean=false
-for arg in "${ARGS[@]}"; do
+for arg in "${ARGS[@]-}"; do
   if [[ ${arg} == "--deep-clean" ]]; then
     has_deep_clean=true
     break

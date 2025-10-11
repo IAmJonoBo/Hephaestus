@@ -145,8 +145,8 @@ before parsing, ensuring stored events preserve full `datetime` values.
   "accepted": 2,
   "rejected": 0,
   "summary": {
-    "sources": {"ci": 2},
-    "kinds": {"coverage": 1, "latency": 1}
+    "sources": { "ci": 2 },
+    "kinds": { "coverage": 1, "latency": 1 }
   }
 }
 ```

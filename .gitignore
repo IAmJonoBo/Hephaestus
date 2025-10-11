@@ -17,6 +17,7 @@ venv/
 # Tool caches
 .pytest_cache/
 .mypy_cache/
+.uv-cache/
 
 # Node.js
 node_modules/

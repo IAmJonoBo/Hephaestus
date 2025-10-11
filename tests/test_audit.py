@@ -7,7 +7,8 @@ from typing import Any
 
 import pytest
 
-from hephaestus import audit as audit_module, telemetry
+from hephaestus import audit as audit_module
+from hephaestus import telemetry
 from hephaestus.api import auth
 from hephaestus.audit import AuditStatus, record_audit_event
 

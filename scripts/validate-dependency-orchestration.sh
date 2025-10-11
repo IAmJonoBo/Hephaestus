@@ -151,14 +151,14 @@ fi
 # Check 12: Validate COPYFILE_DISABLE and UV_LINK_MODE on macOS
 if [[ ${OSTYPE} == "darwin"* ]]; then
   print_status "Checking macOS environment variables..."
-  
+
   if [[ ${COPYFILE_DISABLE:-0} -eq 1 ]]; then
     print_success "COPYFILE_DISABLE=1 is set"
   else
     print_warning "COPYFILE_DISABLE should be set to 1 on macOS"
   fi
-  
-  if [[ ${UV_LINK_MODE} == "copy" ]]; then
+
+  if [[ ${UV_LINK_MODE-} == "copy" ]]; then
     print_success "UV_LINK_MODE=copy is set"
   else
     print_warning "UV_LINK_MODE should be set to 'copy' on macOS"

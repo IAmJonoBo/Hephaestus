@@ -12,7 +12,8 @@ from typing import Annotated, Any
 import typer
 from rich.console import Console
 
-from hephaestus import events as telemetry, release as release_module
+from hephaestus import events as telemetry
+from hephaestus import release as release_module
 from hephaestus.backfill import BackfillError, run_backfill
 from hephaestus.telemetry import trace_command
 

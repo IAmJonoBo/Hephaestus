@@ -50,16 +50,16 @@ Telemetry data will be exported to your configured OTLP endpoint.
 
 ### Environment Variables
 
-| Variable                       | Description                            | Default      |
-| ------------------------------ | -------------------------------------- | ------------ |
-| `HEPHAESTUS_TELEMETRY_ENABLED` | Enable/disable telemetry               | `false`      |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`  | OTLP collector endpoint                | None         |
-| `OTEL_SERVICE_NAME`            | Service name for traces                | `hephaestus` |
-| `OTEL_TRACES_SAMPLER`          | Trace sampler (always_on/parentbased*) | `parentbased_traceidratio` |
-| `OTEL_TRACES_SAMPLER_ARG`      | Sampler argument (ratio for `traceidratio`) | `0.2` |
-| `HEPHAESTUS_PROMETHEUS_HOST`   | Prometheus exporter bind host          | `0.0.0.0`    |
-| `HEPHAESTUS_PROMETHEUS_PORT`   | Prometheus exporter bind port          | `9464`       |
-| `HEPHAESTUS_TELEMETRY_PRIVACY` | Privacy mode (strict/balanced/minimal) | `strict`     |
+| Variable                       | Description                                 | Default                    |
+| ------------------------------ | ------------------------------------------- | -------------------------- |
+| `HEPHAESTUS_TELEMETRY_ENABLED` | Enable/disable telemetry                    | `false`                    |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`  | OTLP collector endpoint                     | None                       |
+| `OTEL_SERVICE_NAME`            | Service name for traces                     | `hephaestus`               |
+| `OTEL_TRACES_SAMPLER`          | Trace sampler (always_on/parentbased\*)     | `parentbased_traceidratio` |
+| `OTEL_TRACES_SAMPLER_ARG`      | Sampler argument (ratio for `traceidratio`) | `0.2`                      |
+| `HEPHAESTUS_PROMETHEUS_HOST`   | Prometheus exporter bind host               | `0.0.0.0`                  |
+| `HEPHAESTUS_PROMETHEUS_PORT`   | Prometheus exporter bind port               | `9464`                     |
+| `HEPHAESTUS_TELEMETRY_PRIVACY` | Privacy mode (strict/balanced/minimal)      | `strict`                   |
 
 ### Privacy Modes
 
@@ -76,13 +76,13 @@ Telemetry data will be exported to your configured OTLP endpoint.
 
 ## Sampling Strategies
 
-| Sampler Value                   | Description                                           |
-| ------------------------------- | ----------------------------------------------------- |
-| `always_on`                     | Capture every span regardless of parent context       |
-| `always_off`                    | Disable tracing but keep metrics active               |
-| `traceidratio`                  | Sample root spans at a fixed ratio (0.0–1.0)          |
-| `parentbased_always_on`         | Follow parent sampling decisions, default to on       |
-| `parentbased_traceidratio`      | **Default.** Parent-aware sampling with ratio control |
+| Sampler Value              | Description                                           |
+| -------------------------- | ----------------------------------------------------- |
+| `always_on`                | Capture every span regardless of parent context       |
+| `always_off`               | Disable tracing but keep metrics active               |
+| `traceidratio`             | Sample root spans at a fixed ratio (0.0–1.0)          |
+| `parentbased_always_on`    | Follow parent sampling decisions, default to on       |
+| `parentbased_traceidratio` | **Default.** Parent-aware sampling with ratio control |
 
 Recommended production posture:
 
@@ -110,7 +110,7 @@ Key metric families:
 
 All metrics include an `attributes` label containing a sorted key/value string. Example output:
 
-```
+```text
 hephaestus_plugins_success_total{attributes="category=testing,plugin=pytest,version=1.0.0"} 5.0
 ```
 
@@ -158,21 +158,8 @@ export HEPHAESTUS_PROMETHEUS_HOST=0.0.0.0
 export HEPHAESTUS_PROMETHEUS_PORT=9464
 ```
 
-## Privacy Modes
-
-Privacy levels still apply to telemetry payloads and metrics labels:
-
-- **strict**: Minimal attributes, coarse grained labels
-- **balanced**: Sanitised file paths and anonymised usernames
-- **minimal**: Full fidelity telemetry (recommended for isolated CI)
-
 ## Related Documentation
 
 - [ADR-0003: OpenTelemetry Integration](../adr/0003-opentelemetry-integration.md)
 - [Architecture Overview](../explanation/architecture.md)
 - [Quality Gates Guide](quality-gates.md)
-
-## Related Documentation
-
-- [ADR-0003: OpenTelemetry Integration](../adr/0003-opentelemetry-integration.md)
-- [Architecture Overview](../explanation/architecture.md)

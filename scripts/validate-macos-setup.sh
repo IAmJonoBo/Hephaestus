@@ -115,21 +115,21 @@ fi
 # Test 8: Verify no AppleDouble files in cache or .venv after cleanup
 if [[ $IS_MACOS == true ]]; then
   print_test "Checking for AppleDouble artifacts after cleanup..."
-  
+
   # Check UV cache
   UV_CACHE_DIR="${UV_CACHE_DIR:-$HOME/.cache/uv}"
   APPLEDOUBLE_COUNT=0
-  
-  if [[ -d "$UV_CACHE_DIR" ]]; then
+
+  if [[ -d $UV_CACHE_DIR ]]; then
     APPLEDOUBLE_COUNT=$(find "$UV_CACHE_DIR" -name "._*" -type f 2>/dev/null | wc -l | tr -d ' ')
   fi
-  
+
   # Check .venv
   if [[ -d ".venv" ]]; then
     VENV_COUNT=$(find ".venv" -name "._*" -type f 2>/dev/null | wc -l | tr -d ' ')
     APPLEDOUBLE_COUNT=$((APPLEDOUBLE_COUNT + VENV_COUNT))
   fi
-  
+
   if [[ $APPLEDOUBLE_COUNT -eq 0 ]]; then
     print_pass "No AppleDouble artifacts found"
   else

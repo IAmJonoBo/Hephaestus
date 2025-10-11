@@ -56,10 +56,10 @@ sweep_appledouble() {
 
   # Sweep .venv if it exists (handles both directory and symlink)
   local venv_path=".venv"
-  if [[ -L "${venv_path}" ]]; then
+  if [[ -L ${venv_path} ]]; then
     venv_path=$(readlink "${venv_path}")
   fi
-  
+
   if [[ -d ${venv_path} ]]; then
     find "${venv_path}" -name "._*" -type f -delete 2>/dev/null || true
     find "${venv_path}" -name ".DS_Store" -type f -delete 2>/dev/null || true
@@ -78,6 +78,17 @@ if [[ ! -f "pyproject.toml" ]]; then
 fi
 
 print_success "Repository root detected"
+
+# Configure repo-local uv directories unless explicitly overridden
+PROJECT_ROOT=$(pwd)
+DEFAULT_VENV_PATH="${PROJECT_ROOT}/.venv"
+DEFAULT_CACHE_PATH="${PROJECT_ROOT}/.uv-cache"
+
+export UV_FORCE_LOCAL_ENV="${UV_FORCE_LOCAL_ENV:-1}"
+export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${DEFAULT_VENV_PATH}}"
+export UV_CACHE_DIR="${UV_CACHE_DIR:-${DEFAULT_CACHE_PATH}}"
+
+mkdir -p "${UV_CACHE_DIR}"
 
 # Step 1: Check for uv installation
 print_status "Checking for uv package manager..."
@@ -190,16 +201,20 @@ if [[ ${OSTYPE} == "darwin"* ]]; then
 
   # Relocate environment to internal disk if on non-xattr filesystem
   if [[ ${NON_XATTR_FS} -eq 1 ]]; then
-    TARGET_ENV_DIR="${HOME}/.uvenvs/${REPO_NAME}"
+    if [[ ${UV_FORCE_LOCAL_ENV} -eq 1 ]]; then
+      print_warning "Non-xattr filesystem detected (${FS_TYPE}); proceeding with repo-local environment (UV_FORCE_LOCAL_ENV=1)"
+    else
+      TARGET_ENV_DIR="${HOME}/.uvenvs/${REPO_NAME}"
 
-    print_status "Configuring UV_PROJECT_ENVIRONMENT=${TARGET_ENV_DIR}"
-    export UV_PROJECT_ENVIRONMENT="${TARGET_ENV_DIR}"
-    ENV_RELOCATED=1
+      print_status "Configuring UV_PROJECT_ENVIRONMENT=${TARGET_ENV_DIR}"
+      export UV_PROJECT_ENVIRONMENT="${TARGET_ENV_DIR}"
+      ENV_RELOCATED=1
 
-    # Create the parent directory if needed
-    mkdir -p "${HOME}/.uvenvs"
+      # Create the parent directory if needed
+      mkdir -p "${HOME}/.uvenvs"
 
-    print_success "Virtual environment will be created on internal disk"
+      print_success "Virtual environment will be created on internal disk"
+    fi
   fi
 fi
 

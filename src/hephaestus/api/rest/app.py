@@ -111,9 +111,7 @@ async def health_check() -> dict[str, str]:
 @app.post("/api/v1/quality/guard-rails")
 async def run_guard_rails(
     request: GuardRailsRequest,
-    principal: auth.AuthenticatedPrincipal = Security(  # noqa: B008
-        get_authenticated_principal
-    ),
+    principal: auth.AuthenticatedPrincipal = Security(get_authenticated_principal),  # noqa: B008
 ) -> GuardRailsResponse:
     """Execute comprehensive quality pipeline."""
 
@@ -216,9 +214,7 @@ async def run_guard_rails(
 @app.post("/api/v1/cleanup")
 async def cleanup(
     request: CleanupRequest,
-    principal: auth.AuthenticatedPrincipal = Security(  # noqa: B008
-        get_authenticated_principal
-    ),
+    principal: auth.AuthenticatedPrincipal = Security(get_authenticated_principal),  # noqa: B008
 ) -> CleanupResponse:
     """Clean workspace artifacts."""
 
@@ -316,9 +312,7 @@ async def cleanup(
 @app.post("/api/v1/analytics/ingest", response_model=AnalyticsIngestResponse)
 async def ingest_analytics_stream(
     request: Request,
-    principal: auth.AuthenticatedPrincipal = Security(  # noqa: B008
-        get_authenticated_principal
-    ),
+    principal: auth.AuthenticatedPrincipal = Security(get_authenticated_principal),  # noqa: B008
 ) -> AnalyticsIngestResponse:
     """Ingest analytics events via NDJSON streaming."""
 
@@ -427,9 +421,7 @@ async def ingest_analytics_stream(
 async def get_rankings(
     strategy: str = "risk_weighted",
     limit: int = 20,
-    principal: auth.AuthenticatedPrincipal = Security(  # noqa: B008
-        get_authenticated_principal
-    ),
+    principal: auth.AuthenticatedPrincipal = Security(get_authenticated_principal),  # noqa: B008
 ) -> RankingsResponse:
     """Get refactoring priority rankings."""
 
@@ -488,9 +480,7 @@ async def get_rankings(
 @app.get("/api/v1/tasks/{task_id}")
 async def get_task_status(
     task_id: str,
-    principal: auth.AuthenticatedPrincipal = Security(  # noqa: B008
-        get_authenticated_principal
-    ),
+    principal: auth.AuthenticatedPrincipal = Security(get_authenticated_principal),  # noqa: B008
 ) -> TaskStatusResponse:
     """Get status of an async task."""
 
@@ -512,9 +502,7 @@ async def get_task_status(
 @app.get("/api/v1/tasks/{task_id}/stream")
 async def stream_task_progress(
     task_id: str,
-    principal: auth.AuthenticatedPrincipal = Security(  # noqa: B008
-        get_authenticated_principal
-    ),
+    principal: auth.AuthenticatedPrincipal = Security(get_authenticated_principal),  # noqa: B008
 ) -> StreamingResponse:
     """Stream task progress updates using Server-Sent Events."""
 
