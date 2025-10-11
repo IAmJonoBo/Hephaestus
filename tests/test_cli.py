@@ -13,6 +13,9 @@ from typer.testing import CliRunner
 
 from hephaestus.backfill import BackfillRunSummary
 
+release_cli = import_module("hephaestus.cli.release")
+cleanup_cli = import_module("hephaestus.cli.cleanup")
+
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 if str(SRC) not in sys.path:
@@ -100,12 +103,12 @@ def test_release_install_forwards_sigstore_options(
         # Add any extra keyword arguments to download_kwargs for assertion
         download_kwargs.update(kwargs)
 
-        asset = cli.release_module.ReleaseAsset(
+        asset = release_cli.release_module.ReleaseAsset(
             name=archive_path.name,
             download_url="https://example.invalid/archive.tar.gz",
             size=archive_path.stat().st_size,
         )
-        return cli.release_module.ReleaseDownload(
+        return release_cli.release_module.ReleaseDownload(
             asset=asset,
             archive_path=archive_path,
             extracted_path=None,
@@ -114,7 +117,7 @@ def test_release_install_forwards_sigstore_options(
         )
 
     monkeypatch.setattr(
-        cli.release_module,
+        release_cli.release_module,
         "download_wheelhouse",
         fake_download_wheelhouse,
     )
@@ -125,7 +128,7 @@ def test_release_install_forwards_sigstore_options(
         install_calls.append((args, kwargs))
 
     monkeypatch.setattr(
-        cli.release_module,
+        release_cli.release_module,
         "install_from_archive",
         fake_install_from_archive,
     )
@@ -165,9 +168,11 @@ def test_release_install_forwards_sigstore_options(
     assert download_kwargs["sigstore_identities"] == identities
     assert download_kwargs["extract"] is False
     assert download_kwargs["tag"] is None
-    assert download_kwargs["manifest_pattern"] == cli.release_module.DEFAULT_MANIFEST_PATTERN
-    assert download_kwargs["timeout"] == cli.release_module.DEFAULT_TIMEOUT
-    assert download_kwargs["max_retries"] == cli.release_module.DEFAULT_MAX_RETRIES
+    assert (
+        download_kwargs["manifest_pattern"] == release_cli.release_module.DEFAULT_MANIFEST_PATTERN
+    )
+    assert download_kwargs["timeout"] == release_cli.release_module.DEFAULT_TIMEOUT
+    assert download_kwargs["max_retries"] == release_cli.release_module.DEFAULT_MAX_RETRIES
 
     assert install_calls, "Expected install_from_archive to be invoked"
     install_args, install_kwargs = install_calls[0]
@@ -187,12 +192,12 @@ def test_release_install_can_remove_archive(
     archive_path.write_bytes(b"wheelhouse")
 
     def fake_download_wheelhouse(**_kwargs: Any) -> Any:
-        asset = cli.release_module.ReleaseAsset(
+        asset = release_cli.release_module.ReleaseAsset(
             name=archive_path.name,
             download_url="https://example.invalid/archive.tar.gz",
             size=archive_path.stat().st_size,
         )
-        return cli.release_module.ReleaseDownload(
+        return release_cli.release_module.ReleaseDownload(
             asset=asset,
             archive_path=archive_path,
             extracted_path=None,
@@ -201,13 +206,13 @@ def test_release_install_can_remove_archive(
         )
 
     monkeypatch.setattr(
-        cli.release_module,
+        release_cli.release_module,
         "download_wheelhouse",
         fake_download_wheelhouse,
     )
 
     monkeypatch.setattr(
-        cli.release_module,
+        release_cli.release_module,
         "install_from_archive",
         lambda *_args, **_kwargs: None,
     )
@@ -235,14 +240,14 @@ def test_release_install_supports_test_pypi_source(monkeypatch: pytest.MonkeyPat
     def _fail_download(**_kwargs: Any) -> None:
         raise AssertionError("download_wheelhouse should not run for PyPI sources")
 
-    monkeypatch.setattr(cli.release_module, "download_wheelhouse", _fail_download)
+    monkeypatch.setattr(release_cli.release_module, "download_wheelhouse", _fail_download)
 
     captured: dict[str, Any] = {}
 
     def _fake_install_from_pypi(**kwargs: Any) -> None:
         captured.update(kwargs)
 
-    monkeypatch.setattr(cli.release_module, "install_from_pypi", _fake_install_from_pypi)
+    monkeypatch.setattr(release_cli.release_module, "install_from_pypi", _fake_install_from_pypi)
 
     result = runner.invoke(
         cli.app,
@@ -302,7 +307,7 @@ def test_release_backfill_invokes_shared_runner(
             dry_run=True,
         )
 
-    monkeypatch.setattr("hephaestus.cli.run_backfill", fake_run_backfill)
+    monkeypatch.setattr("hephaestus.cli.release.run_backfill", fake_run_backfill)
 
     result = runner.invoke(
         cli.app,
@@ -332,7 +337,7 @@ def test_release_backfill_handles_failures(monkeypatch: pytest.MonkeyPatch, tmp_
             dry_run=False,
         )
 
-    monkeypatch.setattr("hephaestus.cli.run_backfill", fake_run_backfill)
+    monkeypatch.setattr("hephaestus.cli.release.run_backfill", fake_run_backfill)
 
     result = runner.invoke(cli.app, ["release", "backfill"])
 
@@ -469,7 +474,7 @@ def test_guard_rails_runs_expected_commands(monkeypatch: pytest.MonkeyPatch) -> 
     def _fake_cleanup(*args: Any, **kwargs: Any) -> None:
         cleanup_calls.append((args, kwargs))
 
-    monkeypatch.setattr(cli, "cleanup", _fake_cleanup)
+    monkeypatch.setattr(cleanup_cli, "cleanup", _fake_cleanup)
 
     executed: list[list[str]] = []
 
@@ -516,7 +521,7 @@ def test_guard_rails_command_is_registered() -> None:
 
 def test_guard_rails_can_skip_format(monkeypatch: pytest.MonkeyPatch) -> None:
     _, cli = _load_modules()
-    monkeypatch.setattr(cli, "cleanup", lambda *args, **kwargs: None)
+    monkeypatch.setattr(cleanup_cli, "cleanup", lambda *args, **kwargs: None)
 
     executed: list[list[str]] = []
 
@@ -538,7 +543,7 @@ def test_guard_rails_can_skip_format(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_guard_rails_plugin_mode_with_no_plugins(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test guard-rails falls back to standard mode when no plugins loaded."""
     _, cli = _load_modules()
-    monkeypatch.setattr(cli, "cleanup", lambda *args, **kwargs: None)
+    monkeypatch.setattr(cleanup_cli, "cleanup", lambda *args, **kwargs: None)
 
     # Mock the plugin discovery to return empty registry
     from hephaestus.plugins import PluginRegistry
