@@ -69,7 +69,8 @@ Actions runners, Codespaces, and developer laptops without extra packaging steps
 
 ## Extensibility
 
-- Add new CLI commands by extending `src/hephaestus/cli.py` and corresponding modules.
+- Add new CLI commands by extending the modules in `src/hephaestus/cli/` and wiring them through
+  the lightweight entrypoint at `src/hephaestus/cli.py`.
 - Create custom quality gate plugins using the `QualityGatePlugin` interface (see [Plugin Development Guide](/how-to/plugin-development/)).
 - Enable optional OpenTelemetry tracing via environment variables (see [Observability Guide](/how-to/observability/)).
 - Provide additional how-to guides under `docs/how-to/` and link them via `mkdocs.yml`.

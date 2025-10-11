@@ -192,7 +192,7 @@ If a gate fails:
 - [Evergreen Lifecycle Playbook](/lifecycle/)
 - [Frontier Red Team & Gap Analysis](/explanation/frontier-red-team-gap-analysis/)
 - [`scripts/README.md`](/scripts/README/)
-- [`src/hephaestus/cli.py`](../../src/hephaestus/cli.py)
+- [`src/hephaestus/cli.py`](../../src/hephaestus/cli.py) and [`src/hephaestus/cli/`](../../src/hephaestus/cli/)
 - GitHub Actions workflows under `.github/workflows/`
 
 ---
