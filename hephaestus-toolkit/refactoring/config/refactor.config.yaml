@@ -1,4 +1,4 @@
-# Default configuration for the Hephaestus toolkit.
+---
 coverage_threshold: 0.78
 hotspot_limit: 10
 repositories:
