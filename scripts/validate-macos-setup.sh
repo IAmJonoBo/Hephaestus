@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Validation script for macOS setup fixes
 # This script tests the logic added to setup-dev-env.sh
+# Features intelligent checks and auto-remediation suggestions
 
 set -euo pipefail
 
@@ -8,7 +9,10 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m'
+
+TEST_FAILED=0
 
 print_test() {
   echo -e "${CYAN}→ TEST:${NC} $1"
@@ -20,15 +24,16 @@ print_pass() {
 
 print_fail() {
   echo -e "${RED}✗ FAIL:${NC} $1"
+  TEST_FAILED=1
 }
 
 print_info() {
   echo -e "${YELLOW}ℹ INFO:${NC} $1"
 }
 
-echo "======================================"
-echo "macOS Setup Validation Tests"
-echo "======================================"
+echo -e "${CYAN}======================================${NC}"
+echo -e "${CYAN}${BOLD}macOS Setup Validation Tests${NC}"
+echo -e "${CYAN}======================================${NC}"
 echo ""
 
 # Test 1: Check script syntax
@@ -134,14 +139,23 @@ if [[ $IS_MACOS == true ]]; then
     print_pass "No AppleDouble artifacts found"
   else
     print_fail "Found $APPLEDOUBLE_COUNT AppleDouble artifacts - cleanup required"
-    exit 1
+    echo ""
+    print_info "To clean up AppleDouble artifacts, run:"
+    echo "  ./cleanup-macos-cruft.sh --deep-clean"
+    echo ""
   fi
 fi
 
 echo ""
-echo "======================================"
-echo "All validation tests passed!"
-echo "======================================"
+echo -e "${CYAN}======================================${NC}"
+if [[ ${TEST_FAILED} -eq 0 ]]; then
+  echo -e "${GREEN}${BOLD}All validation tests passed!${NC}"
+else
+  echo -e "${RED}${BOLD}Some tests failed!${NC}"
+  echo ""
+  echo "Review the failures above and take corrective action."
+fi
+echo -e "${CYAN}======================================${NC}"
 echo ""
 
 if [[ $IS_MACOS == true ]]; then
@@ -155,3 +169,5 @@ else
   echo "Non-macOS system detected - macOS-specific logic will be skipped"
 fi
 echo ""
+
+exit ${TEST_FAILED}

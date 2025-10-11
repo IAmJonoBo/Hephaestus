@@ -2,7 +2,131 @@
 
 This directory contains automation scripts for quality validation and enforcement.
 
+## 🚀 Quick Start: Unified Orchestrator
+
+**NEW**: Use the unified orchestrator for intelligent, context-aware automation:
+
+```bash
+# First-time setup (auto-fixes everything)
+./scripts/hephaestus-orchestrator.sh
+
+# Fast mode (uses cached validations, runs frequently)
+./scripts/hephaestus-orchestrator.sh --fast
+
+# Skip quality checks (development workflow)
+./scripts/hephaestus-orchestrator.sh --fast --skip-tests
+
+# Help
+./scripts/hephaestus-orchestrator.sh --help
+```
+
+### Unified Orchestrator Features
+
+- **🧠 Context-Aware**: Caches validation results to avoid redundant checks
+- **⚡ Fast Mode**: Skips recently validated checks (perfect for frequent runs)
+- **🔗 Integrated**: Runs all validation and setup scripts in optimal order
+- **🔒 Concurrent-Safe**: File locking prevents conflicts from multiple instances
+- **📊 State Tracking**: Maintains state between runs in `~/.hephaestus/state.json`
+- **🎯 Intelligent**: Detects what needs to run based on environment changes
+
+**Recommended Workflow:**
+```bash
+# On first clone
+./scripts/hephaestus-orchestrator.sh
+
+# During development (run frequently)
+./scripts/hephaestus-orchestrator.sh --fast --skip-tests
+
+# Before commit
+./scripts/hephaestus-orchestrator.sh --fast
+
+# Full validation
+./scripts/hephaestus-orchestrator.sh
+```
+
 ## Scripts
+
+### hephaestus-orchestrator.sh
+
+**🌟 NEW**: Unified orchestrator that intelligently runs all validation and setup operations.
+
+**Usage:**
+
+```bash
+# Standard run (auto-remediation enabled)
+./scripts/hephaestus-orchestrator.sh
+
+# Fast mode with caching
+./scripts/hephaestus-orchestrator.sh --fast
+
+# Development workflow
+./scripts/hephaestus-orchestrator.sh --fast --skip-tests
+
+# Dry-run mode
+DRY_RUN=1 ./scripts/hephaestus-orchestrator.sh
+
+# Interactive mode
+INTERACTIVE=1 ./scripts/hephaestus-orchestrator.sh
+```
+
+**What it orchestrates:**
+
+1. **Environment Validation** - Python version, uv installation
+2. **Dependency Orchestration** - Lockfile sync, venv setup, dependency sync
+3. **Code Quality** - Linting, formatting, type checking
+4. **Platform-Specific** - macOS setup validation
+
+**Key Features:**
+
+- **Context-Aware Caching**: Skips recently validated checks (configurable duration)
+- **File Locking**: Prevents conflicts from concurrent execution
+- **State Persistence**: Maintains validation state in `~/.hephaestus/state.json`
+- **Intelligent Ordering**: Runs checks in optimal dependency order
+- **Comprehensive Logging**: All actions logged to `~/.hephaestus/logs/`
+
+**Cache Durations (Fast Mode):**
+
+| Check | Cache Duration |
+|-------|----------------|
+| Python version | 1 hour |
+| UV installation | 1 hour |
+| Virtual environment | 10 minutes |
+| Lockfile sync | 5 minutes |
+| Dependency sync | 30 minutes |
+| Quality checks | 10 minutes |
+| macOS setup | 1 hour |
+
+**Environment Variables:**
+
+- `AUTO_REMEDIATE=1` - Enable auto-remediation (default)
+- `DRY_RUN=1` - Show what would be done
+- `INTERACTIVE=1` - Prompt before changes
+- `PERSIST_CONFIG=1` - Persist settings to shell profile
+- `FAST_MODE=1` - Use cached validations
+- `SKIP_TESTS=1` - Skip quality checks
+- `LOG_REMEDIATION=1` - Enable logging (default)
+
+**Exit codes:**
+
+- 0: All checks passed
+- 1: One or more checks failed
+
+**Recommended usage patterns:**
+
+```bash
+# First time setup
+./scripts/hephaestus-orchestrator.sh
+
+# Add dependency
+# (automatically syncs and validates)
+./scripts/hephaestus-orchestrator.sh --fast
+
+# Pre-commit
+./scripts/hephaestus-orchestrator.sh --fast
+
+# Before PR
+./scripts/hephaestus-orchestrator.sh
+```
 
 ### validate_quality_gates.py
 
@@ -72,7 +196,7 @@ This linter prevents regression of the "guard-rails availability bug" where the 
 
 ### run_actionlint.sh
 
-Installs and runs actionlint for GitHub Actions workflow validation.
+Installs and runs actionlint for GitHub Actions workflow validation. **Features automatic installation and resilient error handling.**
 
 **Usage:**
 
@@ -82,34 +206,51 @@ bash scripts/run_actionlint.sh
 
 **What it does:**
 
-- Downloads and installs actionlint v1.7.7 if not present
-- Validates all workflow files in `.github/workflows/`
+- **Auto-downloads and installs actionlint v1.7.7** if not present or wrong version
+- Validates all workflow files in `.github/workflows/` (both .yml and .yaml)
 - Checks for syntax errors, deprecated actions, and common mistakes
 - Reports shellcheck issues in workflow scripts
+- Provides clear error messages and troubleshooting guidance
 
 **Features:**
 
+- **🔧 Automatic installation** - Downloads and installs actionlint automatically
 - Automatic installation to `~/.local/bin`
 - Version pinning for reproducibility
 - Comprehensive workflow validation
+- Platform detection (Linux, macOS)
+- Architecture detection (amd64, arm64)
+- Resilient error handling
 
 **Exit codes:**
 
 - 0: All workflows valid
-- 1: Validation errors found
+- 1: Validation errors found or installation failed
+
+**Example output:**
+
+```bash
+$ bash scripts/run_actionlint.sh
+→ Checking for actionlint...
+→ actionlint not found, installing...
+→ Installing actionlint 1.7.7 for linux/amd64...
+✓ actionlint installed to /home/user/.local/bin/actionlint
+→ Running actionlint on workflow files...
+✓ All 15 workflow file(s) passed actionlint validation
+```
 
 ### bump_version.sh
 
-Interactive version bumping script that updates version numbers across the project.
+Interactive version bumping script that updates version numbers across the project. **Features automatic lockfile regeneration.**
 
 **Usage:**
 
 ```bash
-# Bump to a new version
+# Bump to a new version (auto-regenerates lockfile)
 ./scripts/bump_version.sh 0.3.0
 
-# Or with bash explicitly
-bash scripts/bump_version.sh 0.3.0
+# Bump without auto-regenerating lockfile
+AUTO_LOCK=0 ./scripts/bump_version.sh 0.3.0
 ```
 
 **What it does:**
@@ -119,11 +260,13 @@ bash scripts/bump_version.sh 0.3.0
 3. Determines release type (MAJOR, MINOR, PATCH)
 4. Updates `pyproject.toml`
 5. Updates `src/hephaestus/__init__.py` (if version present)
-6. Generates CHANGELOG template
-7. Provides next steps guidance
+6. **Auto-regenerates lockfile via `uv lock`** (if `AUTO_LOCK=1`, default)
+7. Generates CHANGELOG template
+8. Provides next steps guidance
 
 **Features:**
 
+- **🔧 Auto-regeneration** - Automatically updates lockfile after version bump
 - Semantic versioning validation
 - Prevents version downgrades
 - Interactive confirmation
@@ -151,6 +294,9 @@ This will:
 Continue? [y/N] y
 ✓ Version bumped to 0.3.0
 
+→ Regenerating lockfile...
+✓ Lockfile regenerated (uv.lock)
+
 CHANGELOG template for version 0.3.0:
 ...
 ```
@@ -161,39 +307,98 @@ CHANGELOG template for version 0.3.0:
 
 ### validate-dependency-orchestration.sh
 
-Comprehensive dependency orchestration validation script that ensures all dependency management components are properly configured.
+Comprehensive dependency orchestration validation script that ensures all dependency management components are properly configured. **Features automatic remediation of common issues.**
 
 **Usage:**
 
 ```bash
+# Run with auto-remediation (default)
 ./scripts/validate-dependency-orchestration.sh
+
+# Run without auto-remediation (validation only)
+AUTO_REMEDIATE=0 ./scripts/validate-dependency-orchestration.sh
+
+# Dry-run mode - show what would be done without doing it
+DRY_RUN=1 ./scripts/validate-dependency-orchestration.sh
+
+# Interactive mode - prompt before each change
+INTERACTIVE=1 ./scripts/validate-dependency-orchestration.sh
+
+# Persist environment variables to shell profile
+PERSIST_CONFIG=1 ./scripts/validate-dependency-orchestration.sh
+
+# Disable logging
+LOG_REMEDIATION=0 ./scripts/validate-dependency-orchestration.sh
+
+# Combined flags (dry-run + interactive + persist)
+DRY_RUN=1 INTERACTIVE=1 PERSIST_CONFIG=1 ./scripts/validate-dependency-orchestration.sh
 ```
 
-**What it checks:**
+**Configuration Flags:**
 
-- Python version ≥3.12
-- uv installation and version
-- pyproject.toml existence
-- uv.lock existence and sync status
-- Workflow Python version consistency (no invalid 3.14)
-- Workflow --locked flag usage
-- setup-uv python-version specifications
-- Dependabot configuration
-- Dependency sync functionality
-- Environment isolation (.venv usage)
+| Flag | Default | Description |
+|------|---------|-------------|
+| `AUTO_REMEDIATE` | 1 | Enable/disable auto-remediation |
+| `DRY_RUN` | 0 | Show what would be done without doing it |
+| `INTERACTIVE` | 0 | Prompt before each change |
+| `PERSIST_CONFIG` | 0 | Add environment variables to shell profile |
+| `LOG_REMEDIATION` | 1 | Log all actions to `~/.hephaestus/logs/` |
+| `PRE_FLIGHT_CHECK` | 0 | Run health checks before operations |
+
+**What it checks and auto-remediates:**
+
+- **Python version ≥3.12** - Auto-installs via `uv python install 3.12` if missing
+- **uv installation** - Auto-installs from https://astral.sh/uv if not found
+- **pyproject.toml existence** - Validation only
+- **uv.lock sync status** - Auto-regenerates lockfile if out of sync
+- **Workflow Python version consistency** - Validation only
+- **Workflow --locked flag usage** - Validation only
+- **setup-uv python-version specifications** - Validation only
+- **Dependabot configuration** - Validation only
+- **Dependency sync functionality** - Auto-syncs dependencies if needed
+- **Environment isolation (.venv usage)** - Auto-creates virtual environment
+- **macOS environment variables** - Auto-sets `COPYFILE_DISABLE=1` and `UV_LINK_MODE=copy`
 
 **Exit codes:**
 
 - 0: All checks passed
-- 1: One or more checks failed
+- 1: One or more checks failed (even after auto-remediation)
 
 **Features:**
 
-- Color-coded output (✓ success, ✗ error, ⚠ warning)
+- **🔧 Auto-remediation** - Automatically fixes common issues
+- **📝 Remediation Logs** - Tracks all actions in timestamped log files
+- **🤖 Interactive Mode** - Prompts before making changes (for paranoid users)
+- **👀 Dry-Run Mode** - Shows what would be done without doing it
+- **💾 Persistent Config** - Auto-adds environment variables to shell profile
+- **🏥 Health Checks** - Pre-flight validation (optional, off by default)
+- Color-coded output (✓ success, ✗ error, ⚠ warning, ⚙ remediated)
 - Comprehensive validation across all components
 - Detects common misconfigurations
 - Can be run locally or in CI
 - Guards against drift during repo sync
+- Intelligent and foolproof - works without manual intervention
+
+**Auto-remediation examples:**
+
+```bash
+# If Python 3.12 is missing, the script will:
+# 1. Detect the issue
+# 2. Run: uv python install 3.12
+# 3. Run: uv python pin 3.12
+# 4. Continue validation
+
+# If uv is missing, the script will:
+# 1. Detect the issue
+# 2. Download and run: curl -LsSf https://astral.sh/uv/install.sh | sh
+# 3. Add to PATH for the session
+# 4. Continue validation
+
+# If lockfile is out of sync, the script will:
+# 1. Detect the issue
+# 2. Run: uv lock
+# 3. Continue validation
+```
 
 **Example output:**
 
@@ -204,12 +409,17 @@ Hephaestus Dependency Orchestration Validator
 ==================================================================
 
 → Checking Python version...
-✓ Python 3.12.3 detected
+⚠ Python 3.12+ required, found 3.9.6
+⚙ Attempting to install Python 3.12 via uv...
+✓ Python 3.12 installed via uv
+✓ Python 3.12 pinned for this project
+✓ Python 3.12.8 now available
 → Checking uv installation...
 ✓ uv detected: uv 0.9.1
 ...
 ==================================================================
 ✓ All dependency orchestration checks passed
+⚙ 3 issue(s) were auto-remediated
 ```
 
 **See also:**
