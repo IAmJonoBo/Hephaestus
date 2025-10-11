@@ -26,6 +26,7 @@ from hephaestus import (
     toolbox,
 )
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
+from hephaestus.backfill import BackfillError, run_backfill
 from hephaestus.command_helpers import build_pip_audit_command
 from hephaestus.logging import LogFormat
 from hephaestus.telemetry import record_histogram, trace_command, trace_operation
@@ -671,8 +672,6 @@ def release_backfill(
 
     Requires GITHUB_TOKEN environment variable with repo write access.
     """
-    import subprocess
-
     console.print("[cyan]Starting Sigstore bundle backfill...[/cyan]")
 
     # Check for GITHUB_TOKEN
@@ -683,42 +682,31 @@ def release_backfill(
         console.print("  export GITHUB_TOKEN=<your-token>")
         raise typer.Exit(code=1)
 
-    # Build command
-    import sys
-
-    script_path = Path(__file__).parent.parent.parent / "scripts" / "backfill_sigstore_bundles.py"
-
-    cmd = [sys.executable, str(script_path)]
-
-    if version:
-        cmd.extend(["--version", version])
-
     if dry_run:
-        cmd.append("--dry-run")
         console.print("[yellow]DRY RUN MODE - No actual uploads will be performed[/yellow]")
 
-    # Execute backfill script
-    console.print(f"\nExecuting: {' '.join(cmd)}\n")
-
     try:
-        result = subprocess.run(
-            cmd,
-            check=False,
-            env=os.environ.copy(),
+        summary = run_backfill(
+            token=token,
+            version=version,
+            dry_run=dry_run,
         )
-
-        if result.returncode == 0:
-            console.print("\n[green]✓ Backfill completed successfully![/green]")
-        else:
-            console.print("\n[red]✗ Backfill failed - see output above[/red]")
-            raise typer.Exit(code=result.returncode)
-
-    except FileNotFoundError as exc:
-        console.print(f"[red]✗ Backfill script not found: {script_path}[/red]")
+    except BackfillError as exc:
+        console.print(f"\n[red]✗ Backfill failed: {exc}[/red]")
         raise typer.Exit(code=1) from exc
-    except Exception as exc:
-        console.print(f"[red]✗ Unexpected error: {exc}[/red]")
+    except Exception as exc:  # pragma: no cover - defensive
+        console.print(f"\n[red]✗ Unexpected error: {exc}[/red]")
         raise typer.Exit(code=1) from exc
+
+    if not summary.ok:
+        failed_versions = ", ".join(entry["version"] for entry in summary.failures)
+        console.print("\n[red]✗ Backfill failed[/red] - see logs for details")
+        if failed_versions:
+            console.print(f"Failed versions: {failed_versions}")
+        raise typer.Exit(code=1)
+
+    console.print("\n[green]✓ Backfill completed successfully![/green]")
+    console.print(f"Inventory updated at {summary.inventory_path}")
 
 
 @refactor_app.command("hotspots")

@@ -1,62 +1,53 @@
 # Next Steps Tracker
 
-Last updated: 2025-10-13 (Service auth gating restored + guard-rail suite green locally)
+Last updated: 2025-10-14 (Backfill CLI refactor implemented; guard-rails re-run)
 
 ## Tasks
 
-- [ ] Restore guard-rail baselines for release pipeline work (tests, lint, typecheck, security scan) _(Owner: Agent, Due: 2025-10-13)_
-  - [x] Address API service principal argument regressions blocking pytest. _(Owner: Agent)_
-  - [x] Reformat `tests/test_plugins_marketplace.py` per Ruff. _(Owner: Agent)_
-  - [x] Resolve lint/type failures triggered by new auth signature expectations. _(Owner: Agent)_
-  - [ ] Document pip-audit limitation (package absent on PyPI until publish). _(Owner: Agent)_
-- [ ] Implement PyPI/Test PyPI publication automation per ADR-0005. _(Owner: Agent, Due: 2025-10-14)_
-  - [x] Extend `hephaestus release install` to support PyPI/Test PyPI sources. _(Owner: Agent)_
-  - [x] Add smoke test harness for Test PyPI installs (env-gated). _(Owner: Agent)_
-  - [x] Update `.github/workflows/publish-pypi.yml` with Trusted Publisher slug + smoke verification. _(Owner: Agent)_
-  - [x] Refresh ADR-0005 + README install docs with publisher + 2FA details. _(Owner: Agent)_
-  - [ ] Capture workflow log references once GitHub run completes (post-environment). _(Owner: Agent)_
-- [ ] Register `hephaestus-toolkit` on PyPI/Test PyPI, enable 2FA, and approve Trusted Publisher (`pypi:project/hephaestus-toolkit`). _(Owner: Maintainer, Blocked: requires PyPI org access)_
+- [x] Integrate Sigstore backfill into Python package for wheel distribution _(Owner: Agent, Due: 2025-10-14)_
+  - [x] Move script logic into `src/hephaestus/backfill.py` callable.
+  - [x] Update CLI `hephaestus release backfill` to call shared implementation.
+  - [x] Maintain/rework standalone script wrapper + packaging metadata.
+  - [x] Extend automated tests covering CLI invocation in installed context.
+  - [ ] Refresh documentation/changelog if behaviour shifts. _(Review need post-analysis)_
+- [ ] Document pip-audit limitation (package absent on PyPI until publish). _(Owner: Agent)_
 
 ## Steps
 
-- [x] Draft unit tests covering `release install --source {github,pypi,test-pypi}` and PyPI installer helpers before implementation.
-- [x] Implement CLI + `release` module changes to satisfy new tests.
-- [x] Author Test PyPI smoke script (pytest gated + standalone entrypoint) and wire into workflow.
-- [x] Update docs/ADR + README to document publisher configuration, 2FA, and install flows.
-- [x] Validate guard-rail tooling locally (pytest, Ruff, mypy) after auth hardening; prerelease tag execution still pending external access.
-- [ ] Record GitHub Actions log links + Test PyPI artifact references post-run.
+- [x] Reviewed repository context: README, CONTRIBUTING, CHANGELOG, SECURITY policy, packaging configs, and CI guidance to confirm guard-rail expectations.
+- [x] Established baseline guard-rails (tests, lint, format, type-check, build, security scan noting known pip-audit limitation).
+- [x] Design module integration approach and test strategy before refactor.
+- [x] Implement code + tests, update packaging metadata, rerun guard-rails.
+- [ ] Prepare PR summary with coverage impact and residual risks.
 
 ## Deliverables
 
-- Updated `docs/adr/0005-pypi-publication.md` reflecting Trusted Publisher + 2FA posture.
-- Hardened `.github/workflows/publish-pypi.yml` with Test PyPI smoke verification + Sigstore bundle upload.
-- Extended CLI/`release` module supporting PyPI/Test PyPI installs.
-- Test harness (`tests/smoke/test_testpypi_install.py`) gating real Test PyPI installs behind env var.
-- README/docs refresh covering PyPI installation and verification steps.
+- Updated `src/hephaestus/backfill.py` exposing reusable `run_backfill` entry point.
+- Revised `src/hephaestus/cli.py` invoking the new callable.
+- Maintained or replaced `scripts/backfill_sigstore_bundles.py` wrapper.
+- Expanded tests (e.g., `tests/test_backfill.py` or CLI smoke) exercising installed CLI.
+- Packaging metadata (`pyproject.toml`, `MANIFEST.in`) aligned with new layout.
 
 ## Quality Gates
 
-- [x] `uv run --extra qa --extra dev pytest --cov=src` (pass: 400 passed, coverage 85.30%).【7dee58†L1-L61】
-- [x] `uv run --extra qa --extra dev ruff check .` (pass).【78ed7a†L1-L2】
-- [x] `uv run --extra qa --extra dev ruff format --check .` (pass).【53663b†L1-L2】
-- [x] `uv run --extra qa --extra dev mypy src tests` (pass).【283f4e†L1-L2】
-- [ ] `uv run --extra qa --extra dev pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (fails: package not yet on PyPI).【85d439†L1-L2】
-- [x] `uv build` (pass).【78c9c0†L1-L3】
+- [x] `uv run --extra qa --extra dev pytest --cov=src` (pass: 399 passed, coverage 85.44%).【55882f†L1-L53】
+- [x] `uv run --extra qa --extra dev ruff check .` (pass).【55fc7c†L1-L2】
+- [x] `uv run --extra qa --extra dev ruff format --check .` (pass).【df8e1a†L1-L1】
+- [x] `uv run --extra qa --extra dev mypy src tests` (pass).【438186†L1-L1】
+- [ ] `uv run --extra qa --extra dev pip-audit --strict --ignore-vuln GHSA-4xh5-x5gv-qwph` (fails: package not yet on PyPI).【2da83a†L1-L1】【6b5919†L1-L1】
+- [x] `uv build` (pass).【4ad6cc†L1-L2】【4fd8c0†L1-L3】
 
 ## Links
 
-- `.github/workflows/publish-pypi.yml`
-- `docs/adr/0005-pypi-publication.md`
-- `README.md`
+- `scripts/backfill_sigstore_bundles.py`
+- `src/hephaestus/backfill.py`
 - `src/hephaestus/cli.py`
-- `src/hephaestus/release.py`
-- `tests/test_release.py`
-- `tests/smoke/test_testpypi_install.py` _(planned)_
+- `tests/test_backfill.py`
+- `pyproject.toml`
+- `MANIFEST.in` (if present)
 
 ## Risks/Notes
 
-- Guard-rail suite now passes locally (tests/coverage/lint/type); ensure future changes maintain ≥85% coverage before tagging releases.
-- PyPI registration + 2FA require external maintainer action; document completion steps once access is available.
-- pip-audit will fail until package exists on PyPI/Test PyPI; treat as expected until first publish.
-- Test PyPI smoke test requires network + credentials; gate via env var to avoid local CI failures.
-- Sigstore attestation tooling must remain consistent with ADR-0006; ensure workflow retains tarball uploads.
+- pip-audit fails until `hephaestus-toolkit` is published; continue documenting this gap.
+- CLI invocation now delegates to library callable; monitor for behavioural regressions in environments relying on script path.
+- Documentation review pending to confirm no user-facing updates required.
