@@ -190,7 +190,7 @@ def test_configure_telemetry_respects_parentbased_ratio_sampler(
     assert isinstance(provider.sampler, _FakeParentBased)
     delegate = provider.sampler.delegate
     assert isinstance(delegate, _FakeTraceIdRatioBased)
-    assert delegate.ratio == 0.25
+    assert delegate.ratio == pytest.approx(0.25)
 
 
 @pytest.mark.usefixtures("logging_guard")

@@ -52,7 +52,6 @@ async def test_guard_rails_endpoint_success(
             name: str,
             func: Any,
             *args: Any,
-            timeout: float | None = None,
             principal: auth_module.AuthenticatedPrincipal | None = None,
             required_roles: frozenset[str] | None = None,
             **kwargs: Any,
@@ -69,9 +68,10 @@ async def test_guard_rails_endpoint_success(
             task_id: str,
             *,
             poll_interval: float = 0.1,
-            timeout: float | None = None,
             principal: auth_module.AuthenticatedPrincipal | None = None,
         ) -> Task:
+            # Example usage of a timeout context manager (asyncio.timeout in Python 3.11+)
+            # with asyncio.timeout(5):  # Set your desired timeout value
             assert task_id == "task-123"
             assert principal is not None
             return Task(

@@ -115,7 +115,7 @@ DRY_RUN=1 INTERACTIVE=1 LOG_REMEDIATION=1 PRE_FLIGHT_CHECK=1 ./scripts/validate-
 INTERACTIVE=1 ./scripts/validate-dependency-orchestration.sh
 ```
 
-_See what's happening and approve each step_
+> See what's happening and approve each step
 
 #### 🟢 For Experienced Users
 
@@ -123,7 +123,7 @@ _See what's happening and approve each step_
 ./scripts/validate-dependency-orchestration.sh
 ```
 
-_Default auto-remediation, works out of the box_
+> Default auto-remediation, works out of the box
 
 #### 🟢 For Paranoid Users
 
@@ -131,7 +131,7 @@ _Default auto-remediation, works out of the box_
 INTERACTIVE=1 DRY_RUN=1 ./scripts/validate-dependency-orchestration.sh
 ```
 
-_See what would happen, approve before actual run_
+> See what would happen, approve before actual run
 
 #### 🟢 For CI/CD
 
@@ -139,7 +139,7 @@ _See what would happen, approve before actual run_
 AUTO_REMEDIATE=1 LOG_REMEDIATION=0 ./scripts/validate-dependency-orchestration.sh
 ```
 
-_Automated, no logs to clean up_
+> Automated, no logs to clean up
 
 #### 🟢 For Production Setup
 
@@ -147,7 +147,7 @@ _Automated, no logs to clean up_
 PERSIST_CONFIG=1 LOG_REMEDIATION=1 ./scripts/validate-dependency-orchestration.sh
 ```
 
-_Make it permanent, keep audit trail_
+> Make it permanent, keep audit trail
 
 ### Discouraged Combinations
 
@@ -157,19 +157,19 @@ _Make it permanent, keep audit trail_
 AUTO_REMEDIATE=0 DRY_RUN=1
 ```
 
-_Pointless: nothing will be done or shown_
+> Pointless: nothing will be done or shown
 
 ```bash
 DRY_RUN=1 PERSIST_CONFIG=1
 ```
 
-_Conflicting: dry-run won't persist anything_
+> Conflicting: dry-run won't persist anything
 
 ```bash
 INTERACTIVE=0 AUTO_REMEDIATE=0
 ```
 
-_Pointless: just validation with no action_
+> Pointless: just validation with no action
 
 ## Log Files
 
@@ -197,7 +197,7 @@ cd ~/.hephaestus/logs && ls -t remediation-*.log | tail -n +11 | xargs rm -f
 
 ### Log Format
 
-```
+```text
 [YYYY-MM-DD HH:MM:SS] LEVEL: Message
 ```
 

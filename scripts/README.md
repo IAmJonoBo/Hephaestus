@@ -349,7 +349,7 @@ DRY_RUN=1 INTERACTIVE=1 PERSIST_CONFIG=1 ./scripts/validate-dependency-orchestra
 **What it checks and auto-remediates:**
 
 - **Python version ≥3.12** - Auto-installs via `uv python install 3.12` if missing
-- **uv installation** - Auto-installs from https://astral.sh/uv if not found
+- **uv installation** - Auto-installs from [astral.sh/uv](https://astral.sh/uv) if not found
 - **pyproject.toml existence** - Validation only
 - **uv.lock sync status** - Auto-regenerates lockfile if out of sync
 - **Workflow Python version consistency** - Validation only
