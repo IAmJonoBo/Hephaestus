@@ -40,3 +40,6 @@ Resolved 97 packages in 24ms
 ✗ Some dependency orchestration checks failed
 
 Please fix the issues above to ensure proper dependency management.
+==================================================================
+
+Once donce, continue similar work for other scripts so that all use the same principles I outlined in the beginning.
