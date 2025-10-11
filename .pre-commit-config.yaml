@@ -1,36 +1,47 @@
 ---
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.6
+    rev: v0.14.0
     hooks:
       - id: ruff
         name: ruff-isort
         args: [--fix, --select, I]
-        stages: [commit, push]
+        stages: [pre-commit, pre-push]
       - id: ruff
         args: [--fix]
-        stages: [commit, push]
+        stages: [pre-commit, pre-push]
       - id: ruff-format
-        stages: [commit, push]
+        stages: [pre-commit, pre-push]
   - repo: https://github.com/psf/black
-    rev: 25.1.0
+    rev: 25.9.0
     hooks:
       - id: black
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.19.3
+    rev: v3.21.0
     hooks:
       - id: pyupgrade
         args:
           - --py312-plus
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.14.1
+    rev: v1.18.2
     hooks:
       - id: mypy
+        pass_filenames: false
+        args: [--config-file=pyproject.toml, src, tests]
         additional_dependencies:
           - pydantic
           - types-PyYAML
+          - typer>=0.19.2
+          - rich>=14.1.0
+          - pytest>=8.4.2
+          - pytest-asyncio>=1.2.0
+          - httpx>=0.28.1
+          - prometheus-client>=0.20.0
+          - cryptography>=46.0.2
+          - fastapi>=0.118.2
+          - starlette>=0.48.0
   - repo: https://github.com/pypa/pip-audit
-    rev: v2.9.2
+    rev: v2.9.0
     hooks:
       - id: pip-audit
         # pip 25.2 is the latest release and ships with
@@ -53,7 +64,7 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        stages: [commit, push]
+        stages: [pre-commit, pre-push]
       - id: lint-nested-decorators
         name: Check for nested Typer decorators
         entry: python3 scripts/lint_nested_decorators.py

@@ -7,6 +7,13 @@
 
 set -euo pipefail
 
+ORIGINAL_DIR=$(pwd)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel 2>/dev/null || dirname "${SCRIPT_DIR}")
+
+cd "${REPO_ROOT}"
+trap 'cd "${ORIGINAL_DIR}"' EXIT
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -141,5 +148,5 @@ if "${ACTIONLINT_BIN}" "${WORKFLOW_FILES[@]}" 2>&1; then
 else
   EXIT_CODE=$?
   print_error "Some workflow files have validation errors (see above)"
-  exit ${EXIT_CODE}
+  exit "${EXIT_CODE}"
 fi

@@ -6,14 +6,9 @@ import logging
 import os
 import re
 import subprocess
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
-
-try:
-    import tomllib  # Python 3.11+
-except ImportError:
-    import tomli as tomllib  # type: ignore[import-not-found,no-redef]
-
 
 logger = logging.getLogger(__name__)
 

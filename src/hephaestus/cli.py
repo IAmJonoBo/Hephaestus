@@ -24,7 +24,10 @@ from hephaestus.command_helpers import build_pip_audit_command
 from hephaestus.logging import LogFormat
 from hephaestus.telemetry import record_histogram, trace_command, trace_operation
 
-__spec__ = importlib.util.spec_from_loader(__name__, loader=None, origin=__file__, is_package=True)
+_spec = importlib.util.spec_from_loader(__name__, loader=None, origin=__file__, is_package=True)
+if _spec is None:
+    raise RuntimeError("Failed to create module spec")
+__spec__ = _spec
 __path__ = [str(Path(__file__).with_name("cli"))]
 
 app = typer.Typer(name="hephaestus", help="Hephaestus developer toolkit.", no_args_is_help=True)

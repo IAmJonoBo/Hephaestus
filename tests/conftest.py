@@ -27,7 +27,7 @@ class ServiceAccountContext:
 @pytest.fixture()
 def service_account_environment(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> Generator[ServiceAccountContext, None, None]:
+) -> Generator[ServiceAccountContext]:
     """Provision temporary service account credentials for API tests."""
 
     import importlib

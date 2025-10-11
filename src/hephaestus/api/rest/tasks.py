@@ -66,7 +66,7 @@ class TaskManager:
         func: Callable[..., Any],
         *args: Any,
         timeout: float | None = DEFAULT_TASK_TIMEOUT,
-        principal: "AuthenticatedPrincipal" | None = None,  # noqa: UP037
+        principal: AuthenticatedPrincipal | None = None,  # noqa: UP037
         required_roles: Iterable[str] | None = None,
         **kwargs: Any,
     ) -> str:
@@ -196,7 +196,7 @@ class TaskManager:
         self,
         task_id: str,
         *,
-        principal: "AuthenticatedPrincipal" | None = None,  # noqa: UP037
+        principal: AuthenticatedPrincipal | None = None,  # noqa: UP037
     ) -> Task:
         """Get status of a task.
 
@@ -243,7 +243,7 @@ class TaskManager:
         *,
         poll_interval: float = 0.5,
         timeout: float | None = None,
-        principal: "AuthenticatedPrincipal" | None = None,  # noqa: UP037
+        principal: AuthenticatedPrincipal | None = None,  # noqa: UP037
     ) -> Task:
         """Wait for a task to finish, polling until completion or timeout."""
 
@@ -297,7 +297,7 @@ class TaskManager:
     def _ensure_access(
         self,
         task: Task,
-        principal: "AuthenticatedPrincipal" | None,  # noqa: UP037
+        principal: AuthenticatedPrincipal | None,  # noqa: UP037
     ) -> None:
         if task.principal_id is None and not task.required_roles:
             return

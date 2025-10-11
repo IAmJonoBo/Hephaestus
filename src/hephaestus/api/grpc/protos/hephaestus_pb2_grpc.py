@@ -325,15 +325,17 @@ class AnalyticsServiceStub:
             _registered_method=True,
         )
         self.GetHotspots = channel.unary_unary(
-                '/hephaestus.v1.AnalyticsService/GetHotspots',
-                request_serializer=hephaestus__pb2.HotspotsRequest.SerializeToString,
-                response_deserializer=hephaestus__pb2.HotspotsResponse.FromString,
-                _registered_method=True)
+            "/hephaestus.v1.AnalyticsService/GetHotspots",
+            request_serializer=hephaestus__pb2.HotspotsRequest.SerializeToString,
+            response_deserializer=hephaestus__pb2.HotspotsResponse.FromString,
+            _registered_method=True,
+        )
         self.StreamIngest = channel.stream_unary(
-                '/hephaestus.v1.AnalyticsService/StreamIngest',
-                request_serializer=hephaestus__pb2.AnalyticsEvent.SerializeToString,
-                response_deserializer=hephaestus__pb2.AnalyticsIngestResponse.FromString,
-                _registered_method=True)
+            "/hephaestus.v1.AnalyticsService/StreamIngest",
+            request_serializer=hephaestus__pb2.AnalyticsEvent.SerializeToString,
+            response_deserializer=hephaestus__pb2.AnalyticsIngestResponse.FromString,
+            _registered_method=True,
+        )
 
 
 class AnalyticsServiceServicer:
@@ -352,51 +354,47 @@ class AnalyticsServiceServicer:
         raise NotImplementedError(_NOT_IMPLEMENTED)
 
     def StreamIngest(self, request_iterator, context):
-        """Stream analytics ingestion events
-        """
+        """Stream analytics ingestion events"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def StreamIngest(self, request_iterator, context):
-        """Stream analytics ingestion events
-        """
+        """Stream analytics ingestion events"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def StreamIngest(self, request_iterator, context):
-        """Stream analytics ingestion events
-        """
+        """Stream analytics ingestion events"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def StreamIngest(self, request_iterator, context):
-        """Stream analytics ingestion events
-        """
+        """Stream analytics ingestion events"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
 
 def add_AnalyticsServiceServicer_to_server(servicer: AnalyticsServiceServicer, server: grpc.Server):
     rpc_method_handlers = {
-            'GetRankings': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetRankings,
-                    request_deserializer=hephaestus__pb2.RankingsRequest.FromString,
-                    response_serializer=hephaestus__pb2.RankingsResponse.SerializeToString,
-            ),
-            'GetHotspots': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetHotspots,
-                    request_deserializer=hephaestus__pb2.HotspotsRequest.FromString,
-                    response_serializer=hephaestus__pb2.HotspotsResponse.SerializeToString,
-            ),
-            'StreamIngest': grpc.stream_unary_rpc_method_handler(
-                    servicer.StreamIngest,
-                    request_deserializer=hephaestus__pb2.AnalyticsEvent.FromString,
-                    response_serializer=hephaestus__pb2.AnalyticsIngestResponse.SerializeToString,
-            ),
+        "GetRankings": grpc.unary_unary_rpc_method_handler(
+            servicer.GetRankings,
+            request_deserializer=hephaestus__pb2.RankingsRequest.FromString,
+            response_serializer=hephaestus__pb2.RankingsResponse.SerializeToString,
+        ),
+        "GetHotspots": grpc.unary_unary_rpc_method_handler(
+            servicer.GetHotspots,
+            request_deserializer=hephaestus__pb2.HotspotsRequest.FromString,
+            response_serializer=hephaestus__pb2.HotspotsResponse.SerializeToString,
+        ),
+        "StreamIngest": grpc.stream_unary_rpc_method_handler(
+            servicer.StreamIngest,
+            request_deserializer=hephaestus__pb2.AnalyticsEvent.FromString,
+            response_serializer=hephaestus__pb2.AnalyticsIngestResponse.SerializeToString,
+        ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
         "hephaestus.v1.AnalyticsService", rpc_method_handlers
@@ -466,23 +464,26 @@ class AnalyticsService:
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def StreamIngest(request_iterator,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def StreamIngest(
+        request_iterator,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.stream_unary(
             request_iterator,
             target,
-            '/hephaestus.v1.AnalyticsService/StreamIngest',
+            "/hephaestus.v1.AnalyticsService/StreamIngest",
             hephaestus__pb2.AnalyticsEvent.SerializeToString,
             hephaestus__pb2.AnalyticsIngestResponse.FromString,
             options,
@@ -493,23 +494,26 @@ class AnalyticsService:
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def StreamIngest(request_iterator,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def StreamIngest(
+        request_iterator,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.stream_unary(
             request_iterator,
             target,
-            '/hephaestus.v1.AnalyticsService/StreamIngest',
+            "/hephaestus.v1.AnalyticsService/StreamIngest",
             hephaestus__pb2.AnalyticsEvent.SerializeToString,
             hephaestus__pb2.AnalyticsIngestResponse.FromString,
             options,
@@ -520,23 +524,26 @@ class AnalyticsService:
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def StreamIngest(request_iterator,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def StreamIngest(
+        request_iterator,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.stream_unary(
             request_iterator,
             target,
-            '/hephaestus.v1.AnalyticsService/StreamIngest',
+            "/hephaestus.v1.AnalyticsService/StreamIngest",
             hephaestus__pb2.AnalyticsEvent.SerializeToString,
             hephaestus__pb2.AnalyticsIngestResponse.FromString,
             options,
@@ -547,23 +554,26 @@ class AnalyticsService:
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def StreamIngest(request_iterator,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def StreamIngest(
+        request_iterator,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.stream_unary(
             request_iterator,
             target,
-            '/hephaestus.v1.AnalyticsService/StreamIngest',
+            "/hephaestus.v1.AnalyticsService/StreamIngest",
             hephaestus__pb2.AnalyticsEvent.SerializeToString,
             hephaestus__pb2.AnalyticsIngestResponse.FromString,
             options,
@@ -574,4 +584,5 @@ class AnalyticsService:
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )

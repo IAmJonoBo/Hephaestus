@@ -18,6 +18,39 @@ echo ""
 
 FAILED=0
 
+ORIGINAL_DIR=$(pwd)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=${REPO_ROOT:-$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel 2>/dev/null || echo "")}
+
+if [[ -z ${REPO_ROOT} ]]; then
+  read -r -p "Enter the repository root path (or press Enter to cancel): " REPO_ROOT
+  if [[ -z ${REPO_ROOT} ]]; then
+    echo "Repository root not provided; aborting validation." >&2
+    exit 1
+  fi
+fi
+
+if [[ ! -d ${REPO_ROOT} ]]; then
+  echo "Repository root path '${REPO_ROOT}' does not exist" >&2
+  exit 1
+fi
+
+cd "${REPO_ROOT}"
+trap 'cd "${ORIGINAL_DIR}"' EXIT
+
+PROJECT_ROOT=$(pwd)
+DEFAULT_VENV_PATH="${PROJECT_ROOT}/.venv"
+DEFAULT_CACHE_PATH="${PROJECT_ROOT}/.uv-cache"
+
+export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${DEFAULT_VENV_PATH}}"
+export UV_CACHE_DIR="${UV_CACHE_DIR:-${DEFAULT_CACHE_PATH}}"
+mkdir -p "${UV_CACHE_DIR}"
+
+if [[ ${OSTYPE} == "darwin"* ]]; then
+  export UV_LINK_MODE="${UV_LINK_MODE:-copy}"
+  export COPYFILE_DISABLE="${COPYFILE_DISABLE:-1}"
+fi
+
 # Function to print status messages
 print_status() {
   echo -e "${CYAN}→${NC} $1"
@@ -36,9 +69,70 @@ print_warning() {
   echo -e "${YELLOW}⚠${NC} $1"
 }
 
-# Check 1: Validate Python version
+run_uv_python_version() {
+  UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT}" \
+  UV_CACHE_DIR="${UV_CACHE_DIR}" \
+  UV_LINK_MODE="${UV_LINK_MODE:-copy}" \
+  COPYFILE_DISABLE="${COPYFILE_DISABLE:-1}" \
+  uv run python -c 'import sys; print(".".join(map(str, sys.version_info[:3])))'
+}
+
+resolve_python_version_with_uv() {
+  local tmp_err
+  tmp_err=$(mktemp)
+
+  local py_version
+  if py_version=$(run_uv_python_version 2>"${tmp_err}"); then
+    rm -f "${tmp_err}"
+    PYTHON_VERSION="${py_version}"
+    return 0
+  fi
+
+  if grep -qi "Operation not supported" "${tmp_err}"; then
+    local fallback_cache="${HOME}/.cache/uv"
+    if [[ ${UV_CACHE_DIR} != "${fallback_cache}" ]]; then
+      print_warning "Repo-local UV cache ${UV_CACHE_DIR} not supported; falling back to ${fallback_cache}" >&2
+      export UV_CACHE_DIR="${fallback_cache}"
+      mkdir -p "${UV_CACHE_DIR}"
+      rm -f "${tmp_err}"
+      tmp_err=$(mktemp)
+      if py_version=$(run_uv_python_version 2>"${tmp_err}"); then
+        rm -f "${tmp_err}"
+        PYTHON_VERSION="${py_version}"
+        return 0
+      fi
+    fi
+  fi
+
+  rm -f "${tmp_err}"
+  return 1
+}
+
+# Check 1: Validate uv installation
+print_status "Checking uv installation..."
+if ! command -v uv &>/dev/null; then
+  print_error "uv not found - install from https://docs.astral.sh/uv/"
+  UV_AVAILABLE=0
+else
+  UV_VERSION=$(uv --version 2>&1)
+  print_success "uv detected: ${UV_VERSION}"
+  UV_AVAILABLE=1
+fi
+
+# Check 2: Validate Python version
 print_status "Checking Python version..."
-PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
+PYTHON_VERSION=""
+
+if [[ ${UV_AVAILABLE:-0} -eq 1 ]]; then
+  if resolve_python_version_with_uv; then
+    :
+  fi
+fi
+
+if [[ -z ${PYTHON_VERSION} ]]; then
+  PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
+fi
+
 PYTHON_MAJOR=$(echo "${PYTHON_VERSION}" | cut -d. -f1)
 PYTHON_MINOR=$(echo "${PYTHON_VERSION}" | cut -d. -f2)
 
@@ -46,15 +140,6 @@ if [[ ${PYTHON_MAJOR} -lt 3 ]] || [[ ${PYTHON_MAJOR} -eq 3 && ${PYTHON_MINOR} -l
   print_error "Python 3.12+ required, found ${PYTHON_VERSION}"
 else
   print_success "Python ${PYTHON_VERSION} detected"
-fi
-
-# Check 2: Validate uv installation
-print_status "Checking uv installation..."
-if ! command -v uv &>/dev/null; then
-  print_error "uv not found - install from https://docs.astral.sh/uv/"
-else
-  UV_VERSION=$(uv --version 2>&1)
-  print_success "uv detected: ${UV_VERSION}"
 fi
 
 # Check 3: Validate pyproject.toml exists

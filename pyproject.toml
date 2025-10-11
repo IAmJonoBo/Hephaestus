@@ -134,6 +134,7 @@ warn_return_any = true
 warn_redundant_casts = true
 warn_unused_configs = true
 mypy_path = ["src"]
+exclude = ["plugin-templates/registry/artifacts/"]
 
 [[tool.mypy.overrides]]
 module = ["grpc.*", "grpc_reflection.*", "google.protobuf.*"]

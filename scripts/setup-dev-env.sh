@@ -4,17 +4,37 @@
 
 set -euo pipefail
 
-# Colors and formatting for output
+# Colours used for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
-NC='\033[0m' # No Color
+NC='\033[0m' # No Colour
+
+ORIGINAL_DIR=$(pwd)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=${REPO_ROOT:-$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel 2>/dev/null || echo "")}
+
+if [[ -z ${REPO_ROOT} ]]; then
+  echo -e "${YELLOW}⚠${NC} Unable to determine repository root automatically."
+  read -r -p "Enter the repository root path (or press Enter to cancel): " REPO_ROOT
+  if [[ -z ${REPO_ROOT} ]]; then
+    echo -e "${RED}✗${NC} Repository root not provided; aborting setup." >&2
+    exit 1
+  fi
+fi
+
+if [[ ! -d ${REPO_ROOT} ]]; then
+  echo -e "${RED}✗${NC} Repository root path '${REPO_ROOT}' does not exist" >&2
+  exit 1
+fi
+
+cd "${REPO_ROOT}"
+trap 'cd "${ORIGINAL_DIR}"' EXIT
 
 # Progress indicators
 STEP=0
-TOTAL_STEPS=6
 
 echo -e "${CYAN}==================================================================${NC}"
 echo -e "${CYAN}${BOLD}Hephaestus Development Environment Setup${NC}"
@@ -23,8 +43,8 @@ echo ""
 
 # Function to print status messages with step numbers
 print_status() {
-  ((STEP++))
-  echo -e "${CYAN}[${STEP}/${TOTAL_STEPS}] →${NC} $1"
+  ((++STEP))
+  echo -e "${CYAN}[${STEP}] →${NC} $1"
 }
 
 print_success() {
@@ -37,6 +57,45 @@ print_error() {
 
 print_warning() {
   echo -e "${YELLOW}    ⚠${NC} $1"
+}
+
+run_uv_python_version() {
+  UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT}" \
+    UV_CACHE_DIR="${UV_CACHE_DIR}" \
+    UV_LINK_MODE="${UV_LINK_MODE:-copy}" \
+    COPYFILE_DISABLE="${COPYFILE_DISABLE:-1}" \
+    uv run python -c 'import sys; print(".".join(map(str, sys.version_info[:3])))'
+}
+
+resolve_python_version_with_uv() {
+  local tmp_err
+  tmp_err=$(mktemp)
+
+  local py_version
+  if py_version=$(run_uv_python_version 2>"${tmp_err}"); then
+    rm -f "${tmp_err}"
+    PYTHON_VERSION="${py_version}"
+    return 0
+  fi
+
+  if grep -qi "Operation not supported" "${tmp_err}"; then
+    local fallback_cache="${HOME}/.cache/uv"
+    if [[ ${UV_CACHE_DIR} != "${fallback_cache}" ]]; then
+      print_warning "Repo-local UV cache ${UV_CACHE_DIR} not supported; falling back to ${fallback_cache}" >&2
+      export UV_CACHE_DIR="${fallback_cache}"
+      mkdir -p "${UV_CACHE_DIR}"
+      rm -f "${tmp_err}"
+      tmp_err=$(mktemp)
+      if py_version=$(run_uv_python_version 2>"${tmp_err}"); then
+        rm -f "${tmp_err}"
+        PYTHON_VERSION="${py_version}"
+        return 0
+      fi
+    fi
+  fi
+
+  rm -f "${tmp_err}"
+  return 1
 }
 
 # Function to sweep AppleDouble files from uv cache and .venv
@@ -117,6 +176,11 @@ print_status "Configuring environment..."
 echo -e "    ${CYAN}•${NC} UV_PROJECT_ENVIRONMENT: ${UV_PROJECT_ENVIRONMENT}"
 echo -e "    ${CYAN}•${NC} UV_CACHE_DIR: ${UV_CACHE_DIR}"
 
+if [[ ${OSTYPE} == "darwin"* ]]; then
+  export UV_LINK_MODE="${UV_LINK_MODE:-copy}"
+  export COPYFILE_DISABLE="${COPYFILE_DISABLE:-1}"
+fi
+
 # Step 1: Check for uv installation
 print_status "Checking for uv package manager..."
 if ! command -v uv &>/dev/null; then
@@ -168,7 +232,13 @@ else
 fi
 
 print_status "Verifying Python runtime..."
-PYTHON_VERSION=$(uv run python -c 'import sys; print(".".join(map(str, sys.version_info[:3])))' 2>/dev/null || true)
+PYTHON_VERSION=""
+
+if command -v uv &>/dev/null; then
+  if resolve_python_version_with_uv; then
+    :
+  fi
+fi
 
 if [[ -z ${PYTHON_VERSION} ]]; then
   PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
@@ -228,20 +298,21 @@ if [[ ${OSTYPE} == "darwin"* ]]; then
 
   # Relocate environment to internal disk if on non-xattr filesystem
   if [[ ${NON_XATTR_FS} -eq 1 ]]; then
+    TARGET_ENV_DIR="${HOME}/.uvenvs/${REPO_NAME}"
+
     if [[ ${UV_FORCE_LOCAL_ENV} -eq 1 ]]; then
-      print_warning "Non-xattr filesystem detected (${FS_TYPE}); proceeding with repo-local environment (UV_FORCE_LOCAL_ENV=1)"
+      print_warning "Non-xattr filesystem detected (${FS_TYPE}); repo-local virtualenv not supported, relocating to ${TARGET_ENV_DIR}" >&2
     else
-      TARGET_ENV_DIR="${HOME}/.uvenvs/${REPO_NAME}"
-
       print_status "Configuring UV_PROJECT_ENVIRONMENT=${TARGET_ENV_DIR}"
-      export UV_PROJECT_ENVIRONMENT="${TARGET_ENV_DIR}"
-      ENV_RELOCATED=1
-
-      # Create the parent directory if needed
-      mkdir -p "${HOME}/.uvenvs"
-
-      print_success "Virtual environment will be created on internal disk"
     fi
+
+    export UV_PROJECT_ENVIRONMENT="${TARGET_ENV_DIR}"
+    ENV_RELOCATED=1
+
+    # Create the parent directory if needed
+    mkdir -p "${HOME}/.uvenvs"
+
+    print_success "Virtual environment will be created on internal disk"
   fi
 fi
 
@@ -422,7 +493,7 @@ TOTAL_MODULES=6
 # Check core dependencies
 for module in "typer" "rich" "pydantic" "pytest" "ruff" "mypy"; do
   if uv run python -c "import ${module}; print(f'${module} OK')" &>/dev/null; then
-    ((VALIDATED_COUNT++))
+    ((++VALIDATED_COUNT))
     print_success "${module} available (${VALIDATED_COUNT}/${TOTAL_MODULES})"
   else
     print_error "${module} not available"

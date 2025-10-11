@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from conftest import ServiceAccountContext
 
+from conftest import ServiceAccountContext
 from hephaestus.api import auth as auth_module
 from hephaestus.api.rest import tasks as tasks_module
 from hephaestus.api.rest.tasks import Task, TaskStatus

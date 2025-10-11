@@ -5,6 +5,27 @@
 
 set -euo pipefail
 
+ORIGINAL_DIR=$(pwd)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=${REPO_ROOT:-$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel 2>/dev/null || echo "")}
+
+if [[ -z ${REPO_ROOT} ]]; then
+  echo "Unable to determine repository root automatically."
+  read -r -p "Enter the repository root path (or press Enter to cancel): " REPO_ROOT
+  if [[ -z ${REPO_ROOT} ]]; then
+    echo "Repository root not provided; aborting validation." >&2
+    exit 1
+  fi
+fi
+
+if [[ ! -d ${REPO_ROOT} ]]; then
+  echo "Repository root path '${REPO_ROOT}' does not exist" >&2
+  exit 1
+fi
+
+cd "${REPO_ROOT}"
+trap 'cd "${ORIGINAL_DIR}"' EXIT
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -100,7 +121,7 @@ fi
 
 # Test 6: Check if UV cache directory detection works
 print_test "Checking UV cache directory detection..."
-UV_CACHE_DIR="${UV_CACHE_DIR:-$HOME/.cache/uv}"
+UV_CACHE_DIR="${UV_CACHE_DIR:-${HOME}/.cache/uv}"
 print_info "UV cache directory: $UV_CACHE_DIR"
 if [[ -n $UV_CACHE_DIR ]]; then
   print_pass "UV cache directory path is set"
@@ -125,7 +146,7 @@ if [[ $IS_MACOS == true ]]; then
   UV_CACHE_DIR="${UV_CACHE_DIR:-$HOME/.cache/uv}"
   APPLEDOUBLE_COUNT=0
 
-  if [[ -d $UV_CACHE_DIR ]]; then
+  if [[ -d ${UV_CACHE_DIR} ]]; then
     APPLEDOUBLE_COUNT=$(find "$UV_CACHE_DIR" -name "._*" -type f 2>/dev/null | wc -l | tr -d ' ')
   fi
 
@@ -170,4 +191,4 @@ else
 fi
 echo ""
 
-exit ${TEST_FAILED}
+exit "${TEST_FAILED}"

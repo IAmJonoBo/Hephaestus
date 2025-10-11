@@ -4,12 +4,12 @@ name: Validate Dependencies
 # Runs on PRs to ensure uv.lock is in sync with pyproject.toml
 # Especially important for dependabot PRs
 
-"on":
+on:
   pull_request:
     paths:
-      - "pyproject.toml"
-      - "uv.lock"
-      - ".github/workflows/validate-dependencies.yml"
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/validate-dependencies.yml
 
 permissions:
   contents: read

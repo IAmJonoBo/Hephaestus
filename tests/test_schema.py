@@ -10,15 +10,32 @@ import typer
 from hephaestus.schema import CommandSchema, extract_command_schemas
 
 
+def hello(name: str) -> None:
+    """Say hello to someone."""
+    typer.echo(f"Hello {name}")
+
+
+def greet(
+    name: Annotated[str, typer.Argument(help="Name to greet")],
+    formal: Annotated[bool, typer.Option(help="Use formal greeting")] = False,
+) -> None:
+    """Greet someone."""
+    if formal:
+        typer.echo(f"Good day {name}")
+    else:
+        typer.echo(f"Hello {name}")
+
+
+def analyze() -> None:
+    """Analyze the code."""
+    typer.echo("Analyzing...")
+
+
 def test_extract_command_schemas_basic() -> None:
     """Test extracting schemas from a simple Typer app."""
     app = typer.Typer()
 
-    @app.command()
-    def hello(name: str) -> None:
-        """Say hello to someone."""
-        typer.echo(f"Hello {name}")
-
+    app.command()(hello)
     schemas = extract_command_schemas(app)
 
     assert len(schemas) == 1
@@ -32,14 +49,7 @@ def test_extract_command_schemas_with_options() -> None:
     """Test extracting schemas with optional parameters."""
     app = typer.Typer()
 
-    @app.command()
-    def greet(
-        name: Annotated[str, typer.Argument(help="Name to greet")],
-        formal: Annotated[bool, typer.Option(help="Use formal greeting")] = False,
-    ) -> None:
-        """Greet someone."""
-        pass
-
+    app.command()(greet)
     schemas = extract_command_schemas(app)
 
     assert len(schemas) == 1
@@ -60,11 +70,7 @@ def test_extract_command_schemas_nested_groups() -> None:
     app = typer.Typer()
     tools_app = typer.Typer()
 
-    @tools_app.command()
-    def analyze() -> None:
-        """Analyze the code."""
-        pass
-
+    tools_app.command()(analyze)
     app.add_typer(tools_app, name="tools")
 
     schemas = extract_command_schemas(app)

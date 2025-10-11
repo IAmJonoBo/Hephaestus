@@ -32,7 +32,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 def record_audit_event(
-    principal: "AuthenticatedPrincipal",  # noqa: UP037
+    principal: AuthenticatedPrincipal,  # noqa: UP037
     *,
     operation: str,
     status: AuditStatus,

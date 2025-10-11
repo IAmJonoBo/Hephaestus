@@ -19,16 +19,12 @@ import json
 import logging
 import sys
 import time
+import tomllib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from importlib import metadata
 from pathlib import Path
 from typing import Any
-
-try:
-    import tomli as tomllib  # type: ignore  # Python < 3.11
-except ImportError:
-    import tomllib
 
 from packaging.specifiers import SpecifierSet
 from packaging.version import InvalidVersion, Version
@@ -1026,7 +1022,7 @@ def _load_marketplace_plugins(
 
     while pending:
         progressed = False
-        for config in list(pending):
+        for config in pending:
             manifest = manifests.get(config.name)
             if manifest is None:
                 raise ValueError(
