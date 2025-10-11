@@ -148,6 +148,39 @@ else
   print_warning ".venv not found - run 'uv sync' to create"
 fi
 
+# Check 12: Validate COPYFILE_DISABLE and UV_LINK_MODE on macOS
+if [[ ${OSTYPE} == "darwin"* ]]; then
+  print_status "Checking macOS environment variables..."
+  
+  if [[ ${COPYFILE_DISABLE:-0} -eq 1 ]]; then
+    print_success "COPYFILE_DISABLE=1 is set"
+  else
+    print_warning "COPYFILE_DISABLE should be set to 1 on macOS"
+  fi
+  
+  if [[ ${UV_LINK_MODE} == "copy" ]]; then
+    print_success "UV_LINK_MODE=copy is set"
+  else
+    print_warning "UV_LINK_MODE should be set to 'copy' on macOS"
+  fi
+fi
+
+# Check 13: Smoke test uv sync with Python 3.12
+print_status "Testing throwaway uv sync with Python 3.12..."
+if UV_PYTHON=3.12 uv sync --frozen --dry-run 2>&1 | grep -qE "(Would|Already)"; then
+  print_success "uv sync dry-run test passed"
+else
+  print_warning "Could not verify uv sync dry-run"
+fi
+
+# Check 14: Smoke test hephaestus CLI
+print_status "Testing hephaestus CLI smoke test..."
+if uv run hephaestus version >/dev/null 2>&1; then
+  print_success "hephaestus CLI smoke test passed"
+else
+  print_error "hephaestus CLI smoke test failed"
+fi
+
 # Summary
 echo ""
 echo -e "${CYAN}==================================================================${NC}"

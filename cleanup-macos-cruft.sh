@@ -43,6 +43,7 @@ ARGS=("$@")
 
 # Prevent cp/tar from emitting AppleDouble files on non-HFS targets.
 export COPYFILE_DISABLE="${COPYFILE_DISABLE:-1}"
+export UV_LINK_MODE="${UV_LINK_MODE:-copy}"
 
 # Check if we need to inject the repository root
 should_inject_root=true
@@ -121,7 +122,46 @@ unlock_apple_metadata() {
   fi
 }
 
+# Sweep AppleDouble files from uv cache and .venv to prevent wheel RECORD mismatches
+sweep_uv_appledouble() {
+  if [[ ${OSTYPE} != darwin* ]]; then
+    return 0
+  fi
+  if ! command -v find >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local UV_CACHE_DIR="${UV_CACHE_DIR:-${HOME}/.cache/uv}"
+  local UV_SHARE_DIR="${HOME}/.local/share/uv"
+
+  # Sweep uv cache directories
+  for cache_dir in "${UV_CACHE_DIR}" "${UV_SHARE_DIR}"; do
+    if [[ -d ${cache_dir} ]]; then
+      find "${cache_dir}" -name "._*" -type f -delete 2>/dev/null || true
+      find "${cache_dir}" -name ".DS_Store" -type f -delete 2>/dev/null || true
+      find "${cache_dir}" -name "__MACOSX" -type d -exec rm -rf {} + 2>/dev/null || true
+    fi
+  done
+
+  # Sweep .venv if it exists
+  if [[ -d "${PROJECT_ROOT}/.venv" ]]; then
+    find "${PROJECT_ROOT}/.venv" -name "._*" -type f -delete 2>/dev/null || true
+    find "${PROJECT_ROOT}/.venv" -name ".DS_Store" -type f -delete 2>/dev/null || true
+    find "${PROJECT_ROOT}/.venv" -name "__MACOSX" -type d -exec rm -rf {} + 2>/dev/null || true
+    # Strip extended attributes from .venv
+    if command -v xattr >/dev/null 2>&1; then
+      xattr -rc "${PROJECT_ROOT}/.venv" 2>/dev/null || true
+    fi
+  fi
+}
+
 unlock_apple_metadata "${PROJECT_ROOT}"
+
+# Sweep AppleDouble files from uv cache to prevent wheel installation failures
+sweep_uv_appledouble
+
+# Pin Python to 3.12 for uv commands to honor the repository's version requirement
+export UV_PYTHON="${UV_PYTHON:-3.12}"
 
 if command -v uv >/dev/null 2>&1; then
   if uv run hephaestus cleanup "${ARGS[@]}"; then
