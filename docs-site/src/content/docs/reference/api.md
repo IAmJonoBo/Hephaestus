@@ -117,6 +117,40 @@ Get refactoring rankings.
 }
 ```
 
+#### POST /analytics/ingest
+
+Stream newline-delimited analytics events. Each line must be a valid JSON object
+matching the ingestion schema.
+
+**Request Body (NDJSON):**
+
+```text
+{"source": "ci", "kind": "coverage", "value": 0.92, "timestamp": "2025-01-02T03:04:05Z"}
+{"source": "ci", "kind": "latency", "value": 123.0, "timestamp": "2025-01-02T03:05:00+00:00"}
+```
+
+**Accepted timestamp formats** (`timestamp` field is optional):
+
+- ISO 8601 strings with timezone offsets, e.g. `2025-01-02T03:05:00+00:00` or `2025-01-02T03:05:00-07:00`
+- UTC shorthand values such as `2025-01-02T03:04:05Z`, `2025-01-02T03:04:05 UTC`, or `2025-01-02T03:04:05+0000`
+- Naive ISO 8601 datetimes (no offset) are accepted but stored without timezone information
+
+The service normalises UTC indicators like `Z`, `UTC`, and `+0000` to `+00:00`
+before parsing, ensuring stored events preserve full `datetime` values.
+
+**Response:**
+
+```json
+{
+  "accepted": 2,
+  "rejected": 0,
+  "summary": {
+    "sources": {"ci": 2},
+    "kinds": {"coverage": 1, "latency": 1}
+  }
+}
+```
+
 ### Tasks
 
 #### GET /tasks/{task_id}

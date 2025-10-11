@@ -144,6 +144,10 @@ protoc --ts_out=. --grpc-web_out=import_style=typescript:. hephaestus.proto
 - `GetHotspots(HotspotsRequest) → HotspotsResponse`
   - Identify high-risk code areas
   - Returns change frequency, complexity, risk scores
+- `StreamIngest(stream AnalyticsEvent) → AnalyticsIngestResponse`
+  - Client-streaming ingestion of analytics events (NDJSON equivalent)
+  - `AnalyticsEvent.timestamp` accepts ISO 8601 strings with offsets (e.g. `2025-01-02T03:05:00-07:00`), UTC shorthand (`...Z`, `... UTC`, `...+0000`), or naive datetimes
+  - UTC indicators are normalised to `+00:00` before persistence so stored events retain full datetime values
 
 ## Protocol Buffers
 
