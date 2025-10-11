@@ -15,8 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from hephaestus import drift as drift_module
-from hephaestus import toolbox
+from hephaestus import drift as drift_module, toolbox
 from hephaestus.analytics import RankingStrategy, load_module_signals, rank_modules
 from hephaestus.api import auth
 from hephaestus.cleanup import CleanupOptions, run_cleanup

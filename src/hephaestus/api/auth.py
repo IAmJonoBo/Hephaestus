@@ -8,8 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from hashlib import sha256
-from hmac import compare_digest
-from hmac import new as hmac_new
+from hmac import compare_digest, new as hmac_new
 from pathlib import Path
 from threading import RLock
 
@@ -167,7 +166,7 @@ class ServiceAccountVerifier:
         try:
             header = json.loads(_b64url_decode(header_raw))
             payload = json.loads(_b64url_decode(payload_raw))
-        except (json.JSONDecodeError, ValueError) as exc:
+        except json.JSONDecodeError as exc:
             raise AuthenticationError("Malformed bearer token payload") from exc
 
         if header.get("alg") != "HS256":

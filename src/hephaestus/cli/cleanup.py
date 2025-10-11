@@ -18,8 +18,7 @@ from rich.progress import (
 )
 from rich.table import Table
 
-from hephaestus import cleanup as cleanup_module
-from hephaestus import events as telemetry
+from hephaestus import cleanup as cleanup_module, events as telemetry
 from hephaestus.telemetry import record_histogram, trace_command
 
 console = Console()

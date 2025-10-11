@@ -11,9 +11,7 @@ from collections.abc import Sequence
 from hephaestus.backfill import (
     BackfillError,
     BackfillRunSummary,
-)
-from hephaestus.backfill import logger as backfill_logger
-from hephaestus.backfill import (
+    logger as backfill_logger,
     run_backfill,
 )
 

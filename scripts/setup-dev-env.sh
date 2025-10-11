@@ -96,6 +96,22 @@ export UV_CACHE_DIR="${UV_CACHE_DIR:-${DEFAULT_CACHE_PATH}}"
 
 mkdir -p "${UV_CACHE_DIR}"
 
+# Ensure git hooks use repository-managed configuration (avoid global overrides)
+CURRENT_HOOKS_PATH=$(git config --local --get core.hooksPath 2>/dev/null || echo "")
+if [[ -n ${CURRENT_HOOKS_PATH} ]] && [[ ${CURRENT_HOOKS_PATH} != ".git/hooks" ]]; then
+  print_warning "core.hooksPath is set to: ${CURRENT_HOOKS_PATH}"
+  print_status "Resetting core.hooksPath to use repository hooks..."
+  if git config --local --unset core.hooksPath >/dev/null 2>&1; then
+    print_success "core.hooksPath unset (default .git/hooks will be used)"
+  else
+    if git config --local core.hooksPath ".git/hooks" >/dev/null 2>&1; then
+      print_success "core.hooksPath set to .git/hooks"
+    else
+      print_warning "Unable to adjust core.hooksPath automatically; continuing"
+    fi
+  fi
+fi
+
 print_success "Repository root detected"
 print_status "Configuring environment..."
 echo -e "    ${CYAN}•${NC} UV_PROJECT_ENVIRONMENT: ${UV_PROJECT_ENVIRONMENT}"
@@ -449,12 +465,19 @@ if command -v pre-commit &>/dev/null || uv run pre-commit --version &>/dev/null;
   print_status "Setting up pre-commit hooks..."
 
   # Check if core.hooksPath is configured
-  HOOKS_PATH=$(git config --get core.hooksPath 2>/dev/null || echo "")
-  if [[ -n ${HOOKS_PATH} ]]; then
+  HOOKS_PATH=$(git config --local --get core.hooksPath 2>/dev/null || echo "")
+  if [[ -n ${HOOKS_PATH} ]] && [[ ${HOOKS_PATH} != ".git/hooks" ]]; then
     print_warning "core.hooksPath is set to: ${HOOKS_PATH}"
-    print_warning "Pre-commit hooks managed centrally - skipping local installation"
-    print_warning "To enable local hooks, run: git config --unset core.hooksPath"
-  else
+    print_status "Forcing core.hooksPath to .git/hooks so local hooks are active..."
+    if git config --local core.hooksPath ".git/hooks" >/dev/null 2>&1; then
+      print_success "core.hooksPath set to .git/hooks"
+      HOOKS_PATH=".git/hooks"
+    else
+      print_warning "Unable to modify core.hooksPath; skipping pre-commit hook installation"
+    fi
+  fi
+
+  if [[ -z ${HOOKS_PATH} ]] || [[ ${HOOKS_PATH} == ".git/hooks" ]]; then
     if uv run pre-commit install; then
       print_success "Pre-commit hooks installed"
     else
