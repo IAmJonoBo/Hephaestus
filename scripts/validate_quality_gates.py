@@ -126,24 +126,88 @@ def run_quality_gate(gate: QualityGate, verbose: bool = True) -> bool:
     try:
         result = subprocess.run(
             gate.command,
-            capture_output=not verbose,
+            capture_output=True,  # Always capture to check for errors
             text=True,
             check=False,
         )
+
+        # Print output if verbose
+        if verbose:
+            if result.stdout:
+                print(result.stdout, end="")
+            if result.stderr:
+                print(result.stderr, end="", file=sys.stderr)
 
         if result.returncode == 0:
             print(f"✅ {gate.name} PASSED")
             return True
         else:
-            print(f"❌ {gate.name} FAILED")
-            if not verbose and result.stdout:
-                print(result.stdout)
-            if not verbose and result.stderr:
-                print(result.stderr, file=sys.stderr)
-            return False
+            # Check if this is a missing Python module error
+            is_python_module = "-m" in gate.command
+            stderr_has_no_module = result.stderr and "No module named" in result.stderr
+            stdout_has_no_module = result.stdout and "No module named" in result.stdout
 
-    except FileNotFoundError:
-        print(f"⚠️  {gate.name} SKIPPED (command not found)")
+            if is_python_module and (stderr_has_no_module or stdout_has_no_module):
+                module_name = gate.command[gate.command.index("-m") + 1]
+                print(f"⚙️  {gate.name} - Installing missing module: {module_name}")
+
+                try:
+                    install_result = subprocess.run(
+                        ["pip", "install", module_name],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+
+                    if install_result.returncode == 0:
+                        print(f"✅ {module_name} installed successfully, retrying...")
+                        # Retry the command
+                        retry_result = subprocess.run(
+                            gate.command,
+                            capture_output=True,
+                            text=True,
+                            check=False,
+                        )
+
+                        # Print output if verbose
+                        if verbose:
+                            if retry_result.stdout:
+                                print(retry_result.stdout, end="")
+                            if retry_result.stderr:
+                                print(retry_result.stderr, end="", file=sys.stderr)
+
+                        if retry_result.returncode == 0:
+                            print(f"✅ {gate.name} PASSED")
+                            return True
+                        else:
+                            print(f"❌ {gate.name} FAILED after installing {module_name}")
+                            if not verbose:
+                                if retry_result.stdout:
+                                    print(retry_result.stdout)
+                                if retry_result.stderr:
+                                    print(retry_result.stderr, file=sys.stderr)
+                            return False
+                    else:
+                        print(f"⚠️  Failed to install {module_name}")
+                        if install_result.stderr:
+                            print(install_result.stderr, file=sys.stderr)
+                        print(f"❌ {gate.name} FAILED")
+                        return False
+                except Exception as install_error:
+                    print(f"⚠️  Error installing {module_name}: {install_error}")
+                    print(f"❌ {gate.name} FAILED")
+                    return False
+            else:
+                print(f"❌ {gate.name} FAILED")
+                if not verbose:
+                    if result.stdout:
+                        print(result.stdout)
+                    if result.stderr:
+                        print(result.stderr, file=sys.stderr)
+                return False
+
+    except FileNotFoundError as e:
+        print(f"⚠️  {gate.name} SKIPPED (command not found: {e})")
         return not gate.required
     except Exception as e:
         print(f"❌ {gate.name} ERROR: {e}")
