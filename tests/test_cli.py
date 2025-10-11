@@ -11,6 +11,8 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
+from hephaestus.backfill import BackfillRunSummary
+
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 if str(SRC) not in sys.path:
@@ -279,51 +281,76 @@ def test_release_install_help_succeeds() -> None:
     assert "--sigstore-identity" in clean_stdout
 
 
-def test_release_backfill_requires_token() -> None:
-    """The backfill command should fail fast without credentials."""
+def test_release_backfill_invokes_shared_runner(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Backfill command should call the shared run_backfill helper."""
 
     _, cli = _load_modules()
 
-    result = runner.invoke(
-        cli.app,
-        ["release", "backfill"],
-        env={"GITHUB_TOKEN": ""},
-    )
+    monkeypatch.setenv("GITHUB_TOKEN", "token-123")
 
-    assert result.exit_code == 1
-    assert "GITHUB_TOKEN" in result.stdout
+    captured_kwargs: dict[str, object] = {}
 
+    def fake_run_backfill(**kwargs: object) -> BackfillRunSummary:
+        captured_kwargs.update(kwargs)
+        return BackfillRunSummary(
+            successes=[{"version": "v0.2.3", "status": "backfilled"}],
+            failures=[],
+            inventory_path=tmp_path / "inventory.json",
+            versions=["v0.2.3"],
+            dry_run=True,
+        )
 
-def test_release_backfill_invokes_script(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Backfill command should invoke the sigstore helper script."""
-
-    _, cli = _load_modules()
-
-    calls: list[list[str]] = []
-
-    class Result:
-        def __init__(self, returncode: int = 0) -> None:
-            self.returncode = returncode
-
-    def fake_run(cmd: list[str], *, check: bool, env: dict[str, str]) -> Result:
-        calls.append(cmd)
-        assert check is False
-        assert "GITHUB_TOKEN" in env
-        return Result(returncode=0)
-
-    monkeypatch.setattr("subprocess.run", fake_run)
+    monkeypatch.setattr("hephaestus.cli.run_backfill", fake_run_backfill)
 
     result = runner.invoke(
         cli.app,
-        ["release", "backfill", "--dry-run"],
-        env={"GITHUB_TOKEN": "token-123"},
+        ["release", "backfill", "--version", "v0.2.3", "--dry-run"],
     )
 
     assert result.exit_code == 0
     assert "Backfill completed successfully" in result.stdout
-    assert calls, "Expected subprocess.run to be invoked"
-    script = Path(calls[0][1])
-    assert script.name == "backfill_sigstore_bundles.py"
+    assert captured_kwargs["token"] == "token-123"
+    assert captured_kwargs["version"] == "v0.2.3"
+    assert captured_kwargs["dry_run"] is True
+
+
+def test_release_backfill_handles_failures(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Backfill command should surface failures returned by run_backfill."""
+
+    _, cli = _load_modules()
+
+    monkeypatch.setenv("GITHUB_TOKEN", "token-123")
+
+    def fake_run_backfill(**_: object) -> BackfillRunSummary:
+        return BackfillRunSummary(
+            successes=[],
+            failures=[{"version": "v0.2.3", "error": "boom"}],
+            inventory_path=tmp_path / "inventory.json",
+            versions=["v0.2.3"],
+            dry_run=False,
+        )
+
+    monkeypatch.setattr("hephaestus.cli.run_backfill", fake_run_backfill)
+
+    result = runner.invoke(cli.app, ["release", "backfill"])
+
+    assert result.exit_code == 1
+    assert "Backfill failed" in result.stdout
+
+
+def test_release_backfill_requires_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The backfill command should still validate the GitHub token."""
+
+    _, cli = _load_modules()
+
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+    result = runner.invoke(cli.app, ["release", "backfill"])
+
+    assert result.exit_code == 1
+    assert "GITHUB_TOKEN" in result.stdout
 
 
 def test_qa_coverage_command_displays_gaps() -> None:
