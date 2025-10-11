@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 from collections import Counter, deque
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -32,6 +32,56 @@ class IngestSnapshot:
     rejected: int
     kinds: dict[str, int]
     sources: dict[str, int]
+
+
+def _normalise_utc_timestamp(raw: str) -> str:
+    """Normalise common UTC indicators to ``+00:00`` offsets."""
+
+    trimmed = raw.strip()
+    if not trimmed:
+        return trimmed
+
+    if trimmed.endswith(("Z", "z")):
+        return f"{trimmed[:-1]}+00:00"
+
+    upper_trimmed = trimmed.upper()
+    if upper_trimmed.endswith(" UTC"):
+        return f"{trimmed[:-4]}+00:00"
+    if upper_trimmed.endswith("UTC"):
+        return f"{trimmed[:-3]}+00:00"
+
+    if trimmed.endswith(("+0000", "-0000")):
+        return f"{trimmed[:-5]}+00:00"
+    if trimmed.endswith(("+00", "-00")):
+        return f"{trimmed[:-3]}+00:00"
+
+    return trimmed
+
+
+def _parse_timestamp(raw: str) -> datetime | None:
+    """Parse ISO-8601 timestamps with graceful UTC suffix handling."""
+
+    candidate = raw.strip()
+    if not candidate:
+        return None
+
+    attempts: Iterable[str] = (
+        candidate,
+        _normalise_utc_timestamp(candidate),
+        candidate.replace("Z", "+00:00").replace("z", "+00:00"),
+    )
+
+    seen: set[str] = set()
+    for version in attempts:
+        if not version or version in seen:
+            continue
+        seen.add(version)
+        try:
+            return datetime.fromisoformat(version)
+        except ValueError:
+            continue
+
+    return None
 
 
 class StreamingAnalyticsIngestor:
@@ -84,11 +134,10 @@ class StreamingAnalyticsIngestor:
 
         timestamp = None
         raw_timestamp = payload.get("timestamp")
-        if isinstance(raw_timestamp, str) and raw_timestamp:
-            try:
-                timestamp = datetime.fromisoformat(raw_timestamp)
-            except ValueError:
-                timestamp = None
+        if isinstance(raw_timestamp, datetime):
+            timestamp = raw_timestamp
+        elif isinstance(raw_timestamp, str) and raw_timestamp:
+            timestamp = _parse_timestamp(raw_timestamp)
 
         event = AnalyticsEvent(
             source=source,

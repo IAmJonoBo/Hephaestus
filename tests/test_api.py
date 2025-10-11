@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -332,3 +333,45 @@ async def test_analytics_ingest_handles_chunk_boundaries(
         and entry.get("status") == "success"
         for entry in entries
     )
+
+
+@pytest.mark.asyncio
+async def test_analytics_ingest_normalizes_z_timestamps(
+    rest_app_client: tuple[Any, Any],
+    service_account_environment: ServiceAccountContext,
+) -> None:
+    client, _ = rest_app_client
+
+    from hephaestus.analytics_streaming import global_ingestor
+
+    global_ingestor.reset()
+
+    payload = json.dumps(
+        {
+            "source": "ci",
+            "kind": "latency",
+            "value": 123.0,
+            "timestamp": "2025-01-02T03:04:05Z",
+        }
+    )
+
+    response = await client.post(
+        "/api/v1/analytics/ingest",
+        content=payload,
+        headers={"Authorization": f"Bearer {service_account_environment.omni_token}"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["accepted"] == 1
+    assert body["rejected"] == 0
+
+    # Access the ingestor buffer to confirm the timestamp remained timezone-aware.
+    events = list(global_ingestor._events)
+    assert len(events) == 1
+
+    event = events[0]
+    assert isinstance(event.timestamp, datetime)
+    assert event.timestamp is not None
+    assert event.timestamp.tzinfo is not None
+    assert event.timestamp == datetime(2025, 1, 2, 3, 4, 5, tzinfo=UTC)
