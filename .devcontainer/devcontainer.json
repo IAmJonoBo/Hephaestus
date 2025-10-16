@@ -1,6 +1,6 @@
 {
   "name": "Hephaestus",
-  "image": "mcr.microsoft.com/devcontainers/python:3.13",
+  "image": "mcr.microsoft.com/devcontainers/python:3.14",
   "features": {
     "ghcr.io/astral-sh/devcontainer-features/uv:latest": {}
   },
